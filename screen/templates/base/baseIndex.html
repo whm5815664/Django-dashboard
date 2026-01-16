@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  {% load static %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>模型构建</title>
+  <link rel="stylesheet" href="{% static 'css/layui/css/layui.css' %}">
+  <link rel="stylesheet" href="{% static 'css/font-awesome-4.7.0/css/font-awesome.min.css' %}" media="all">
+  <script src="{% static 'css/echarts/echarts.min.js' %}"></script>
+
+
+
+</head>
+<body class="layui-layout-body">
+
+
+<div class="layui-layout layui-layout-admin">
+
+  <!-- 头部区域（可配合layui已有的水平导航） -->
+  <div class="layui-header">
+    <div class="layui-logo">基地</div>
+    <ul class="layui-nav layui-layout-right">
+      <li class="layui-nav-item">
+      </li>
+      <li class="layui-nav-item"><a href="../exit.php">退出</a></li>
+    </ul>
+  </div>
+  <!-- 头部区域 结束-->
+
+
+  <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+  <div class="layui-side layui-bg-black">
+    <div class="layui-side-scroll">
+      <ul class="layui-nav layui-nav-tree"  lay-filter="test">
+
+        <li class="layui-nav-item"><a href="">模型构建</a></li>
+
+        <li class="layui-nav-item layui-nav-itemed">
+          <a class="" href="javascript:;">管理中心</a>
+          <dl class="layui-nav-child">
+            <dd><a href="modelAM.php">模型管理</a></dd>
+            <dd><a href="dataAM.php">数据管理</a></dd>
+          </dl>
+        </li>
+     </ul>
+    </div>
+  </div>
+  <!-- 左侧导航区域 结束 -->
+
+
+  <!-- 内容主体区域 -->
+  <div class="layui-body layui-bg-gray">
+    <div class="info-nav">
+			<p class="info-cont">当前位置：<i class="info-tail">模型构建</i></p>
+	</div>
+
+    <br><br>
+
+
+    <div class="layui-row" align="center">
+    	<br><br>
+        <h1 style="color: #16baaa; font-family: 'Arial', sans-serif;">请选择要组合的深度学习模块</h1>
+    </div>
+    <br><hr><br>
+
+    <form class="layui-form" action="creatModel/creatModel.php" method="post" target="showModel">
+    <!-- action=url,当提交表单时，发送表单数据到名为 "url" 的文件 -->
+    <!-- target，指示在何处打开 action URL，即在何处显示提交表单后，接收到的响应,与iframe可配合,则是在iframe的何处展示结果。 -->
+    <!-- form传递的值，就是在form便签中出现的"value"，比如value="CBAM"等 -->
+
+    <div class="layui-row">
+        <div class="layui-col-md4" style="text-align:center">
+            <img src="../img/CPCNN.png" height=250 width=90% id="block1_img">
+        </div>
+        <div class="layui-col-md4" style="text-align:center">
+            <img src="../img/CBAM.png" height=250 width=100% id="block2_img">
+        </div>
+        <div class="layui-col-md4" style="text-align:center">
+            <iframe src="https://netron.app/" name="showModel" id="showModel" scrolling="1" frameborder="0" style="width: 80%;height:250px;"> </iframe>
+            <br><br><br>
+            <div class="layui-col-md4 layui-col-md-offset4">
+                <button class="layui-btn" lay-submit name="submit" value='viewModelParameter' >查看模型参数</button>
+            </div>
+
+        </div>
+
+    </div>
+    <br><hr><br>
+
+
+    <div class="layui-row">
+        <div class="layui-col-md4 layui-col-md-offset3">
+            <div class="layui-form-item" pane>
+                <div class="layui-input-block">
+                    <input name="modelName" id="modelName" type="text" class="layui-input" placeholder="请输入模型名称" >
+                </div>
+             </div>
+        </div>
+        <div class="layui-col-md4">
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <button class="layui-btn" lay-submit lay-filter="formDemo" name="submit" value="saveModel">保存模型</button>
+        </div>
+    </div>
+    </form>
+
+
+    <div>
+        <table class="layui-hide" id="base-table"></table>
+        <script type="text/html" id="table-operate">
+            <a class="layui-btn layui-btn-xs" lay-event="detail"><i class="fa fa-eye"></i> 查看</a>
+            </a>
+        </script>
+    </div>
+
+
+    <div>
+        <iframe src="{% url 'chat' %}" width="600" height="400"></iframe>
+    </div>
+
+
+
+  </div>
+  <!--内容主体 结束-->
+
+</div>
+
+
+<script src="{% static 'js/jquery.js' %}"></script>
+<script src="{% static 'css/layui/layui.js' %}"></script>
+<script>
+//layui样式
+layui.use('element', function(){
+  var element = layui.element;
+
+});
+</script>
+
+</body>
+</html>
+
+
+
+
+<script>
+    const baseID = encodeURIComponent("{{ baseID }}");
+    $.ajax({
+        url: "{% url 'get_base_info' %}",
+        type: "GET",
+        data: { baseID: baseID },
+        success: function(response)
+        {
+            console.log(response)
+
+        },
+        error: function(xhr)
+        {
+            console.error('基地信息查询失败:', xhr.statusText);
+        }
+    });
+
+</script>
+
+
+<script>
+    layui.use(['table', 'jquery'], function(){
+        var table = layui.table;
+        var $ = layui.jquery;
+
+        // 初始化表格
+        table.render({
+            elem: '#base-table',
+            url: `{% url 'get_layui_base_data' %}`,  // 替换为您的Django后端API地址
+            cols: [[
+                {field: 'baseID', title: '基地ID', width: 100, sort: true},
+                {field: 'baseName', title: '基地名称', width: 150},
+                {field: 'province', title: '省份', width: 120},
+                {field: 'city', title: '城市', width: 120},
+                {field: 'description', title: '描述', minWidth: 200},
+                {fixed: 'right', title: '操作', toolbar: '#table-operate', width: 120}
+            ]],
+            page: true,
+            limits: [10, 20, 50, 100],
+            limit: 10,
+            request: {
+                pageName: 'page',  // 页码的参数名称，默认：page
+                limitName: 'limit' // 每页数据量的参数名，默认：limit
+            },
+            response: {
+                statusName: 'code',  // 规定数据状态的字段名称，默认：code
+                statusCode: 200,     // 规定成功的状态码，默认：0
+                countName: 'count', // 规定数据总数的字段名称，默认：count
+                dataName: 'data'     // 规定数据列表的字段名称，默认：data
+            },
+            parseData: function(res) { // res 即为原始返回的数据
+                return {
+                    "code": res.code, // 解析接口状态
+                    "msg": res.msg,   // 解析提示文本
+                    "count": res.count, // 解析数据长度
+                    "data": res.data  // 解析数据列表
+                };
+            }
+        });
+
+        // 操作按钮事件
+        table.on('tool(base-table)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'detail'){
+                layer.msg('基地ID：'+ data.baseID + ' 的查看操作');
+                // 这里可以跳转到详情页或打开详情弹窗
+                window.open('/base_detail/' + data.baseID + '/', '_blank');
+            } else if(obj.event === 'edit'){
+                layer.msg('基地ID：'+ data.baseID + ' 的编辑操作');
+                // 这里可以跳转到编辑页或打开编辑弹窗
+            }
+        });
+    });
+
+</script>

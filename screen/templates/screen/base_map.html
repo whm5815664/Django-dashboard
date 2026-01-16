@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据可视化</title>
+    <style>
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100vh; /* 使用视口高度 */
+      }
+      .chart, #base-table, .box {
+        height: calc(100% - 50px); /* 减去标题和底部的高度 */
+        width: 100%;
+      }
+      .box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      /* 列通用样式 */
+      .column {
+          display: flex;
+          flex-direction: column;
+          padding: 10px;
+          box-sizing: border-box;
+          min-width: 0;
+          height: 100%; /* 继承容器高度 */
+      }
+
+      /* 比例分配 */
+      .column-left { flex: 3; }
+      .column-center { flex: 4; }
+      .column-right { flex: 3; }
+
+      /* 面板样式 - 限制为屏幕高度的1/3 */
+      .panel {
+          height: calc(33.33vh - 20px); /* 屏幕高度的1/3，减去padding */
+          margin-bottom: 15px;
+          background: #fff;
+          border-radius: 5px;
+          box-shadow: 0 0 5px rgba(0,0,0,0.1);
+          overflow: hidden; /* 防止内容溢出 */
+      }
+      
+      /* 工具箱样式 */
+      .toolbox {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-around;
+          align-items: center;
+          height: calc(100% - 60px); /* 减去标题高度 */
+          padding: 20px;
+          box-sizing: border-box;
+      }
+      
+      .tool-item {
+          flex: 0 0 22%; /* 一行4个，每个占22%宽度 */
+          text-align: center;
+          margin-bottom: 15px;
+      }
+      
+      .tool-item a {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-decoration: none;
+          color: #333;
+          padding: 15px 10px;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          border: 1px solid #e1e8ed;
+      }
+      
+      .tool-item a:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+      }
+      
+      .tool-item i {
+          font-size: 32px;
+          margin-bottom: 8px;
+          color: #2f89cf;
+      }
+      
+      .tool-item:hover i {
+          color: white;
+      }
+      
+      .tool-item span {
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1.2;
+      }
+        
+        /* 搜索框样式 */
+        .search-box {
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+        
+        .search-box .layui-input {
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #e6e6e6;
+        }
+
+        /* 头部布局：左Logo，中标题，右时间 */
+        header {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          column-gap: 12px;
+        }
+        .logo { justify-self: start; margin-left: 4ch; }
+        .logo img { height: 42px; display: block; }
+        header h1 { margin: 0; justify-self: center; }
+        .show-time { justify-self: end; }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/layui/css/layui.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome-4.7.0/css/font-awesome.min.css' %}" media="all">
+    <link rel="stylesheet" href="{% static 'css/index.css' %}" />
+    <script src="{% static 'css/echarts/echarts.min.js' %}"></script>
+  </head>
+
+  <body>
+    <!-- 头部 -->
+    <header>
+      <div class="logo"><img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT Logo"></div>
+      <h1>AIoT农业多模态数据可视化平台</h1>
+      <div class="show-time"></div>
+      <script>
+        var t = null;
+        t = setTimeout(time, 1000); //开始运行
+        function time() {
+          clearTimeout(t); //清除定时器
+          dt = new Date();
+          var y = dt.getFullYear();
+          var mt = dt.getMonth() + 1;
+          var day = dt.getDate();
+          var h = dt.getHours(); //获取时
+          var m = dt.getMinutes(); //获取分
+          var s = dt.getSeconds(); //获取秒
+          document.querySelector(".show-time").innerHTML =
+            "当前时间：" + y + "年" + mt + "月" + day + "日-" + h + "时" + m + "分" + s + "秒";
+          t = setTimeout(time, 1000); //设定定时器，循环运行
+        }
+      </script>
+    </header>
+
+    <!-- 页面主体 -->
+    <section class="mainbox">
+      <!-- 左侧盒子 -->
+      <div class="column" style="flex: 3;">
+        <div class="panel bar">
+          <h2>实时监控</h2>
+          <div class="box"><a href="{% url 'video1_feed' %}" ><img src="{% url 'video1_feed' %}" alt="实时监控" align="center"></a></div>
+          <div class="panel-footer"></div>
+        </div>
+
+        <div class="panel" style="overflow: auto;">
+          <h2>{{ province_name }}基地信息</h2>
+          <!-- 基地名称搜索 -->
+          <div class="search-box">
+            <input type="text" id="base-name-search" placeholder="搜索基地名称..." class="layui-input">
+          </div>
+          <table class="layui-hide" id="base-table"></table>
+          <!-- 操作栏模板 -->
+          <script type="text/html" id="table-operate">
+            <a class="layui-btn layui-btn-xs" lay-event="view">查看</a>
+          </script>
+          <div class="panel-footer"></div>
+        </div>
+
+        <div class="panel bar">
+          <h2>工具箱</h2>
+          <!-- 工具箱内容 -->
+          <div class="toolbox">
+            <div class="tool-item">
+              <a href="{% url 'upload' %}" title="疾病识别">
+                <i class="fa fa-search"></i>
+                <span>疾病识别</span>
+              </a>
+            </div>
+            <div class="tool-item">
+              <a href="{% url 'chat' %}" title="智能问答">
+                <i class="fa fa-comments"></i>
+                <span>智能问答</span>
+              </a>
+            </div>
+            <div class="tool-item">
+              <a href="" title="实时监控">
+                <i class="fa fa-video-camera"></i>
+                <span>实时监控</span>
+              </a>
+            </div>
+            <div class="tool-item">
+              <a href="{% url 'graph' %}" title="关系提取">
+                <i class="fa fa-bar-chart"></i>
+                <span>数据分析</span>
+              </a>
+            </div>
+          </div>
+          <!-- 伪元素绘制盒子下边角 -->
+          <div class="panel-footer"></div>
+        </div>
+      </div>
+
+      <!-- 中间盒子 -->
+      <div class="column" style="flex: 4;">
+        <!-- 头部 no模块 -->
+        <div class="no">
+          <div class="no-hd">
+            <ul>
+              <li>588.7</li>
+              <li>3</li>
+            </ul>
+          </div>
+          <div class="no-bd">
+            <ul>
+              <li>柑橘总产量（万吨）</li>
+              <li>示范基地数（个）</li>
+            </ul>
+          </div>
+        </div>
+        <!-- map模块 -->
+        <div class="map">
+          <div id="GaodeMap" style="width:100%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- 右侧盒子 -->
+      <div class="column" style="flex: 3;">
+        <div class="panel bar2">
+          <h2>{{ province_name }}温湿度（数据来源：湖北气象局）</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+        <div class="panel line2">
+          <h2>{{ province_name }}柑橘总产量</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+        <div class="panel pie2">
+          <h2>{{ province_name }}不同品种产量（按月）</h2>
+          <div id="pie2-months" style="padding:6px 10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center;"></div>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+      </div>
+    </section>
+
+    <script src="{% static 'js/flexible.js' %}"></script>
+    <script src="{% static 'js/echarts.min.js' %}"></script>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <!-- 引入china.js 完成地图模块 -->
+    <script src="{% static 'js/china.js' %}"></script>
+
+    <!-- layui表格样式 -->
+    <script src="{% static 'css/layui/layui.js' %}"></script>
+    <script>
+    layui.use('element', function(){
+      var element = layui.element;
+    });
+    </script>
+  </body>
+</html>
+
+
+
+<script>
+// 图标可视化（立即执行函数，防止变量污染 (function() {})();）
+// 省份温度折线图模块 - 样式与.line2 .chart保持一致
+(function () {
+  var myChart = echarts.init(document.querySelector(".bar2 .chart"));
+  var temperatureData = []; // 存储温度历史数据
+  var humidityData = []; // 存储湿度历史数据
+  var timeLabels = []; // 存储时间标签
+  var maxDataPoints = 8; // 最多显示8个数据点
+  var provinceName = "{{ province_name }}"; // 获取省份名称
+  var updateInterval; // 存储定时器引用
+
+  // 温度图表配置 - 与.line2 .chart样式完全一致
+  var option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        var result = params[0].axisValue + '<br/>';
+        params.forEach(function(item) {
+          if (item.seriesName.includes('温度')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '°C<br/>';
+          } else if (item.seriesName.includes('湿度')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '%<br/>';
+          }
+        });
+        return result;
+      }
+    },
+    legend: {
+      top: "0%",
+      textStyle: {
+        color: "rgba(255,255,255,.5)",
+        fontSize: "12"
+      }
+    },
+    grid: {
+      top: '30',
+      left: '10',
+      right: '30',
+      bottom: '10',
+      containLabel: true
+    },
+    xAxis: [{
+      type: 'category',
+      boundaryGap: false,
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.2)"
+        }
+      },
+      data: timeLabels
+    }],
+    yAxis: [{
+      type: 'value',
+      name: '温度(°C)',
+      nameTextStyle: {
+        color: "rgba(255,255,255,.6)",
+        fontSize: 12
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      },
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      }
+    }, {
+      type: 'value',
+      name: '湿度(%)',
+      nameTextStyle: {
+        color: "rgba(255,255,255,.6)",
+        fontSize: 12
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      },
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      splitLine: {
+        show: false
+      }
+    }],
+    series: [{
+        name: '温度',
+        type: 'line',
+        yAxisIndex: 0,
+        smooth: true,
+        lineStyle: {
+          color: "#ff6b6b",
+          width: 2
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0, 0, 0, 1,
+            [{ offset: 0, color: "rgba(255, 107, 107, 0.4)" },
+             { offset: 0.8, color: "rgba(255, 107, 107, 0.1)" }],
+            false
+          ),
+          shadowColor: "rgba(0, 0, 0, 0.1)"
+        },
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        itemStyle: {
+          color: "#ff6b6b",
+          borderColor: "rgba(221, 220, 107, .1)",
+          borderWidth: 12
+        },
+        data: temperatureData
+      }, {
+        name: '湿度',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        lineStyle: {
+          color: "#4ecdc4",
+          width: 2
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0, 0, 0, 1,
+            [{ offset: 0, color: "rgba(78, 205, 196, 0.4)" },
+             { offset: 0.8, color: "rgba(78, 205, 196, 0.1)" }],
+            false
+          ),
+          shadowColor: "rgba(0, 0, 0, 0.1)"
+        },
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        itemStyle: {
+          color: "#4ecdc4",
+          borderColor: "rgba(78, 205, 196, .1)",
+          borderWidth: 12
+        },
+        data: humidityData
+      }]
+  };
+
+  // 获取省份温度数据
+  function getProvinceTemperatureData() {
+    $.ajax({
+      url: "{% url 'get_province_temperature' %}",
+      type: "GET",
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          var data = response.data;
+          var history = data.history || [];
+          
+          // 清空现有数据
+          temperatureData = [];
+          humidityData = [];
+          timeLabels = [];
+          
+          // 获取最近8条数据
+          var recentData = history.slice(-maxDataPoints);
+          
+          recentData.forEach(function(item) {
+            temperatureData.push(item.temperature);
+            humidityData.push(item.humidity);
+            timeLabels.push(item.time);
+          });
+          
+          // 更新图表
+          myChart.setOption({
+            xAxis: { data: timeLabels },
+            series: [
+              { data: temperatureData },
+              { data: humidityData }
+            ]
+          });
+          
+          console.log(provinceName + '温度湿度数据更新:', recentData);
+        } else {
+          console.error('获取' + provinceName + '温度数据失败:', response.error);
+        }
+      },
+      error: function(xhr) {
+        console.error(provinceName + '温度数据请求失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 启动省份温度监控
+  function startProvinceMonitoring() {
+    // 启动省份温度监控
+    $.ajax({
+      url: "{% url 'start_province_monitoring' %}",
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({
+        "province": provinceName
+      }),
+      success: function(response) {
+        if (response.success) {
+          console.log(provinceName + '温度监控已启动:', response.message);
+          // 立即获取一次数据
+          getProvinceTemperatureData();
+          
+          // 每1分钟获取一次数据（5000毫秒）
+          updateInterval = setInterval(getProvinceTemperatureData, 5000);
+        } else {
+          console.error('启动' + provinceName + '温度监控失败:', response.error);
+        }
+      },
+      error: function(xhr) {
+        console.error('启动' + provinceName + '温度监控请求失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 停止省份温度监控
+  function stopProvinceMonitoring() {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
+    }
+  }
+
+  // 初始化图表
+  myChart.setOption(option);
+  
+  // 页面加载完成后立即启动省份温度监控
+  $(document).ready(function() {
+    startProvinceMonitoring();
+  });
+
+  // 响应式调整
+  window.addEventListener('resize', function () {
+    myChart.resize();
+  });
+
+  // 页面卸载时清理定时器
+  window.addEventListener('beforeunload', function() {
+    stopProvinceMonitoring();
+  });
+})();
+
+
+//---------------------------------------------------
+// 湖北柑橘总产量(折线图模块2) - 动态循环显示
+(function () {
+  var myChart = echarts.init(document.querySelector('.line2 .chart'));
+  var provinceName = "{{ province_name }}"; // 获取省份名称
+  var allData = []; // 存储所有数据
+  var currentIndex = 0; // 当前显示的数据起始索引
+  var displayCount = 5; // 每次显示5条数据
+  var maxDataPoints = 15; // 最多保留15条数据用于循环
+  var updateInterval; // 存储定时器引用
+
+  var option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        var result = params[0].axisValue + '<br/>';
+        params.forEach(function(item) {
+          if (item.seriesName.includes('产量')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '万吨<br/>';
+          } else if (item.seriesName.includes('变化量')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '万吨<br/>';
+          }
+        });
+        return result;
+      }
+    },
+    legend: {
+      top: "0%",
+      textStyle: {
+        color: "rgba(255,255,255,.5)",
+        fontSize: "12"
+      }
+    },
+    grid: {
+      top: '30',
+      left: '10',
+      right: '30',
+      bottom: '10',
+      containLabel: true
+    },
+    xAxis: [{
+      type: 'category',
+      boundaryGap: false,
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        },
+        interval: 0, // 显示所有标签
+        rotate: 0 // 不旋转标签
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.2)"
+        }
+      },
+      data: []
+    }],
+    yAxis: [{
+      type: 'value',
+      name: '万吨',
+      nameTextStyle: {
+        color: "rgba(255,255,255,.6)",
+        fontSize: 12
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      },
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      }
+    }],
+    series: [{
+      name: '柑橘产量',
+      type: 'line',
+      yAxisIndex: 0,
+      smooth: true,
+      lineStyle: {
+        color: "#0184d5",
+        width: 2
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(
+          0, 0, 0, 1,
+          [{
+              offset: 0,
+              color: "rgba(1, 132, 213, 0.4)"
+            },
+            {
+              offset: 0.8,
+              color: "rgba(1, 132, 213, 0.1)"
+            }
+          ],
+          false
+        ),
+        shadowColor: "rgba(0, 0, 0, 0.1)"
+      },
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: false,
+      itemStyle: {
+        color: "#0184d5",
+        borderColor: "rgba(221, 220, 107, .1)",
+        borderWidth: 12
+      },
+      data: []
+    }, {
+      name: '变化量',
+      type: 'line',
+      yAxisIndex: 0,
+      smooth: true,
+      lineStyle: {
+        color: "#4ecdc4",
+        width: 2
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(
+          0, 0, 0, 1,
+          [{
+              offset: 0,
+              color: "rgba(78, 205, 196, 0.4)"
+            },
+            {
+              offset: 0.8,
+              color: "rgba(78, 205, 196, 0.1)"
+            }
+          ],
+          false
+        ),
+        shadowColor: "rgba(0, 0, 0, 0.1)"
+      },
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: false,
+      itemStyle: {
+        color: "#4ecdc4",
+        borderColor: "rgba(78, 205, 196, .1)",
+        borderWidth: 12
+      },
+      data: []
+    }]
+  };
+
+  // 获取省份柑橘产量数据
+  function loadProvinceCitrusData() {
+    $.ajax({
+      url: "{% url 'get_citrus_production_by_province' %}",
+      type: "GET",
+      data: {
+        province_name: provinceName
+      },
+      dataType: 'json',
+      success: function(response) {
+        if (response && response.length > 0) {
+          // 处理数据，按日期排序
+          allData = response.sort(function(a, b) {
+            return new Date(a.date) - new Date(b.date);
+          });
+          
+          // 如果数据超过15条，只保留最近的15条
+          if (allData.length > maxDataPoints) {
+            allData = allData.slice(-maxDataPoints);
+          }
+          
+          // 获取最新日期的年份
+          var latestDate = new Date(allData[allData.length - 1].date);
+          var latestYear = latestDate.getFullYear();
+          
+          // 更新图表标题
+          updateChartTitle(latestYear);
+          
+          console.log(provinceName + '柑橘产量数据加载成功:', allData);
+          console.log('最新数据年份:', latestYear);
+          
+          // 开始动态显示
+          startDynamicDisplay();
+        } else {
+          console.warn('没有找到' + provinceName + '的柑橘产量数据');
+        }
+      },
+      error: function(xhr) {
+        console.error('获取' + provinceName + '柑橘产量数据失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 更新图表标题
+  function updateChartTitle(year) {
+    var newTitle = provinceName + '柑橘总产量（数据来源：农业农村厅）';
+    // 更新HTML中的标题
+    var titleElement = document.querySelector('.line2 h2');
+    if (titleElement) {
+      titleElement.textContent = newTitle;
+    }
+    console.log('图表标题已更新为:', newTitle);
+  }
+
+  // 计算单日变化量
+  function calculateDailyChanges(data) {
+    var changes = [];
+    for (var i = 0; i < data.length; i++) {
+      if (i === 0) {
+        // 第一天没有前一天数据，设为0
+        changes.push(0);
+      } else {
+        // 当日产量减去上一日产量
+        var change = data[i].production_volume - data[i-1].production_volume;
+        changes.push(change);
+      }
+    }
+    return changes;
+  }
+
+  // 更新图表显示
+  function updateChart() {
+    if (allData.length === 0) return;
+    
+    // 计算当前要显示的数据范围
+    var endIndex = Math.min(currentIndex + displayCount, allData.length);
+    var currentData = allData.slice(currentIndex, endIndex);
+    
+    // 提取日期并仅显示年份
+    var dates = currentData.map(function(item) {
+      var date = new Date(item.date);
+      return String(date.getFullYear());
+    });
+    
+    var productionData = currentData.map(function(item) {
+      return item.production_volume;
+    });
+    
+    // 计算单日变化量
+    var changeData = calculateDailyChanges(currentData);
+    
+    // 更新图表
+    myChart.setOption({
+      xAxis: { data: dates },
+      series: [
+        { data: productionData },
+        { data: changeData }
+      ]
+    });
+    
+    console.log('更新图表显示:', currentIndex, '到', endIndex - 1, '数据:', currentData);
+    console.log('单日变化量:', changeData);
+    
+    // 更新索引，实现循环
+    currentIndex = (currentIndex + 1) % Math.max(1, allData.length - displayCount + 1);
+  }
+
+  // 开始动态显示
+  function startDynamicDisplay() {
+    if (allData.length === 0) return;
+    
+    // 重置索引
+    currentIndex = 0;
+    
+    // 立即显示一次
+    updateChart();
+    
+    // 每3秒更新一次
+    updateInterval = setInterval(updateChart, 3000);
+    
+    console.log('开始动态显示' + provinceName + '柑橘产量数据');
+  }
+
+  // 停止动态显示
+  function stopDynamicDisplay() {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
+    }
+  }
+
+  // 初始化图表
+  myChart.setOption(option);
+  
+  // 页面加载完成后立即加载数据
+  $(document).ready(function() {
+    loadProvinceCitrusData();
+  });
+
+  // 响应式调整
+  window.addEventListener('resize', function () {
+    myChart.resize();
+  });
+
+  // 页面卸载时清理定时器
+  window.addEventListener('beforeunload', function() {
+    stopDynamicDisplay();
+  });
+})();
+
+
+//---------------------------------------------------
+// 饼形图2：{YYYY-MM} 不同品种产量饼图（最近最多3个月，支持点击切换与自动轮播）
+(function () {
+  var myChart = echarts.init(document.querySelector('.pie2 .chart'));
+  var provinceName = "{{ province_name }}";
+  var months = [];        // ["YYYY-MM", ...] 升序，最多3个
+  var monthToSeries = {}; // { "YYYY-MM": [{name, value}, ...] }
+  var activeIndex = 0;
+  var autoplayTimer = null;
+
+  function setTitleByMonth(monthKey) {
+    var title = provinceName + '不同品种产量（' + monthKey + '）';
+    var h2 = document.querySelector('.pie2 h2');
+    if (h2) h2.textContent = title;
+  }
+
+  function renderMonthButtons() {
+    var box = document.getElementById('pie2-months');
+    if (!box) return;
+    box.innerHTML = '';
+    months.forEach(function(m, idx) {
+      var btn = document.createElement('button');
+      btn.textContent = m;
+      btn.style.cssText = 'padding:2px 8px;border:none;border-radius:4px;cursor:pointer;font-size:12px; line-height:16px;';
+      if (idx === activeIndex) {
+        btn.style.background = '#1890ff';
+        btn.style.color = 'white';
+      } else {
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#333';
+      }
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchToIndex(idx, true);
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  function updateButtonsActive() {
+    var box = document.getElementById('pie2-months');
+    if (!box) return;
+    var buttons = box.querySelectorAll('button');
+    buttons.forEach(function(btn, idx) {
+      if (idx === activeIndex) {
+        btn.style.background = '#1890ff';
+        btn.style.color = 'white';
+      } else {
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#333';
+      }
+    });
+  }
+
+  function switchToIndex(idx, stopAutoplay) {
+    if (months.length === 0) return;
+    activeIndex = ((idx % months.length) + months.length) % months.length;
+    var key = months[activeIndex];
+    var seriesData = monthToSeries[key] || [];
+    setTitleByMonth(key);
+    updateButtonsActive();
+    myChart.setOption({
+      series: [{ data: seriesData }]
+    });
+    if (stopAutoplay) {
+      stopAutoPlay();
+    }
+  }
+
+  function startAutoPlay() {
+    stopAutoPlay();
+    autoplayTimer = setInterval(function() {
+      switchToIndex(activeIndex + 1, false);
+    }, 4000);
+  }
+
+  function stopAutoPlay() {
+    if (autoplayTimer) {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+    }
+  }
+
+  function loadData() {
+    $.ajax({
+      url: "{% url 'get_variety_production_last_months' %}",
+      type: "GET",
+      data: { province_name: provinceName, months: 3 },
+      success: function(resp) {
+        if (!resp || !resp.success) {
+          console.warn('未获取到品种产量数据');
+          return;
+        }
+        months = resp.months || [];
+        monthToSeries = resp.data || {};
+        // 初始化按钮与默认月份
+        renderMonthButtons();
+        if (months.length > 0) {
+          activeIndex = months.length - 1; // 默认展示最新月份
+          switchToIndex(activeIndex, false);
+          startAutoPlay();
+        }
+      },
+      error: function(xhr) {
+        console.error('数据加载失败:', xhr.statusText);
+      }
+    });
+  }
+
+  var option = {
+    color: ['#60cda0', '#ed8884', '#ff9f7f', '#0096ff', '#9fe6b8', '#32c5e9', '#1d9dff'],
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b} : {c} ({d}%)'
+    },
+    legend: {
+      bottom: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: {
+        color: "rgba(255,255,255,.5)",
+        fontSize: 10
+      }
+    },
+    series: [{
+      name: '品种分布',
+      type: 'pie',
+      radius: ["10%", "60%"],
+      center: ['50%', '40%'],
+      roseType: 'radius',
+      label: { fontsize: 10 },
+      labelLine: { length: 6, length2: 8 },
+      data: []
+    }]
+  };
+
+  myChart.setOption(option);
+  loadData();
+  window.addEventListener('resize', function () {
+    myChart.resize();
+  });
+
+  // 页面卸载时清理定时器
+  window.addEventListener('beforeunload', function() {
+    stopAutoPlay();
+  });
+})();
+
+</script>
+
+
+
+<script type="text/javascript">
+  //--------------------layui表格渲染----------------------------
+  layui.use(['table', 'jquery'], function(){
+      var table = layui.table;
+      var $ = layui.jquery;
+
+      // 初始化表格
+      table.render({
+          elem: '#base-table',
+          url: `{% url 'get_layui_base_data' %}`,  // 替换为您的Django后端API地址
+          response: true, //响应式列表
+          cols: [[
+              {field: 'baseID', title: '基地ID', width: 100, sort: true},
+              {field: 'baseName', title: '基地名称', width: 150},
+              {field: 'province', title: '省份', width: 120},
+              {field: 'city', title: '城市', width: 120},
+              {field: 'description', title: '描述', minWidth: 200},
+              {fixed: 'right', title: '操作', toolbar: '#table-operate', width: 120}
+          ]],
+          page: true,
+          limits: [2, 5, 10],
+          limit: 2,
+          request: {
+              pageName: 'page',  // 页码的参数名称，默认：page
+              limitName: 'limit' // 每页数据量的参数名，默认：limit
+          },
+          response: {
+              statusName: 'code',  // 规定数据状态的字段名称，默认：code
+              statusCode: 200,     // 规定成功的状态码，默认：0
+              countName: 'count', // 规定数据总数的字段名称，默认：count
+              dataName: 'data'     // 规定数据列表的字段名称，默认：data
+          },
+          parseData: function(res) { // res 即为原始返回的数据
+              return {
+                  "code": res.code, // 解析接口状态
+                  "msg": res.msg,   // 解析提示文本
+                  "count": res.count, // 解析数据长度
+                  "data": res.data  // 解析数据列表
+              };
+          },
+          where: {} // 搜索条件
+      });
+
+      // 基地名称模糊搜索功能
+      var searchTimer;
+      $('#base-name-search').on('input', function() {
+          var searchValue = $(this).val().trim();
+          
+          // 清除之前的定时器
+          clearTimeout(searchTimer);
+          
+          // 设置延迟搜索，避免频繁请求
+          searchTimer = setTimeout(function() {
+              if (searchValue) {
+                  // 重新加载表格，添加基地名称搜索条件
+                  table.reload('base-table', {
+                      where: {
+                          baseName: searchValue
+                      },
+                      page: {
+                          curr: 1 // 搜索后回到第一页
+                      }
+                  });
+              } else {
+                  // 清空搜索条件，显示所有数据
+                  table.reload('base-table', {
+                      where: {},
+                      page: {
+                          curr: 1
+                      }
+                  });
+              }
+          }, 500); // 500ms延迟
+      });
+
+      // 操作按钮事件
+      table.on('tool(base-table)', function(obj){
+          var data = obj.data;
+          if(obj.event === 'view'){
+              layer.msg('基地ID：'+ data.baseID + ' 的查看操作');
+              // 跳转到baseIndex页面
+              //var urlTemplate = "{% url 'baseIndex' baseID='BASEID' %}";
+              //var url = urlTemplate.replace("BASEID", encodeURIComponent(data.baseID));
+              //window.open(url, '_blank');
+          } else if(obj.event === 'edit'){
+              layer.msg('基地ID：'+ data.baseID + ' 的编辑操作');
+              // 这里可以跳转到编辑页或打开编辑弹窗
+          }
+      });
+  });
+
+</script>
+
+
+
+
+<script type="text/javascript">
+  //--------------------地图----------------------------
+  window._AMapSecurityConfig = {
+    securityJsCode: "3411731d2cf8f23b624a8182a47626cd",
+  };
+</script>
+<script src="https://webapi.amap.com/loader.js"></script>
+
+<script type="text/javascript">
+  // 地图实例和图层变量
+  let map;
+  let currentLayerType = 'satellite'; // 当前图层类型
+  let satelliteLayer, roadLayer, buildingLayer; // 图层实例
+  let markers = []; // 存储所有标记，用于重新添加
+
+  // 获取数据功能（需要AMap.Marker插件）
+  function loadMapData()
+  {
+    // 获取数据
+    const provinceName = encodeURIComponent("{{ province_name }}");
+    $.ajax
+    ({
+      url: `{% url 'get_base_by_province' %}?province_name=${provinceName}`,      //通过url：citrus_data执行数据库操作
+      type: "GET",
+      success: function(response)
+      {
+          console.log(response)
+          // 清除之前的标记
+          markers.forEach(marker => {
+            map.remove(marker);
+          });
+          markers = [];
+          
+          for (const item of response)
+          {
+            console.log('当前数据:', item);
+            // 单条数据信息
+            const longitude = parseFloat(item.longitude);
+            const latitude = parseFloat(item.latitude);
+            const baseID = item.baseID;
+            const baseName = item.baseName;
+            const province = item.province;
+            const city = item.city;
+            const description = item.description;
+
+            // 加入地图钉标记
+            const marker = new AMap.Marker({
+               position: [longitude, latitude],
+               map: map,
+               title: baseName,
+               extData:{
+                  baseID:baseID,
+                  baseName:baseName,
+               },
+            });
+
+            // 存储标记引用
+            markers.push(marker);
+
+            // 加入标记点击事件
+            marker.on('click', function(e) {
+              // 获取点击的标记的extData
+              const markerData = e.target.getExtData();
+              console.log('点击的基地ID:', markerData.baseID);
+              console.log('点击的基地名称:', markerData.baseName);
+
+              // 操作
+              alert(`基地: ${markerData.baseName} (ID: ${markerData.baseID})`);
+              //var urlTemplate = "{% url 'baseIndex' baseID='BASEID' %}";
+              //var url = urlTemplate.replace("BASEID", encodeURIComponent(markerData.baseID));
+              //window.open(url, '_blank');
+            });
+
+          }
+
+      },
+      error: function(xhr)
+      {
+         console.error('数据加载失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 定位当前位置（需要插件AMap.Geolocation）
+  function getLocation()
+  {
+    // 初始化地理定位插件
+    const geolocation = new AMap.Geolocation({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      showMarker: true,
+      showButton: false
+    });
+
+    // 执行定位
+    geolocation.getCurrentPosition((status, result) => {
+      if (status === 'complete') {
+        const lnglat = [result.position.lng, result.position.lat];
+        map.setCenter(lnglat);
+
+        new AMap.Marker({
+          position: lnglat,
+          map: map,
+          title: "当前位置"
+        });
+        console.log('定位成功:', lnglat);
+      } else {
+        console.warn('定位失败:', result.message);
+        //！！定位失败时设置默认位置
+        const defaultLnglat = [114.360622, 30.473526];
+        map.setCenter(defaultLnglat);
+        
+        new AMap.Marker({
+          position: defaultLnglat,
+          map: map,
+          title: "默认位置"
+        });
+        console.log('使用默认位置:', defaultLnglat);
+      }
+    });
+  }
+
+  // 创建图层切换控件
+  function createLayerControl() {
+    // 检查是否已经存在控件，避免重复创建
+    const existingControl = document.getElementById('layer-control');
+    if (existingControl) {
+      existingControl.remove();
+    }
+
+    // 创建图层切换按钮容器
+    const layerControlDiv = document.createElement('div');
+    layerControlDiv.id = 'layer-control';
+    layerControlDiv.style.cssText = `
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 100px;
+    `;
+
+    // 图层选项配置
+    const layerOptions = [
+      { type: 'satellite', name: '卫星图'},
+      { type: 'road', name: '路网图'},
+      { type: 'building', name: '3D图'}
+    ];
+
+    // 创建按钮
+    layerOptions.forEach(option => {
+      const button = document.createElement('button');
+      button.textContent = option.name;
+      button.dataset.type = option.type;
+      button.style.cssText = `
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        background: ${currentLayerType === option.type ? '#1890ff' : '#f5f5f5'};
+        color: ${currentLayerType === option.type ? 'white' : '#333'};
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s ease;
+        min-width: 80px;
+        outline: none;
+      `;
+
+      // 添加悬停效果
+      button.addEventListener('mouseenter', function() {
+        if (currentLayerType !== option.type) {
+          this.style.background = '#e6f7ff';
+        }
+      });
+
+      button.addEventListener('mouseleave', function() {
+        if (currentLayerType !== option.type) {
+          this.style.background = '#f5f5f5';
+        }
+      });
+
+      // 添加点击事件
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('点击图层按钮:', option.type);
+        switchLayer(option.type);
+        updateButtonStyles(option.type);
+      });
+
+      layerControlDiv.appendChild(button);
+    });
+
+    // 将控件添加到地图容器
+    const mapContainer = document.getElementById('GaodeMap');
+    if (mapContainer) {
+      mapContainer.appendChild(layerControlDiv);
+      console.log('图层控件已添加到地图容器');
+    } else {
+      console.error('找不到地图容器 GaodeMap');
+    }
+  }
+
+  // 更新按钮样式
+  function updateButtonStyles(activeType) {
+    const buttons = document.querySelectorAll('#layer-control button');
+    buttons.forEach(button => {
+      const buttonType = button.dataset.type;
+      
+      if (buttonType === activeType) {
+        button.style.background = '#1890ff';
+        button.style.color = 'white';
+      } else {
+        button.style.background = '#f5f5f5';
+        button.style.color = '#333';
+      }
+    });
+  }
+
+  // 通用：根据图层类型销毁并重建地图
+  function recreateMapWithType(layerType) {
+    try {
+      const currentCenter = map ? map.getCenter() : null;
+      const currentZoom = map ? map.getZoom() : 15;
+      const centerLngLat = currentCenter ? [currentCenter.lng, currentCenter.lat] : undefined;
+
+      // 销毁旧实例
+      if (map && typeof map.destroy === 'function') {
+        map.destroy();
+      }
+
+      // 构造不同图层类型下的地图配置
+      let options = {
+        center: centerLngLat,
+        zoom: currentZoom,
+        layers: []
+      };
+
+      if (layerType === 'building') {
+        options = {
+          center: centerLngLat,
+          viewMode: '3D',
+          pitch: 60,
+          rotation: -35,
+          features: ['bg', 'road', 'point'],
+          mapStyle: 'amap://styles/light',
+          layers: [
+            new AMap.TileLayer.Satellite(),
+            new AMap.TileLayer.RoadNet(),
+            new AMap.Buildings({
+              zooms: [16, 18],
+              zIndex: 10,
+              heightFactor: 2
+            })
+          ],
+          zoom: Math.max(16, currentZoom || 16)
+        };
+      } else if (layerType === 'satellite') {
+        options.features = ['bg', 'road', 'point'];
+        options.layers = [
+          new AMap.TileLayer(),
+          new AMap.TileLayer.Satellite(),
+          new AMap.TileLayer.RoadNet()
+        ];
+      } else if (layerType === 'road') {
+        options.features = ['bg'];
+        options.layers = [
+          new AMap.TileLayer(),
+          new AMap.TileLayer.RoadNet()
+        ];
+      } else {
+        // 默认标准图
+        options.layers = [new AMap.TileLayer()];
+      }
+
+      // 重建地图实例
+      map = new AMap.Map('GaodeMap', options);
+
+      // 重新绑定事件
+      map.on('click', function(e) {
+        console.log('点击位置的经纬度:', e.lnglat);
+      });
+
+      // 重建图层切换控件与UI状态
+      createLayerControl();
+      currentLayerType = layerType;
+      updateButtonStyles(layerType);
+
+      // 重新定位与加载数据、标记
+      getLocation();
+      loadMapData();
+
+      console.log('已重建地图，当前类型:', currentLayerType);
+    } catch (err) {
+      console.error('重建地图失败:', err);
+    }
+  }
+
+  // 切换图层
+  function switchLayer(layerType) {
+    if (currentLayerType === layerType) {
+      console.log('图层类型相同，无需切换');
+      return;
+    }
+
+    console.log('切换图层至', layerType, '：销毁并重建地图');
+    recreateMapWithType(layerType);
+  }
+
+  // 初始化地图(地图主函数)
+  function initMap()
+  {
+    AMapLoader.load({
+      key: "9969ad3b8112bd56b65dc90191ab4753",
+      version: "2.0",
+      plugins: ["AMap.Geolocation", "AMap.Marker", "AMap.Buildings"] // 添加楼块图层插件
+    })
+    .then((AMap) =>
+    {
+      console.log('高德地图API加载成功');
+      
+      // 初始化地图实例
+      map = new AMap.Map("GaodeMap", {
+        zoom: 15,
+        layers: [] // 先不添加任何图层，稍后通过控件添加
+      });
+
+      console.log('地图实例创建成功');
+
+      // 创建图层实例
+      satelliteLayer = new AMap.TileLayer.Satellite();
+      roadLayer = new AMap.TileLayer.RoadNet();
+      buildingLayer = new AMap.Buildings({
+        zooms: [16, 18],
+        zIndex: 10,
+        heightFactor: 2
+      });
+
+      console.log('图层实例创建成功');
+
+      // 默认添加标准图层和卫星图层
+      const standardLayer = new AMap.TileLayer();
+      map.add(standardLayer);
+      map.add(satelliteLayer);
+      console.log('默认图层添加成功');
+
+      // 地图加载完成后创建图层切换控件
+      map.on('complete', function() {
+        console.log('地图加载完成，创建图层控件');
+        createLayerControl();
+      });
+
+      // 点击地图事件
+      map.on('click', function(e) {
+        console.log('点击位置的经纬度:', e.lnglat);
+      });
+
+      // 执行定位
+      getLocation()
+
+      // 地图加载完成后获取数据加入地图钉
+      loadMapData();
+
+    })
+    .catch((e) => {
+      console.error('地图加载失败:', e);
+      alert('地图加载失败，请检查网络连接');
+    });
+  }
+
+  // 页面加载完成后初始化地图
+  $(document).ready(function() {
+    console.log('页面加载完成，开始初始化地图');
+    initMap();
+  });
+
+</script>
+

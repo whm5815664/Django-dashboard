@@ -1,0 +1,2354 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- 页面标题 -->
+    <title>农业大模型问答系统</title>
+    <!-- 字符编码设置 -->
+    <meta charset="UTF-8">
+    <!-- 响应式设计：移动端适配 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* ========== 全局样式重置 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* ========== 基础样式 ========== */
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* ========== 背景动画效果 ========== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            animation: backgroundShift 20s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes backgroundShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* ========== 主容器样式 ========== */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* ========== 顶部导航栏 ========== */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* ========== LOGO容器 ========== */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* ========== LOGO样式 ========== */
+        .logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(120, 219, 255, 0.5));
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo:hover {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 0 30px rgba(120, 219, 255, 0.8));
+        }
+        
+        /* ========== 系统标题 ========== */
+        .system-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #78dfff, #ff77c6, #7877c6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(120, 219, 255, 0.5);
+        }
+        
+        /* ========== 聊天容器样式 ========== */
+        .chat-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chat-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(120, 219, 255, 0.5), transparent);
+        }
+        
+        /* ========== 聊天框样式 ========== */
+        .chat-box {
+            flex: 1;
+            min-height: 500px;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-bottom: 25px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .chat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(45deg, transparent 48%, rgba(120, 219, 255, 0.03) 50%, transparent 52%),
+                linear-gradient(-45deg, transparent 48%, rgba(255, 119, 198, 0.03) 50%, transparent 52%);
+            pointer-events: none;
+        }
+        
+        /* ========== 滚动条样式 ========== */
+        .chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-box::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .chat-box::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #78dfff, #ff77c6);
+            border-radius: 3px;
+        }
+        
+        .chat-box::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5acfff, #ff5ab6);
+        }
+        
+        /* ========== 消息基础样式 ========== */
+        .message {
+            margin-bottom: 20px;
+            padding: 20px 25px;
+            border-radius: 20px;
+            max-width: 85%;
+            word-wrap: break-word;
+            position: relative;
+            animation: messageSlideIn 0.4s ease-out;
+            backdrop-filter: blur(10px);
+        }
+        
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        /* ========== 用户消息样式 ========== */
+        .user-message {
+            background: linear-gradient(135deg, rgba(120, 219, 255, 0.2), rgba(120, 119, 198, 0.2));
+            border: 1px solid rgba(120, 219, 255, 0.3);
+            margin-left: auto;
+            text-align: left;
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(120, 219, 255, 0.2);
+        }
+        
+        .user-message::before {
+            content: '👤';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(120, 219, 255, 0.8);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        /* ========== 机器人消息样式 ========== */
+        .bot-message {
+            background: linear-gradient(135deg, rgba(255, 119, 198, 0.1), rgba(120, 119, 198, 0.1));
+            border: 1px solid rgba(255, 119, 198, 0.2);
+            margin-right: auto;
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(255, 119, 198, 0.1);
+        }
+        
+        .bot-message::before {
+            content: '';
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 119, 198, 0.8);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        /* ========== 输入区域样式 ========== */
+        .input-area {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* ========== 问题输入框样式 ========== */
+        #question {
+            flex-grow: 1;
+            padding: 18px 25px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            transition: all 0.3s ease;
+            outline: none;
+            backdrop-filter: blur(10px);
+        }
+        
+        #question:focus {
+            border-color: rgba(120, 219, 255, 0.6);
+            box-shadow: 0 0 20px rgba(120, 219, 255, 0.3);
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        #question::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* ========== 按钮基础样式 ========== */
+        button {
+            padding: 18px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            outline: none;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        /* ========== 发送按钮样式 ========== */
+        #send-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000000;
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
+        }
+        
+        #send-btn:hover {
+            background: linear-gradient(135deg, #00cc6a, #00aa55);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 255, 136, 0.4);
+        }
+        
+        #send-btn:disabled {
+            background: linear-gradient(135deg, #666666, #444444);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* ========== 语音按钮样式 ========== */
+        #voice-btn {
+            background: linear-gradient(135deg, #78dfff, #5acfff);
+            color: #000000;
+            box-shadow: 0 8px 25px rgba(120, 219, 255, 0.3);
+        }
+        
+        #voice-btn:hover {
+            background: linear-gradient(135deg, #5acfff, #3abfff);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(120, 219, 255, 0.4);
+        }
+        
+        #voice-btn.listening {
+            background: linear-gradient(135deg, #ff77c6, #ff5ab6);
+            animation: voicePulse 1.5s infinite;
+        }
+        
+        #voice-btn.disabled {
+            background: linear-gradient(135deg, #666666, #444444);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        @keyframes voicePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* ========== 强制结束按钮样式 ========== */
+        #stop-btn {
+            background: linear-gradient(135deg, #ff4757, #ff3742);
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+            display: none;
+        }
+        
+        #stop-btn:hover {
+            background: linear-gradient(135deg, #ff3742, #ff2f3a);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 71, 87, 0.4);
+        }
+        
+        #stop-btn::before {
+            content: '⏹';
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        
+        /* ========== 工具箱按钮样式 ========== */
+        #toolbox-btn {
+            background: linear-gradient(135deg, #6c5ce7, #5f3dc4);
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.3);
+        }
+        
+        #toolbox-btn:hover {
+            background: linear-gradient(135deg, #5f3dc4, #4c2db8);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(108, 92, 231, 0.4);
+        }
+        
+        /* ========== 思考中状态样式 ========== */
+        .thinking {
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+            animation: thinkingPulse 1.5s infinite;
+        }
+        
+        @keyframes thinkingPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* ========== 思维链内容样式 ========== */
+        .reasoning {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            margin: 15px 0;
+            padding: 20px;
+            background: rgba(120, 119, 198, 0.1);
+            border-left: 4px solid #7877c6;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* ========== 机器人回复内容格式化样式 ========== */
+        .bot-content {
+            white-space: pre-wrap;
+        }
+        
+        .bot-content p {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        
+        /* ========== 欢迎消息特殊样式 ========== */
+        .welcome-message .bot-content p {
+            margin: 6px 0;
+            line-height: 1.4;
+            font-size: 1.1em;
+        }
+        
+        .welcome-message .bot-content p:first-child {
+            margin-top: 0;
+        }
+        
+        .welcome-message .bot-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .bot-content pre {
+            background: rgba(0, 0, 0, 0.4);
+            color: #78dfff;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 16px 0;
+            border-left: 4px solid #78dfff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bot-content code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background: rgba(120, 219, 255, 0.2);
+            color: #78dfff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .bot-content blockquote {
+            border-left: 4px solid #ff77c6;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 16px 0;
+            background: rgba(255, 119, 198, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .bot-content h1, .bot-content h2, .bot-content h3 {
+            margin: 20px 0 12px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        .bot-content h1 {
+            font-size: 1.5em;
+            border-bottom: 2px solid #78dfff;
+            padding-bottom: 8px;
+        }
+        
+        .bot-content h2 {
+            font-size: 1.3em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 6px;
+        }
+        
+        .separator {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin: 20px 0;
+            font-size: 0.9em;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+        }
+        
+        /* ========== 工具箱弹窗样式 ========== */
+        .toolbox-modal {
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 30px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        
+        .toolbox-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .toolbox-item {
+            width: 100%;
+        }
+        
+        .toolbox-action-btn {
+            width: 100%;
+            padding: 20px 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 16px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+        
+        .toolbox-action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .toolbox-icon {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+        }
+        
+        .toolbox-text {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .toolbox-status {
+            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .toolbox-status.enabled {
+            background: rgba(0, 184, 148, 0.3);
+            border-color: rgba(0, 184, 148, 0.5);
+            color: #00b894;
+        }
+        
+        .toolbox-status.disabled {
+            background: rgba(255, 71, 87, 0.3);
+            border-color: rgba(255, 71, 87, 0.5);
+            color: #ff4757;
+        }
+        
+        /* ========== 知识库增强按钮样式（保留原有功能） ========== */
+        #rag-toggle-btn {
+            background: linear-gradient(135deg, #ff9f43, #ff8c42);
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(255, 159, 67, 0.3);
+        }
+        
+        #rag-toggle-btn:hover {
+            background: linear-gradient(135deg, #ff8c42, #ff7b3a);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 159, 67, 0.4);
+        }
+        
+        #rag-toggle-btn.enabled {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            box-shadow: 0 8px 25px rgba(0, 184, 148, 0.3);
+        }
+        
+        #rag-toggle-btn.enabled:hover {
+            background: linear-gradient(135deg, #00a085, #008f7a);
+            box-shadow: 0 12px 35px rgba(0, 184, 148, 0.4);
+        }
+        
+        #rag-toggle-btn.loading {
+            background: linear-gradient(135deg, #6c5ce7, #5f3dc4);
+            animation: ragPulse 1.5s infinite;
+        }
+        
+        @keyframes ragPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* ========== 清空上下文按钮样式 ========== */
+        #clear-context-btn {
+            background: linear-gradient(135deg, #ff4757, #ff3742);
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+        }
+        
+        #clear-context-btn:hover {
+            background: linear-gradient(135deg, #ff3742, #ff2f3a);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 71, 87, 0.4);
+        }
+        
+        /* ========== 知识库加载弹窗样式 ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+            overflow: hidden;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #78dfff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #rag-loading-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1em;
+            margin: 0;
+        }
+        
+        /* ========== 响应式设计 ========== */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 10px;
+            }
+            
+            .top-nav {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .system-title {
+                font-size: 1.4em;
+            }
+            
+            .chat-container {
+                padding: 20px;
+                border-radius: 20px;
+            }
+            
+            .chat-box {
+                min-height: 400px;
+                padding: 20px;
+            }
+            
+            .input-area {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            button {
+                width: 100%;
+                padding: 16px 20px;
+            }
+            
+            #question {
+                padding: 16px 20px;
+            }
+        }
+        
+        /* ========== 加载动画 ========== */
+        .loading-dots {
+            display: inline-block;
+        }
+        
+        .loading-dots::after {
+            content: '';
+            animation: loadingDots 1.5s infinite;
+        }
+        
+        @keyframes loadingDots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        
+        /* ========== 科技感装饰元素 ========== */
+        .tech-decoration {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(120, 219, 255, 0.3);
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+        }
+        
+        .tech-decoration:nth-child(1) {
+            top: 10%;
+            right: 10%;
+            animation-delay: 0s;
+        }
+        
+        .tech-decoration:nth-child(2) {
+            bottom: 20%;
+            left: 5%;
+            animation-delay: -10s;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ========== 返回按钮样式 ========== */
+        .back-button {
+            position: relative;
+            z-index: 1000;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            color: #78dfff;
+        }
+        
+        .back-link i {
+            font-size: 16px;
+        }
+
+        /* ========== 停止确认UI样式 ========== */
+        .stop-confirmation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            text-align: center;
+            z-index: 10001;
+            backdrop-filter: blur(20px);
+            min-width: 300px;
+        }
+
+        .stop-confirmation h3 {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .stop-confirmation p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        .voice-hint {
+            color: rgba(120, 219, 255, 0.8) !important;
+            font-size: 0.9em !important;
+            margin-bottom: 20px !important;
+            font-style: italic;
+            animation: voiceHintPulse 2s infinite;
+        }
+
+        @keyframes voiceHintPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .confirmation-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            outline: none;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 80px;
+        }
+
+        .confirmation-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .confirmation-btn:hover::before {
+            left: 100%;
+        }
+
+        .confirm-yes {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000000;
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
+        }
+
+        .confirm-yes:hover {
+            background: linear-gradient(135deg, #00cc6a, #00aa55);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 255, 136, 0.4);
+        }
+
+        .confirm-no {
+            background: linear-gradient(135deg, #ff4757, #ff3742);
+            color: #ffffff;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+        }
+
+        .confirm-no:hover {
+            background: linear-gradient(135deg, #ff3742, #ff2f3a);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 71, 87, 0.4);
+        }
+
+        .stop-confirmation-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 科技感装饰元素 -->
+    <div class="tech-decoration"></div>
+    <div class="tech-decoration"></div>
+    
+    <!-- ========== 主容器 ========== -->
+    <div class="main-container">
+        <!-- ========== 顶部导航栏 ========== -->
+        <div class="top-nav">
+            <!-- LOGO和标题容器 -->
+            <div class="logo-container">
+                <!-- AIoT实验室LOGO -->
+                <img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT实验室" class="logo">
+                <!-- 系统标题 -->
+                <div class="system-title">农业大模型问答系统</div>
+            </div>
+            
+            <!-- 返回按钮 -->
+            <div class="back-button">
+                <a href="javascript:history.back()" class="back-link">
+                    <i class="fa fa-arrow-left"></i> 返回
+                </a>
+            </div>
+        </div>
+
+        <!-- ========== 聊天容器 ========== -->
+        <div class="chat-container">
+            <!-- 聊天消息显示区域 -->
+            <div class="chat-box" id="chat-box">
+                <!-- 历史聊天记录 -->
+                {% if chat_history %}
+                    {% for message in chat_history %}
+                        {% if message.role == 'user' %}
+                            <div class="message user-message">
+                                <div>{{ message.content }}</div>
+                            </div>
+                        {% elif message.role == 'assistant' %}
+                            <div class="message bot-message">
+                                <div class="bot-content">{{ message.content|safe }}</div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <!-- 历史记录分隔线 -->
+                    <div class="separator">📚 历史对话记录</div>
+                {% endif %}
+                
+                <!-- 欢迎消息 -->
+                <div class="message bot-message welcome-message">
+                    <div class="bot-content">
+                        <p>🌱 欢迎使用AIoT实验室的农业大模型语音问答系统！</p>
+                        <p>🎆 系统基于DeepSeek-R1进行二次开发，测试版本0.3V</p>
+                        <p>请告诉我您想了解什么？</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入控制区域 -->
+            <div class="input-area">
+                <!-- 问题输入框 -->
+                <input type="text" id="question" placeholder="请输入您的问题..." autocomplete="off">
+                <!-- 强制结束按钮 -->
+                <button id="stop-btn" title="强制结束回答"></button>
+                <!-- 工具箱按钮 -->
+                <button id="toolbox-btn" title="工具箱">🔧 工具箱</button>
+                <!-- 语音控制按钮 -->
+                <button id="voice-btn" title="语音开关/识别">🎤 语音 关</button>
+                <!-- 发送按钮 -->
+                <button id="send-btn" onclick="sendQuestion()">📤 发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工具箱弹窗 -->
+    <div id="toolbox-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content toolbox-modal">
+            <div class="modal-header">
+                <h3>🔧 工具箱</h3>
+                <button class="close-btn" onclick="closeToolbox()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="toolbox-options">
+                    <!-- 知识库增强开关 -->
+                    <div class="toolbox-item">
+                        <button id="rag-toggle-btn" class="toolbox-action-btn">
+                            <span class="toolbox-icon">📚</span>
+                            <span class="toolbox-text">启动知识库增强</span>
+                            <span class="toolbox-status" id="rag-status">关</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 清空上下文 -->
+                    <div class="toolbox-item">
+                        <button id="clear-context-btn" class="toolbox-action-btn">
+                            <span class="toolbox-icon">🗑️</span>
+                            <span class="toolbox-text">清空上下文</span>
+                        </button>
+                    </div>
+
+                    <!-- 重新初始化知识库 -->
+                    <div class="toolbox-item">
+                        <button id="rag-reinit-btn" class="toolbox-action-btn">
+                            <span class="toolbox-icon">🔄</span>
+                            <span class="toolbox-text">重新初始化知识库</span>
+                        </button>
+                    </div>
+
+                    <!-- 编辑知识库：跳转到 ChatKG -->
+                    <div class="toolbox-item">
+                        <a class="toolbox-action-btn" href="/aiModels/tool/chatkg">
+                            <span class="toolbox-icon">📝</span>
+                            <span class="toolbox-text">编辑知识库</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 知识库加载弹窗 -->
+    <div id="rag-loading-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📚 知识库加载中</h3>
+            </div>
+            <div class="modal-body">
+                <div class="loading-spinner"></div>
+                <p id="rag-loading-text">正在初始化知识库...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 停止确认弹窗 -->
+    <div id="stop-confirmation-modal" class="stop-confirmation-overlay" style="display: none;">
+        <div class="stop-confirmation">
+            <h3>⏹ 操作已停止</h3>
+            <p>是否换一个问题？</p>
+            <p class="voice-hint">🎤 也可以直接说"继续"或"取消"</p>
+            <div class="confirmation-buttons">
+                <button class="confirmation-btn confirm-yes" onclick="handleContinueCommand()">是</button>
+                <button class="confirmation-btn confirm-no" onclick="handleCancelCommand()">否</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== DOM元素获取 ==========
+        const chatBox = document.getElementById('chat-box');        // 聊天框元素
+        const questionInput = document.getElementById('question');   // 问题输入框
+        const sendBtn = document.getElementById('send-btn');         // 发送按钮
+        const voiceBtn = document.getElementById('voice-btn');       // 语音按钮
+        const stopBtn = document.getElementById('stop-btn');         // 强制结束按钮
+        const toolboxBtn = document.getElementById('toolbox-btn');   // 工具箱按钮
+        const toolboxModal = document.getElementById('toolbox-modal'); // 工具箱弹窗
+        const ragToggleBtn = document.getElementById('rag-toggle-btn'); // 知识库切换按钮
+        const ragStatus = document.getElementById('rag-status');     // 知识库状态显示
+        const clearContextBtn = document.getElementById('clear-context-btn'); // 清空上下文按钮
+        const ragLoadingModal = document.getElementById('rag-loading-modal'); // 知识库加载弹窗
+        const ragLoadingText = document.getElementById('rag-loading-text');   // 加载状态文本
+        const ragToggleText = ragToggleBtn.querySelector('.toolbox-text');    // 按钮文字
+        const ragReinitBtn = document.getElementById('rag-reinit-btn');       // 重新初始化按钮
+        const stopConfirmationModal = document.getElementById('stop-confirmation-modal'); // 停止确认弹窗
+
+        // ========== 全局状态变量 ==========
+        let isProcessing = false;            // 是否正在处理回答
+        let currentAbortController = null;   // 当前请求的AbortController
+        let systemOnline = true;             // 系统在线状态
+        let ragEnabled = false;              // 知识库增强是否启用
+        let ragInitialized = false;          // 知识库是否已初始化
+        let chatHistory = [];                // 聊天历史记录
+        
+        // 新增：静音超时与等待语音标记
+        let silenceTimerId = null;           // 语音监听的静音超时定时器
+        let awaitingSpeech = false;          // 是否在等待语音输入
+        
+        // 新增：语音控制功能状态变量
+        let voiceControlEnabled = false;     // 语音控制是否启用
+        let isListeningForCommand = false;   // 是否正在监听语音指令
+        let commandRecognition = null;       // 语音指令识别实例
+        let currentThinkingId = null;         // 当前思考中消息的ID
+        let stopConfirmationShown = false;   // 是否已显示停止确认
+        
+        // 新增：独立的确认弹窗语音监听变量
+        let confirmationRecognition = null;  // 确认弹窗专用语音识别实例
+        let isListeningForConfirmation = false; // 是否正在监听确认指令
+
+        // ========== 工具箱功能模块 ==========
+        /**
+         * 打开工具箱弹窗
+         */
+        function openToolbox() {
+            toolboxModal.style.display = 'flex';
+            updateToolboxStatus();
+        }
+
+        /**
+         * 关闭工具箱弹窗
+         */
+        function closeToolbox() {
+            toolboxModal.style.display = 'none';
+        }
+
+        /**
+         * 更新工具箱状态显示
+         */
+        function updateToolboxStatus() {
+            if (ragInitialized && ragEnabled) {
+                ragStatus.textContent = '开';
+                ragStatus.className = 'toolbox-status enabled';
+                ragToggleBtn.classList.add('enabled');
+                if (ragToggleText) ragToggleText.textContent = '关闭知识库增强';
+            } else if (ragInitialized && !ragEnabled) {
+                ragStatus.textContent = '关';
+                ragStatus.className = 'toolbox-status disabled';
+                ragToggleBtn.classList.remove('enabled');
+                if (ragToggleText) ragToggleText.textContent = '启动知识库增强';
+            } else {
+                ragStatus.textContent = '未初始化';
+                ragStatus.className = 'toolbox-status disabled';
+                ragToggleBtn.classList.remove('enabled');
+                if (ragToggleText) ragToggleText.textContent = '启动并初始化知识库';
+            }
+        }
+
+        /**
+         * 切换知识库增强状态
+         */
+        function toggleRAG() {
+            if (!ragInitialized) {
+                // 首次点击：初始化知识库
+                initializeRAG().catch(error => {
+                    console.error('知识库初始化失败:', error);
+                    addMessage('bot', '❌ 知识库初始化失败: ' + error.message);
+                });
+            } else {
+                // 已初始化：切换启用状态
+                ragEnabled = !ragEnabled;
+                updateToolboxStatus();
+            }
+        }
+
+        /**
+         * 清空聊天上下文
+         */
+        function clearChatContext() {
+            // 调用后端API清空历史记录
+            fetch('/aiModels/clear_chat_history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 清空聊天框内容
+                    chatBox.innerHTML = '';
+                    
+                    // 清空前端本地聊天历史记录
+                    chatHistory = [];
+                    
+                    // 添加欢迎消息
+                    addMessage('bot', '🌱 欢迎使用AIoT实验室的农业大模型语音问答系统！\n🎆 系统基于DeepSeek-R1进行二次开发，测试版本0.3V\n请告诉我您想了解什么？', '', false, true);
+                    
+                    // 关闭工具箱弹窗
+                    closeToolbox();
+                    
+                    console.log('聊天上下文已清空');
+                } else {
+                    console.error('清空历史记录失败:', data.error);
+                    addMessage('bot', '❌ 清空历史记录失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('清空历史记录请求失败:', error);
+                addMessage('bot', '❌ 清空历史记录请求失败: ' + error.message);
+            });
+        }
+
+        // ========== 工具箱事件监听 ==========
+        // 工具箱按钮点击事件
+        toolboxBtn.addEventListener('click', openToolbox);
+        
+        // 知识库切换按钮点击事件
+        ragToggleBtn.addEventListener('click', toggleRAG);
+        
+        // 清空上下文按钮点击事件
+        clearContextBtn.addEventListener('click', clearChatContext);
+        
+        // 重新初始化知识库
+        ragReinitBtn.addEventListener('click', reinitializeRAG);
+        
+        // 点击弹窗外部关闭弹窗
+        toolboxModal.addEventListener('click', function(e) {
+            if (e.target === toolboxModal) {
+                closeToolbox();
+            }
+        });
+
+        // ========== 系统状态管理 ==========
+        /**
+         * 更新系统状态
+         * @param {boolean} online - 系统是否在线
+         * @param {string} reason - 离线原因（可选）
+         */
+        function updateSystemStatus(online, reason = '') {
+            systemOnline = online;
+            // 简单记录状态
+            if (online) {
+                console.log('系统状态: 在线');
+            } else {
+                console.log('系统状态: 离线 -', reason || '未知原因');
+            }
+        }
+
+        // ========== 键盘事件监听 ==========
+        // 监听回车键发送消息
+        questionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendQuestion();  // 调用发送问题函数
+            }
+        });
+
+        // ========== 语音功能模块（语音识别 + 语音合成） ==========
+        // 检查浏览器是否支持语音识别API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const hasRecognition = !!SpeechRecognition;  // 是否支持语音识别
+        const hasTTS = 'speechSynthesis' in window;  // 是否支持语音合成
+
+        // 语音功能状态变量
+        let speechEnabled = false;   // 语音功能总开关
+        let recognizing = false;     // 是否正在听写状态
+        let recognition = null;      // 语音识别实例
+        
+        // 新增：启动识别并设置静音超时
+        function startListeningWithSilenceTimeout(timeoutMs = 5000) {
+            if (!speechEnabled) return;
+            if (!hasRecognition) return;
+            if (!recognition) return;
+            try {
+                // 清理旧的定时器
+                if (silenceTimerId) {
+                    clearTimeout(silenceTimerId);
+                    silenceTimerId = null;
+                }
+                awaitingSpeech = true;
+                recognition.start();
+                // 设置静音超时：若超时仍未有识别结果，则停止识别
+                silenceTimerId = setTimeout(() => {
+                    if (awaitingSpeech && recognizing) {
+                        try { recognition.stop(); } catch (e) { console.warn(e); }
+                    }
+                    awaitingSpeech = false;
+                    silenceTimerId = null;
+                }, timeoutMs);
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+        
+        function clearSilenceTimer() {
+            if (silenceTimerId) {
+                clearTimeout(silenceTimerId);
+                silenceTimerId = null;
+            }
+        }
+
+        /**
+         * 检查语音功能支持情况并更新系统状态
+         */
+        function checkVoiceSupport() {
+            if (!hasRecognition && !hasTTS) {
+                updateSystemStatus(false, '浏览器不支持语音功能');
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * 更新语音按钮的显示状态
+         * 根据当前语音功能状态和听写状态更新按钮文字和样式
+         */
+        function updateVoiceBtn() {
+            if (!speechEnabled) {
+                // 语音功能关闭状态
+                voiceBtn.textContent = '🎤 语音 关';
+                voiceBtn.classList.remove('listening');
+            } else if (recognizing) {
+                // 正在听写状态
+                voiceBtn.textContent = '🎤 停止听';
+                voiceBtn.classList.add('listening');
+            } else {
+                // 语音功能开启但未在听写状态
+                voiceBtn.textContent = '🎤 开始听';
+                voiceBtn.classList.remove('listening');
+            }
+            
+            // 如果浏览器不支持语音功能，显示不可用状态
+            if (!hasRecognition && !hasTTS) {
+                voiceBtn.textContent = '🎤 语音不可用';
+                voiceBtn.classList.add('disabled');
+            }
+        }
+
+        /**
+         * 初始化语音识别功能
+         * 创建语音识别实例并设置相关事件监听器
+         */
+        function initRecognition() {
+            if (!hasRecognition) return;  // 不支持语音识别则退出
+            if (recognition) return;      // 已初始化则退出
+            
+            // 创建语音识别实例
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';           // 设置识别语言为中文
+            recognition.continuous = false;       // 非连续识别
+            recognition.interimResults = false;   // 不显示中间结果
+
+            // 语音识别开始事件
+            recognition.onstart = () => {
+                recognizing = true;
+                updateVoiceBtn();
+            };
+            
+            // 语音识别错误事件
+            recognition.onerror = (e) => {
+                recognizing = false;
+                awaitingSpeech = false;           // 新增：错误时结束等待
+                clearSilenceTimer();              // 新增：清理静音计时
+                updateVoiceBtn();
+                console.error('Speech recognition error:', e);
+                // 语音识别错误时更新系统状态
+                updateSystemStatus(false, '语音识别服务异常');
+            };
+            
+            // 语音识别结束事件
+            recognition.onend = () => {
+                recognizing = false;
+                awaitingSpeech = false;           // 新增：结束时结束等待
+                clearSilenceTimer();              // 新增：清理静音计时
+                updateVoiceBtn();
+            };
+            
+            // 语音识别结果事件
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;  // 获取识别结果
+                if (transcript) {
+                    awaitingSpeech = false;       // 新增：收到结果
+                    clearSilenceTimer();          // 新增：清理静音计时
+                    questionInput.value = transcript;  // 将识别结果填入输入框
+                    sendQuestion();                    // 自动发送问题
+                }
+            };
+        }
+
+        /**
+         * 初始化确认弹窗专用语音识别功能
+         * 专门用于监听"是"、"否"等确认指令
+         */
+        function initConfirmationRecognition() {
+            if (!hasRecognition) return;
+            if (confirmationRecognition) return;
+            
+            confirmationRecognition = new SpeechRecognition();
+            confirmationRecognition.lang = 'zh-CN';
+            confirmationRecognition.continuous = true;      // 连续识别
+            confirmationRecognition.interimResults = true;  // 显示中间结果，提高响应速度
+            
+            confirmationRecognition.onstart = () => {
+                isListeningForConfirmation = true;
+                console.log('确认弹窗：开始监听语音指令');
+            };
+            
+            confirmationRecognition.onerror = (e) => {
+                isListeningForConfirmation = false;
+                console.error('确认弹窗语音识别错误:', e);
+            };
+            
+            confirmationRecognition.onend = () => {
+                isListeningForConfirmation = false;
+                console.log('确认弹窗：语音指令监听结束');
+            };
+            
+            confirmationRecognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                // 处理识别结果
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // 合并最终结果和中间结果
+                const fullTranscript = (finalTranscript + interimTranscript).toLowerCase().trim();
+                console.log('确认弹窗语音识别结果:', fullTranscript);
+                
+                // 检查确认指令
+                if (fullTranscript.includes('是') || fullTranscript.includes('继续') || fullTranscript.includes('下一个')) {
+                    console.log('确认弹窗：收到"是"指令');
+                    handleContinueCommand();
+                } else if (fullTranscript.includes('否') || fullTranscript.includes('停止') || fullTranscript.includes('关闭') || fullTranscript.includes('取消')) {
+                    console.log('确认弹窗：收到"否"指令');
+                    handleCancelCommand();
+                }
+            };
+        }
+
+        /**
+         * 开始确认弹窗语音监听
+         */
+        function startConfirmationListening() {
+            if (!hasRecognition || !confirmationRecognition) {
+                initConfirmationRecognition();
+            }
+            
+            if (confirmationRecognition && !isListeningForConfirmation) {
+                try {
+                    confirmationRecognition.start();
+                    console.log('确认弹窗语音监听已启动');
+                } catch (e) {
+                    console.warn('启动确认弹窗语音监听失败:', e);
+                }
+            }
+        }
+
+        /**
+         * 停止确认弹窗语音监听
+         */
+        function stopConfirmationListening() {
+            if (confirmationRecognition && isListeningForConfirmation) {
+                try {
+                    confirmationRecognition.stop();
+                    isListeningForConfirmation = false;
+                    console.log('确认弹窗语音监听已停止');
+                } catch (e) {
+                    console.warn('停止确认弹窗语音监听失败:', e);
+                }
+            }
+        }
+
+        /**
+         * 初始化语音指令识别功能
+         * 专门用于监听"停止"、"是"、"否"、"继续"等指令
+         */
+        function initCommandRecognition() {
+            if (!hasRecognition) return;
+            if (commandRecognition) return;
+            
+            commandRecognition = new SpeechRecognition();
+            commandRecognition.lang = 'zh-CN';
+            commandRecognition.continuous = true;      // 连续识别，用于监听指令
+            commandRecognition.interimResults = true;  // 显示中间结果，提高响应速度
+            
+            commandRecognition.onstart = () => {
+                isListeningForCommand = true;
+                console.log('开始监听语音指令');
+            };
+            
+            commandRecognition.onerror = (e) => {
+                isListeningForCommand = false;
+                console.error('语音指令识别错误:', e);
+            };
+            
+            commandRecognition.onend = () => {
+                isListeningForCommand = false;
+                console.log('语音指令监听结束');
+            };
+            
+            commandRecognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                // 处理识别结果
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // 合并最终结果和中间结果
+                const fullTranscript = (finalTranscript + interimTranscript).toLowerCase().trim();
+                
+                // 检查是否包含指令关键词
+                console.log('语音指令识别结果:', fullTranscript);
+                
+                // 只处理"停止"指令（确认弹窗的"是"/"否"由独立的确认弹窗语音监听处理）
+                if (fullTranscript.includes('结束问答') || fullTranscript.includes('下个问题') || fullTranscript.includes('停止回答')) {
+                    console.log('收到"停止"指令');
+                    handleStopCommand();
+                }
+            };
+        }
+
+        /**
+         * 开始监听语音指令
+         */
+        function startCommandListening() {
+            if (!hasRecognition || !commandRecognition) {
+                initCommandRecognition();
+            }
+            
+            if (commandRecognition && !isListeningForCommand) {
+                try {
+                    commandRecognition.start();
+                    voiceControlEnabled = true;
+                    console.log('语音控制已启用');
+                } catch (e) {
+                    console.warn('启动语音指令监听失败:', e);
+                }
+            }
+        }
+
+        /**
+         * 停止监听语音指令
+         */
+        function stopCommandListening() {
+            if (commandRecognition && isListeningForCommand) {
+                try {
+                    commandRecognition.stop();
+                    voiceControlEnabled = false;
+                    isListeningForCommand = false;
+                    console.log('语音控制已停用');
+                } catch (e) {
+                    console.warn('停止语音指令监听失败:', e);
+                }
+            }
+        }
+
+        /**
+         * 处理"停止"指令
+         */
+        function handleStopCommand() {
+            console.log('收到停止指令');
+            
+            // 停止语音播报
+            if (hasTTS) {
+                window.speechSynthesis.cancel();
+            }
+            
+            // 停止语音识别
+            if (hasRecognition && recognition && recognizing) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.warn('停止语音识别失败:', e);
+                }
+            }
+            
+            // 取消网络请求
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+            }
+            
+            // 移除思考中消息（如果存在）
+            if (currentThinkingId) {
+                const thinkingElement = document.getElementById(currentThinkingId);
+                if (thinkingElement) {
+                    thinkingElement.textContent = '⏹ 思考已停止';
+                }
+                currentThinkingId = null;
+            }
+            
+            // 停止原有的语音指令监听
+            stopCommandListening();
+            
+            // 显示停止确认（会自动启动独立的确认弹窗语音监听）
+            showStopConfirmation();
+        }
+
+        /**
+         * 处理"是"或"继续"指令
+         */
+        function handleContinueCommand() {
+            console.log('收到继续指令');
+            hideStopConfirmation();
+            
+            // 重新启用语音功能
+            speechEnabled = true;
+            if (hasRecognition) {
+                initRecognition();
+            }
+            
+            // 开始新的语音监听
+            if (hasRecognition && recognition) {
+                startListeningWithSilenceTimeout(10000);
+            }
+            
+            updateVoiceBtn();
+        }
+
+        /**
+         * 处理"否"指令
+         */
+        function handleCancelCommand() {
+            console.log('收到取消指令');
+            hideStopConfirmation();
+            
+            // 关闭语音功能
+            speechEnabled = false;
+            recognizing = false;
+            awaitingSpeech = false;
+            clearSilenceTimer();
+            
+            updateVoiceBtn();
+        }
+
+        /**
+         * 显示停止确认弹窗
+         */
+        function showStopConfirmation() {
+            if (stopConfirmationShown) return;
+            
+            stopConfirmationShown = true;
+            stopConfirmationModal.style.display = 'flex';
+            
+            // 重新启用输入控件
+            questionInput.disabled = false;
+            sendBtn.disabled = false;
+            questionInput.focus();
+            
+            // 重置处理状态
+            isProcessing = false;
+            currentAbortController = null;
+            
+            // 隐藏强制结束按钮
+            stopBtn.style.display = 'none';
+            
+            // 启动独立的确认弹窗语音监听
+            if (hasRecognition) {
+                startConfirmationListening();
+                
+                // 播放提示音（如果支持）
+                if (hasTTS) {
+                    setTimeout(() => {
+                        const hintUtter = new SpeechSynthesisUtterance('请说"继续"或"取消"');
+                        hintUtter.lang = 'zh-CN';
+                        hintUtter.rate = 0.8;
+                        hintUtter.volume = 0.5;
+                        window.speechSynthesis.speak(hintUtter);
+                    }, 500);
+                }
+            }
+            
+            console.log('显示停止确认弹窗');
+        }
+
+        /**
+         * 隐藏停止确认弹窗
+         */
+        function hideStopConfirmation() {
+            if (!stopConfirmationShown) return;
+            
+            stopConfirmationShown = false;
+            stopConfirmationModal.style.display = 'none';
+            
+            // 停止独立的确认弹窗语音监听
+            stopConfirmationListening();
+            
+            console.log('隐藏停止确认弹窗');
+        }
+
+        /**
+         * 切换语音功能状态
+         * 首次点击开启语音功能，后续点击控制听写开始/停止
+         */
+        function toggleVoice() {
+            if (!speechEnabled) {
+                // 首次点击：开启语音功能
+                speechEnabled = true;
+                if (hasRecognition) initRecognition();  // 初始化语音识别
+                updateVoiceBtn();
+                return;
+            }
+            
+            // 已开启语音功能：点击作为开始/停止听写的触发
+            if (hasRecognition && recognition) {
+                if (!recognizing) {
+                    // 开始听写
+                    try { 
+                        recognition.start(); 
+                    } catch (e) { 
+                        console.warn(e); 
+                        updateSystemStatus(false, '语音识别启动失败');
+                    }
+                } else {
+                    // 停止听写
+                    try { 
+                        recognition.stop(); 
+                    } catch (e) { 
+                        console.warn(e); 
+                    }
+                }
+            }
+            updateVoiceBtn();
+        }
+
+        // 语音按钮点击事件监听
+        voiceBtn.addEventListener('click', () => {
+            if (!hasRecognition && !hasTTS) return; // 无语音能力则忽略点击
+            toggleVoice();
+        });
+
+        /**
+         * 语音合成朗读功能
+         * @param {string} text - 要朗读的文本内容
+         */
+        function speak(text) {
+            if (!speechEnabled) return;  // 语音功能未开启则退出
+            if (!hasTTS) return;         // 不支持语音合成则退出
+            if (!text || !text.trim()) return;  // 文本为空则退出
+            console.log("语音播报内容：", text)
+
+            try {
+                // 停止当前未完成的朗读
+                window.speechSynthesis.cancel();
+                
+                // 显示停止按钮
+                stopBtn.style.display = 'inline-block';
+                console.log('显示停止按钮 - 开始语音播放');
+                
+                // 创建语音合成实例
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'zh-CN';     // 设置语言为中文
+                utter.rate = 1.0;         // 设置语速
+                utter.pitch = 1.0;        // 设置音调
+                
+                // 添加语音事件监听器
+                utter.onstart = function() {
+                    console.log('语音播放开始');
+                    // 确保在语音开始时按钮是显示的
+                    stopBtn.style.display = 'inline-block';
+                    
+                    // 开始监听语音指令（如果语音功能已启用）
+                    if (speechEnabled && hasRecognition) {
+                        initCommandRecognition();
+                        setTimeout(() => {
+                            startCommandListening();
+                        }, 200);
+                    }
+                };
+                
+                utter.onend = function() {
+                    console.log('语音播放结束');
+                    // 语音播放结束时隐藏停止按钮
+                    stopBtn.style.display = 'none';
+                    console.log('隐藏停止按钮 - 语音播放结束');
+                    
+                    // 停止语音指令监听
+                    stopCommandListening();
+                    
+                    // 新增：播报完成后自动开始麦克风监听，10秒无输入自动关闭
+                    if (speechEnabled && hasRecognition && recognition) {
+                        startListeningWithSilenceTimeout(10000);
+                    }
+                };
+                
+                utter.onerror = function(event) {
+                    console.warn('语音播放错误:', event.error);
+                    updateSystemStatus(false, '语音播放服务异常');
+                    // 语音播放错误时隐藏停止按钮
+                    stopBtn.style.display = 'none';
+                    console.log('隐藏停止按钮 - 语音播放错误');
+                    
+                    // 停止语音指令监听
+                    stopCommandListening();
+                };
+                
+                utter.onpause = function() {
+                    console.log('语音播放暂停');
+                };
+                
+                utter.onresume = function() {
+                    console.log('语音播放恢复');
+                };
+                
+                // 开始朗读
+                window.speechSynthesis.speak(utter);
+                console.log('开始语音播放:', text.substring(0, 50) + '...');
+            } catch (e) {
+                console.warn('TTS error:', e);
+                updateSystemStatus(false, '语音合成服务异常');
+                // 语音合成异常时隐藏停止按钮
+                stopBtn.style.display = 'none';
+                console.log('隐藏停止按钮 - 语音合成异常');
+            }
+        }
+
+        /**
+         * 强制停止所有回答功能
+         * 停止语音朗读、网络请求和重置UI状态
+         */
+        function forceStopAnswer() {
+            // 立即停止语音朗读
+            if (hasTTS) {
+                window.speechSynthesis.cancel();
+                console.log('语音播放已停止');
+            }
+            
+            // 停止语音识别
+            if (hasRecognition && recognition && recognizing) {
+                try {
+                    recognition.stop();
+                    console.log('语音识别已停止');
+                } catch (e) {
+                    console.warn('Stop recognition error:', e);
+                }
+            }
+            
+            // 取消网络请求
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+                console.log('网络请求已取消');
+            }
+            
+            // 新增：停止语音识别与静音计时
+            awaitingSpeech = false;
+            clearSilenceTimer();
+            
+            // 停止语音指令监听
+            stopCommandListening();
+            
+            // 重置处理状态
+            isProcessing = false;
+            
+            // 隐藏停止按钮
+            stopBtn.style.display = 'none';
+            console.log('隐藏停止按钮 - 强制停止');
+            
+            // 重新启用输入控件
+            questionInput.disabled = false;
+            sendBtn.disabled = false;
+            questionInput.focus();
+            
+            // 更新语音按钮状态
+            updateVoiceBtn();
+            
+            console.log('强制停止回答完成');
+        }
+
+        // 强制结束按钮点击事件监听
+        stopBtn.addEventListener('click', forceStopAnswer);
+
+        // ========== 知识库增强功能模块（保持原有功能） ==========
+        /**
+         * 初始化知识库增强功能
+         * 发送请求到后端初始化RAG系统
+         */
+        function initializeRAG() {
+            if (ragInitialized) return Promise.resolve();
+            
+            return new Promise((resolve, reject) => {
+                // 显示加载弹窗
+                ragLoadingModal.style.display = 'flex';
+                ragLoadingText.textContent = '正在初始化知识库...';
+                ragToggleBtn.classList.add('loading');
+                ragToggleBtn.disabled = true;
+                
+                // 发送初始化请求
+                fetch('initialize_rag', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        ragInitialized = true;
+                        ragEnabled = true;
+                        updateToolboxStatus();
+                        ragLoadingText.textContent = '知识库加载完成！';
+                        ragToggleBtn.classList.remove('loading');
+                        ragToggleBtn.disabled = false;
+                        
+                        // 延迟关闭弹窗
+                        setTimeout(() => {
+                            ragLoadingModal.style.display = 'none';
+                            resolve();
+                        }, 1000);
+                    } else {
+                        throw new Error(data.error || '知识库初始化失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('RAG初始化错误:', error);
+                    ragLoadingText.textContent = '知识库加载失败: ' + error.message;
+                    ragToggleBtn.classList.remove('loading');
+                    ragToggleBtn.disabled = false;
+                    
+                    // 延迟关闭弹窗
+                    setTimeout(() => {
+                        ragLoadingModal.style.display = 'none';
+                        reject(error);
+                    }, 2000);
+                });
+            });
+        }
+
+        /**
+         * 发送问题到后端并处理回复
+         * 这是核心功能函数，负责用户交互和AI对话
+         */
+        function sendQuestion() {
+            const question = questionInput.value.trim();  // 获取并清理用户输入
+            if (!question) return;  // 问题为空则退出
+
+            // 设置处理状态
+            isProcessing = true;
+
+            // 禁用输入控件防止重复提交
+            questionInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            // 显示强制结束按钮
+            stopBtn.style.display = 'inline-block';
+
+            // 添加用户消息到聊天框
+            addMessage('user', question);
+            questionInput.value = '';  // 清空输入框
+
+            // 添加"思考中..."提示消息
+            const thinkingId = 'thinking-' + Date.now();  // 生成唯一ID
+            currentThinkingId = thinkingId;  // 保存当前思考中消息ID
+            addMessage('bot', '🤔 思考中<span class="loading-dots"></span>', thinkingId, true);
+
+            // 滚动到聊天框底部
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // 开始监听语音指令（如果语音功能已启用）
+            if (speechEnabled && hasRecognition) {
+                startCommandListening();
+            }
+
+            // 创建AbortController用于取消请求
+            currentAbortController = new AbortController();
+
+            // 根据是否启用RAG选择不同的API端点
+            const apiEndpoint = ragEnabled ? 'get_answer_rag' : 'get_answer_deepseek';
+            
+            // 发送AJAX请求到后端API
+            fetch(apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''  // Django CSRF保护
+                },
+                body: JSON.stringify({ question: question }),  // 发送问题数据
+                signal: currentAbortController.signal  // 添加取消信号
+            })
+            .then(response => {
+                // 检查响应状态
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();  // 解析JSON响应
+            })
+            .then(data => {
+                // 移除"思考中..."消息
+                const thinkingElement = document.getElementById(thinkingId);
+                if (thinkingElement) {
+                    thinkingElement.remove();
+                }
+
+                // 停止语音指令监听（思考结束）
+                stopCommandListening();
+                currentThinkingId = null;
+
+                // 处理AI回复
+                if (data.answer) {
+                    // 添加AI回复消息
+                    const msgEl = addMessage('bot', formatResponse(data.answer));
+                    
+                    // 语音朗读回复内容（如果语音功能开启）
+                    if (speechEnabled && hasTTS) {
+                        // 延迟一点时间再开始语音播放，确保消息已经显示
+                        setTimeout(() => {
+                            // 使用纯文本（移除HTML/Markdown/代码块等）
+                            const speechText = toSpeechText(data.answer);
+                            console.log("语音播报内容：", speechText);
+                            speak(speechText);
+                        }, 100);
+                    }
+                    // 请求成功，确保系统状态为在线
+                    updateSystemStatus(true);
+                } else if (data.error) {
+                    // 处理错误情况
+                    addMessage('bot', '❌ 出错: ' + data.error);
+                    updateSystemStatus(false, 'AI服务响应异常');
+                }
+
+                // 滚动到聊天框底部
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => {
+                // 处理请求错误
+                if (error.name === 'AbortError') {
+                    console.log('请求已被用户取消');
+                    // 移除"思考中..."消息
+                    const thinkingElement = document.getElementById(thinkingId);
+                    if (thinkingElement) {
+                        thinkingElement.textContent = '⏹ 回答已停止';
+                    }
+                } else {
+                    console.error('Error:', error);
+                    const thinkingElement = document.getElementById(thinkingId);
+                    if (thinkingElement) {
+                        thinkingElement.textContent = '❌ 请求出错: ' + error.message;
+                    }
+                    // 网络请求失败时更新系统状态
+                    updateSystemStatus(false, '网络连接异常或服务不可用');
+                }
+            })
+            .finally(() => {
+                // 重置处理状态
+                isProcessing = false;
+                currentAbortController = null;
+                currentThinkingId = null;
+                
+                // 停止语音指令监听
+                stopCommandListening();
+                
+                // 隐藏强制结束按钮
+                stopBtn.style.display = 'none';
+                
+                // 无论成功失败都重新启用输入控件
+                questionInput.disabled = false;
+                sendBtn.disabled = false;
+                questionInput.focus();  // 重新聚焦到输入框
+                
+                // 更新语音按钮状态
+                updateVoiceBtn();
+            });
+        }
+
+        /**
+         * 提取显示给用户的纯文本内容
+         * 移除思维链内容，只保留最终回复
+         * @param {string} text - 原始AI回复内容
+         * @returns {string} 纯文本显示内容
+         */
+        function extractDisplayText(text) {
+            // 处理可能的思维链内容
+            const parts = text.split('*******************以上为思维链内容，模型回复内容如下********************');
+            
+            if (parts.length > 1) {
+                // 如果有思维链，只返回最终回复部分
+                return parts[1].trim();
+            } else {
+                // 如果没有思维链，返回原始内容
+                return text;
+            }
+        }
+
+        /**
+         * 将 AI 原始回复转换为适合 TTS 的纯文本
+         * 1) 切掉“思维链”分隔符之前的内容
+         * 2) 去掉 Markdown / 代码块 / 列表 / 标题 等标记
+         * 3) 去掉所有 HTML 标签并解码实体
+         * 4) 规整空白并限制长度
+         * @param {string} raw
+         * @returns {string}
+         */
+        function toSpeechText(raw) {
+            const text = extractDisplayText(raw);
+
+            // 移除多行代码块
+            let t = text.replace(/```[\s\S]*?```/g, '[代码片段略]');
+
+            // 图片与链接：仅保留可读文字
+            t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1');
+            t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+
+            // 行内代码
+            t = t.replace(/`([^`]+)`/g, '$1');
+
+            // 加粗/斜体
+            t = t.replace(/(\*\*|__)(.*?)\1/g, '$2')
+                 .replace(/(\*|_)(.*?)\1/g, '$2');
+
+            // 标题 / 引用 / 列表符号
+            t = t.replace(/^\s{0,3}#{1,6}\s*/gm, '')
+                 .replace(/^\s{0,3}>\s?/gm, '')
+                 .replace(/^\s*([-*+]\s+|\d+\.\s+)/gm, '• ');
+
+            // 将 <br> 先替换成换行（以便 strip 时不丢语义）
+            t = t.replace(/<br\s*\/?>/gi, '\n');
+
+            // 最后移除所有 HTML 标签并解码实体
+            t = stripHTMLTags(t);
+
+            // 规整空白
+            t = t.replace(/\u00A0/g, ' ')
+                 .replace(/[ \t]+/g, ' ')
+                 .replace(/\n{3,}/g, '\n\n')
+                 .trim();
+
+            const MAX_CHARS = 4000;
+            return t.length > MAX_CHARS ? t.slice(0, MAX_CHARS) + ' …' : t;
+        }
+
+        /** 移除 HTML 标签并解码 HTML 实体 */
+        function stripHTMLTags(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.textContent || div.innerText || '';
+        }
+
+        /**
+         * 添加消息到聊天框
+         * @param {string} sender - 发送者类型 ('user' 或 'bot')
+         * @param {string} content - 消息内容
+         * @param {string} id - 消息元素ID（可选）
+         * @param {boolean} isThinking - 是否为思考中状态（可选）
+         * @returns {HTMLElement} 创建的消息元素
+         */
+        function addMessage(sender, content, id = '', isThinking = false) {
+            // 创建消息容器元素
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            if (id) messageDiv.id = id;
+
+            if (isThinking) {
+                // 思考中状态：简单文本显示
+                messageDiv.classList.add('thinking');
+                messageDiv.innerHTML = content;
+            } else {
+                // 处理可能的思维链内容（AI推理过程）
+                const parts = content.split('*******************以上为思维链内容，模型回复内容如下********************');
+
+                if (parts.length > 1) {
+                    // 包含思维链的回复：分别处理思维链和最终回复
+                    const reasoningDiv = document.createElement('div');
+                    reasoningDiv.className = 'reasoning';
+                    reasoningDiv.innerHTML = formatResponse(parts[0].trim());
+                    messageDiv.appendChild(reasoningDiv);
+
+                    // 添加分隔线
+                    const separator = document.createElement('div');
+                    separator.className = 'separator';
+                    separator.textContent = '💭 模型回复内容';
+                    messageDiv.appendChild(separator);
+
+                    // 添加最终回答部分
+                    const answerDiv = document.createElement('div');
+                    answerDiv.className = 'bot-content';
+                    answerDiv.innerHTML = formatResponse(parts[1].trim());
+                    messageDiv.appendChild(answerDiv);
+                } else {
+                    // 普通回复：直接格式化显示
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = sender === 'bot' ? 'bot-content' : '';
+                    contentDiv.innerHTML = sender === 'bot' ? formatResponse(content) : content;
+                    messageDiv.appendChild(contentDiv);
+                }
+            }
+
+            // 将消息添加到聊天框
+            chatBox.appendChild(messageDiv);
+            return messageDiv;
+        }
+
+        /**
+         * 格式化AI回复内容
+         * 将Markdown格式的文本转换为HTML格式
+         * @param {string} text - 原始文本内容
+         * @returns {string} 格式化后的HTML内容
+         */
+        function formatResponse(text) {
+            // 保留原始换行和空格
+            let formatted = text.replace(/\n/g, '<br>');
+
+            // 格式化代码块 (```language\ncode\n```)
+            formatted = formatted.replace(/```(\w*)\n([\s\S]*?)\n```/g,
+                '<pre><code class="$1">$2</code></pre>');
+
+            // 格式化行内代码 (`code`)
+            formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 格式化无序列表 (* 或 - 开头)
+            formatted = formatted.replace(/^\s*\*\s(.*)$/gm, '<li>$1</li>');
+            formatted = formatted.replace(/^\s*-\s(.*)$/gm, '<li>$1</li>');
+            
+            // 格式化有序列表 (数字. 开头)
+            formatted = formatted.replace(/^\s*\d+\.\s(.*)$/gm, '<li>$1</li>');
+
+            // 将连续列表项包裹在ul/ol标签中
+            formatted = formatted.replace(/(<li>.*<\/li>)+/g, function(match) {
+                return '<ul>' + match + '</ul>';
+            });
+
+            // 格式化引用块 (> 开头)
+            formatted = formatted.replace(/^>\s(.*)$/gm, '<blockquote>$1</blockquote>');
+
+            // 格式化标题 (# ## ### 开头)
+            formatted = formatted.replace(/^#\s(.*)$/gm, '<h1>$1</h1>');
+            formatted = formatted.replace(/^##\s(.*)$/gm, '<h2>$1</h2>');
+            formatted = formatted.replace(/^###\s(.*)$/gm, '<h3>$1</h3>');
+
+            // 添加段落标签
+            formatted = formatted.replace(/<br><br>/g, '</p><p>');
+            formatted = '<p>' + formatted + '</p>';
+
+            return formatted;
+        }
+
+        /**
+         * 获取Cookie值的辅助函数
+         * @param {string} name - Cookie名称
+         * @returns {string|null} Cookie值或null
+         */
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // 新增：重新初始化知识库函数
+        function reinitializeRAG() {
+            // 显示加载弹窗
+            ragLoadingModal.style.display = 'flex';
+            ragLoadingText.textContent = '正在重新初始化知识库...';
+            ragReinitBtn.disabled = true;
+            ragToggleBtn.disabled = true;
+            ragToggleBtn.classList.add('loading');
+
+            fetch('reinitialize_rag', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // 重置前端状态并置为开启
+                    ragInitialized = true;
+                    ragEnabled = true;
+                    updateToolboxStatus();
+                    ragLoadingText.textContent = '知识库重新初始化完成！';
+                } else {
+                    throw new Error(data.error || '知识库重新初始化失败');
+                }
+            })
+            .catch(error => {
+                console.error('RAG重新初始化错误:', error);
+                ragLoadingText.textContent = '知识库重新初始化失败: ' + error.message;
+            })
+            .finally(() => {
+                ragToggleBtn.classList.remove('loading');
+                ragReinitBtn.disabled = false;
+                ragToggleBtn.disabled = false;
+                setTimeout(() => {
+                    ragLoadingModal.style.display = 'none';
+                }, 1200);
+            });
+        }
+
+        // ========== 页面初始化 ==========
+        // 检查语音功能支持情况
+        if (!checkVoiceSupport()) {
+            console.warn('浏览器不支持语音功能，系统功能受限');
+        }
+        
+        // 初始化语音按钮状态
+        updateVoiceBtn();
+        
+        // 初始化系统状态
+        updateSystemStatus(true);
+    </script>
+</body>
+</html>
