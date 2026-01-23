@@ -1,0 +1,114 @@
+/* storageSystem/static/storageSystem/css/dashboard.css */
+
+html { font-size: 18px; }
+body { background: #f6f7fb; }
+
+.nav-fixed { box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+
+/* 顶部 navbar fixed 占位 */
+.main{
+  padding: 86px 18px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-title{
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.muted{ color: rgba(0,0,0,.55); }
+.small-muted{ color: rgba(0,0,0,.52); font-size: .9rem; }
+
+/* card 容器 */
+.cardx{
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.06);
+}
+
+.cardx-hd{
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 650;
+}
+
+.cardx-bd{
+  padding: 16px;
+}
+
+/* KPI */
+.kpi{ cursor: pointer; transition: transform .08s ease, box-shadow .08s ease; }
+.kpi:hover{ transform: translateY(-1px); box-shadow: 0 12px 26px rgba(0,0,0,.08); }
+.kpi .label{ font-weight: 700; }
+.kpi .icon{ font-size: 1.25rem; opacity: .75; }
+.kpi .value{ font-size: 1.55rem; font-weight: 800; }
+
+/* chips */
+.chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: .92rem;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  user-select: none;
+}
+
+.chip .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .9;
+}
+
+.chip.online { color: #d7ffe3; }
+.chip.offline{ color: #ffe7d7; }
+.chip.alarm  { color: #ffe2ea; }
+
+/* 快捷入口 */
+.quick-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.quick-item{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.07);
+  text-decoration: none;
+  color: rgba(0,0,0,.82);
+  background: #fff;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.quick-item:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0,0,0,.07);
+}
+.quick-item i{ width: 22px; text-align: center; opacity: .8; }
+
+/* 趋势图高度 */
+.trend-chart{
+  width: 100%;
+  height: 320px;
+}
+
+/* 表格按钮间距 */
+.op-btn{ margin-right: 6px; }
+
+/* 表格更舒服一点 */
+.table thead th{ font-weight: 700; }
+.table td, .table th{ vertical-align: middle; }

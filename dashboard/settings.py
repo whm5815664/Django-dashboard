@@ -13,26 +13,22 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 
-# static文件夹
-STATIC_URL = '/static/'
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+# =========================
+# Basic settings
+# =========================
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-(x9v!(8ql6r6d*-fyp03@-_k5-*(h(z**!0$hi))cm+bv-orj@"
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
+# =========================
 # Application definition
+# =========================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -41,9 +37,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
     "rest_framework",
     "rest_framework.authtoken",
-    "screen"  # screen
+
+    "storageSystem",
+    "screen",  # screen
 ]
 
 MIDDLEWARE = [
@@ -56,14 +55,17 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-X_FRAME_OPTIONS = 'SAMEORIGIN'  # 允许同源网站嵌入
+X_FRAME_OPTIONS = "SAMEORIGIN"  # 允许同源网站嵌入
 
 ROOT_URLCONF = "dashboard.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'aiModels', 'templates')],
+        "DIRS": [
+            os.path.join(BASE_DIR, "templates"),
+            os.path.join(BASE_DIR, "aiModels", "templates"),
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -79,75 +81,97 @@ TEMPLATES = [
 WSGI_APPLICATION = "dashboard.wsgi.application"
 
 
+# =========================
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# =========================
 
-# mysql配置
 DATABASES = {
-    'default':
-    {
-        'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
-        'NAME': 'web_database', # 数据库名称
-        'HOST': '127.0.0.1', # 数据库地址，本机 ip 地址 127.0.0.1
-        'PORT': 3305, # 端口
-        'USER': 'root',  # 数据库用户名
-        'PASSWORD': '123456', # 数据库密码
-    }
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "coldchain",
+        "USER": "jetbot",
+        "PASSWORD": "yahboom",
+        "HOST": "47.113.147.210",
+        "PORT": "3306",  # ⚠️ 如果远程是真 33060，就改成 33060
+        "OPTIONS": {"charset": "utf8mb4"},
+    },
+
+    # ✅ 备用库（你未来如果要切换/做读写分离可以用）
+    "remote": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "coldchain",
+        "USER": "jetbot",
+        "PASSWORD": "yahboom",
+        "HOST": "47.113.147.210",
+        "PORT": "3306",
+        "OPTIONS": {"charset": "utf8mb4"},
+    },
+}
+
+# ✅ 方法A：storageSystem/views/api_dashboard.py 需要这个配置
+#    我们直接复用 DATABASES["remote"]，避免写两遍
+REMOTE_MYSQL = {
+    "HOST": DATABASES["remote"]["HOST"],
+    "PORT": int(DATABASES["remote"]["PORT"]),
+    "USER": DATABASES["remote"]["USER"],
+    "PASSWORD": DATABASES["remote"]["PASSWORD"],
+    "NAME": DATABASES["remote"]["NAME"],
+    "CHARSET": DATABASES["remote"]["OPTIONS"].get("charset", "utf8mb4"),
 }
 
 
+# =========================
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+# =========================
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 
+# =========================
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
+# =========================
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
 
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+# =========================
+# Static & Media
+# =========================
 
-STATIC_URL = "static/"
+# ✅ 静态资源（只保留一个，避免你之前重复定义导致路径混乱）
+STATIC_URL = "/static/"
 
 # Media files (Uploaded files)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+
+# =========================
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+# =========================
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Django REST framework 配置
+
+# =========================
+# Django REST framework
+# =========================
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.AllowAny",
     ),
 }

@@ -1,0 +1,296 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>冷库数据管理</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Page CSS -->
+  <link rel="stylesheet" href="{% static 'storageSystem/css/coldroom_manage.css' %}">
+</head>
+
+<body>
+
+  <!-- ===== 顶部导航 ===== -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top nav-fixed">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="fa-solid fa-snowflake me-2"></i>冷库设备平台
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="topNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="/dashboard/">总览</a></li>
+          <li class="nav-item"><a class="nav-link" href="/control/">控制</a></li>
+
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
+              管理
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item active" href="/coldrooms/">冷库管理</a></li>
+              <li><a class="dropdown-item" href="/devices/">设备管理</a></li>
+              <li><a class="dropdown-item" href="/tasks/">任务列表</a></li>
+              <li><a class="dropdown-item" href="/tasks/create/">创建任务</a></li>
+            </ul>
+          </li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          <div class="muted small" id="lastUpdated">最后更新：-</div>
+          <button class="btn btn-outline-light btn-sm" id="btnRefreshAll">
+            <i class="fa-solid fa-rotate"></i> 刷新
+          </button>
+          <a class="btn btn-outline-light btn-sm" href="/logout/">
+            <i class="fa-solid fa-right-from-bracket me-1"></i>登出
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== 主内容 ===== -->
+  <main class="main">
+    <div class="d-flex justify-content-between align-items-end mb-2">
+      <div>
+        <div class="page-title">冷库数据管理</div>
+        <div class="muted">冷库信息维护 / 状态概览 / 设备归属</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" id="btnOpenCreate">
+          <i class="fa-solid fa-plus me-1"></i>新增冷库
+        </button>
+        <button class="btn btn-outline-secondary" id="btnExportCsv">
+          <i class="fa-solid fa-file-export me-1"></i>导出CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- 上半：统计卡片 -->
+    <div class="row g-3">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="cardx kpi p-3" data-drill="all">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="label">冷库总量</div>
+              <div class="muted small-muted">Cold rooms total</div>
+            </div>
+            <div class="icon"><i class="fa-solid fa-warehouse"></i></div>
+          </div>
+          <div class="mt-2 value" id="kpiTotal">-</div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="cardx kpi p-3" data-drill="normal">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="label">正常</div>
+              <div class="muted small-muted">运行正常</div>
+            </div>
+            <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
+          </div>
+          <div class="mt-2 value" id="kpiNormal">-</div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="cardx kpi p-3" data-drill="alarm">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="label">告警</div>
+              <div class="muted small-muted">需关注</div>
+            </div>
+            <div class="icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          </div>
+          <div class="mt-2 value" id="kpiAlarm">-</div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="cardx kpi p-3" data-drill="offline">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="label">离线</div>
+              <div class="muted small-muted">通讯异常</div>
+            </div>
+            <div class="icon"><i class="fa-solid fa-plug-circle-xmark"></i></div>
+          </div>
+          <div class="mt-2 value" id="kpiOffline">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下半：冷库列表（筛选 + 表格） -->
+    <div class="cardx mt-3">
+      <div class="cardx-hd">
+        <span><i class="fa-solid fa-table me-2"></i>冷库列表</span>
+        <div class="muted">支持检索 / 筛选 / 分页；点击上方指标可下钻联动</div>
+      </div>
+
+      <div class="cardx-bd">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-3">
+            <label class="form-label muted">关键词</label>
+            <input class="form-control" id="keyword" placeholder="冷库名称/编号/位置…">
+          </div>
+
+          <div class="col-12 col-md-2">
+            <label class="form-label muted">状态</label>
+            <select class="form-select" id="filterStatus">
+              <option value="">全部</option>
+              <option value="normal">正常</option>
+              <option value="alarm">告警</option>
+              <option value="offline">离线</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <label class="form-label muted">区域/地址（可选）</label>
+            <input class="form-control" id="filterRegion" placeholder="例如：A区 / 一楼 / 北侧…">
+          </div>
+
+          <div class="col-12 col-md-2">
+            <label class="form-label muted">温度范围（可选）</label>
+            <select class="form-select" id="filterTempRange">
+              <option value="">全部</option>
+              <option value="-25~-15">-25 ~ -15℃</option>
+              <option value="-15~-5">-15 ~ -5℃</option>
+              <option value="-5~5">-5 ~ 5℃</option>
+              <option value="0~10">0 ~ 10℃</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-2 d-flex gap-2">
+            <button class="btn btn-primary w-100" id="btnSearch">
+              <i class="fa-solid fa-magnifying-glass"></i> 查询
+            </button>
+            <button class="btn btn-outline-secondary w-100" id="btnReset">重置</button>
+          </div>
+        </div>
+
+        <hr class="my-3">
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th style="width:70px;">ID</th>
+                <th>冷库名称/编号</th>
+                <th style="width:140px;">位置/区域</th>
+                <th style="width:140px;">温度范围</th>
+                <th style="width:120px;">当前温度</th>
+                <th style="width:110px;">状态</th>
+                <th style="width:110px;">设备数</th>
+                <th style="width:200px;">更新时间</th>
+                <th style="width:240px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="muted" id="pageInfo">-</div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btnPrev">上一页</button>
+            <button class="btn btn-outline-secondary btn-sm" id="btnNext">下一页</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== 新增/编辑 模态框 ===== -->
+  <div class="modal fade" id="coldroomModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content modal-round">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">新增冷库</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+          <form id="coldroomForm" class="row g-3">
+            <input type="hidden" id="crId">
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">冷库名称</label>
+              <input class="form-control" id="crName" placeholder="例如：A库（速冻）" required>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">冷库编号</label>
+              <input class="form-control" id="crCode" placeholder="例如：CR-0001" required>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">位置/区域</label>
+              <input class="form-control" id="crLocation" placeholder="例如：一楼北侧 / A区 / 1号门旁">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">最低温(℃)</label>
+              <input class="form-control" id="crTempMin" type="number" step="0.1" placeholder="-18">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">最高温(℃)</label>
+              <input class="form-control" id="crTempMax" type="number" step="0.1" placeholder="-12">
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">状态</label>
+              <select class="form-select" id="crStatus">
+                <option value="normal">正常</option>
+                <option value="alarm">告警</option>
+                <option value="offline">离线</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">备注</label>
+              <textarea class="form-control" id="crNote" rows="3" placeholder="可选：冷库用途/负责人/注意事项…"></textarea>
+            </div>
+          </form>
+
+          <div class="alert alert-danger d-none mt-3" id="formError"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button class="btn btn-primary" id="btnSaveColdroom">
+            <i class="fa-regular fa-floppy-disk me-1"></i>保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="appToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">提示</strong>
+        <small class="text-muted">now</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="关闭"></button>
+      </div>
+      <div class="toast-body" id="toastBody">-</div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Page JS -->
+  <script src="{% static 'storageSystem/js/coldroom_manage.js' %}"></script>
+</body>
+</html>
