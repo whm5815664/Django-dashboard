@@ -24,6 +24,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('screen/', include('screen.urls')),
     path('aiModels/', include('aiModels.urls')),
+    path("storage/", include("storageSystem.urls")),
 ]
 
 # 添加媒体文件的URL路由（仅在开发环境中）
