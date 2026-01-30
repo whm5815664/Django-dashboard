@@ -2,6 +2,8 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from dotenv import load_dotenv
+load_dotenv()
 
 # 提前加载模型结构
 from aiModels.diseaseModel.diseaseModel import *

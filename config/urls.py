@@ -25,6 +25,7 @@ urlpatterns = [
     path('screen/', include('screen.urls')),
     path('aiModels/', include('aiModels.urls')),
     path("storage/", include("storageSystem.urls")),
+    path("labdataset/", include("labDataset.urls")),
 ]
 
 # 添加媒体文件的URL路由（仅在开发环境中）

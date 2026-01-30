@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
 
     "storageSystem",
-    "screen",  # screen
+    # "screen",  # screen
+    "labDataset",
 ]
 
 MIDDLEWARE = [
@@ -84,7 +85,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 # =========================
 # Database
 # =========================
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
@@ -110,6 +110,18 @@ REMOTE_MYSQL = {
     "CHARSET": DATABASES['default'].get('OPTIONS', {}).get('charset', 'utf8mb4'),
 }
 
+# 开发时使用：环境变量控制数据库连接(优先用系统/.env的配置,否则使用下列默认值)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",   # 换成mysql的数据库
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER", "root"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+        "PORT": os.getenv("DB_PORT", "3306"),
+        "OPTIONS": {"charset": "utf8mb4"},
+    }
+}
 
 # Password validation
 # =========================

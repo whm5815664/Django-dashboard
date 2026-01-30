@@ -8,9 +8,14 @@ module.exports = {
     outputDir: path.resolve(__dirname, "../static/labDataset"),
     indexPath: path.resolve(__dirname, "../templates/labDataset/index.html"),
     publicPath: "/static/labDataset/",
+
+    // 开发期访问：http://localhost:8081/
+    // API 请求：/api/xxx/ → 被代理到 Django 8000
+    // 生产整合再用 /static/labDataset/（build 后交给 Django 托管）
     devServer: {
+      port: 8081,
       proxy: {
-        "/api": {
+        "/labdataset": {
           target: "http://127.0.0.1:8000",
           changeOrigin: true,
         },

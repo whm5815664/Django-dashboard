@@ -32,7 +32,7 @@
       </button>
     </div>
 
-    <!-- 数据集List -->
+    <!-- 数据集列表 -->
     <div class="list-wrap">
       <div class="list-head">
           <div class="count">共有 {{ datasets.length }} 个数据集</div>
@@ -115,6 +115,7 @@ data() {
       { id: 'text', name: '文本' },
       { id: 'mixed', name: '混合' }
     ],
+    // datasets:[],
     datasets: [
       {
       id: 1,
@@ -177,6 +178,9 @@ computed: {
     return filtered
   }
 },
+mounted: function(){
+  this.getDatasets(); // 组件挂载时获取数据集列表信息
+},
 methods: {
   openCreateDialog(){
     this.dialogVisible = true;
@@ -209,8 +213,8 @@ methods: {
   },
   metaLine(ds) {
     // 作者 · 更新时间
-    const owner = ds.owner || '创建人'
-    const time = ds.updateTime || '创建时间'
+    const owner = ds.creator || '创建人'
+    const time = ds.create_at || '创建时间'
     return `${owner} · ${time}`
   },
   statusLine(ds) {
@@ -222,7 +226,26 @@ methods: {
     if (ds.downloads != null) parts.push(`${ds.downloads} downloads`)
     if (ds.notebooks != null) parts.push(`${ds.notebooks} notebooks`)
     return parts.length ? parts.join(' · ') : '共 xx 个文件（CSV）'  
-  }
+  },
+
+  /**
+   * To do:测试完全部数据接口之后，要将上面的数组全部置空，替换为下
+   */
+  // async getDatasets(){
+  //   try{
+  //     const response = await this.$axios.get('/getDatasets/');
+  //     console.log("打印数据集数据：", response.data)
+  //     const list = (response.data['list'] || []).map(item => {
+  //       return {
+  //         id:item.pk,
+  //         ...item.fields  //展开fields的属性
+  //       }
+  //     });
+  //     this.datasets = list;
+  //   }catch(error){
+  //     console.error("获取实验室数据集失败",error);
+  //   }
+  // },
 
 }
 }
