@@ -9,14 +9,20 @@
 //
 // 列表返回建议：{ total, page, pageSize, rows: [...] }
 // rows字段建议：
-// { id, name, code, location, temp_min, temp_max, temp_current, status, device_count, updated_at }
+// { id, name, code, location, longitude, latitude, temp_min, temp_max, temp_current, status, device_count, updated_at }
 // stats返回建议：{ total, normal, alarm, offline, ts }
+//
+// 可选（高德逆地理）：
+//  - POST /api/amap/regeo/   body: { lng, lat }  -> { ok:true, address:"xxx" }
 // =======================
 
 const API = {
   stats: "/api/coldrooms/stats",
   list: "/api/coldrooms",
   detail: (id) => `/api/coldrooms/${id}`,
+
+  // ✅ 可选：你后端封装的高德逆地理接口（如果路径不同改这里）
+  amapRegeo: "/api/amap/regeo/",
 };
 
 const state = {
@@ -31,6 +37,12 @@ let toast = null;
 
 function $(id){ return document.getElementById(id); }
 
+// ✅ 可选：如果你开启了 CSRF，这个用于取 csrftoken
+function getCookie(name) {
+  const m = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+  return m ? m.pop() : "";
+}
+
 async function fetchJSON(url, opts = {}) {
   const r = await fetch(url, {
     credentials: "same-origin",
@@ -38,6 +50,7 @@ async function fetchJSON(url, opts = {}) {
       "Accept": "application/json",
       "Content-Type": "application/json",
       // 如果你启用 CSRF，可在这里加 X-CSRFToken
+      // "X-CSRFToken": getCookie("csrftoken"),
     },
     ...opts
   });
@@ -91,6 +104,21 @@ function tempRangeText(min, max){
 
 function safe(v){ return (v === null || v === undefined) ? "" : String(v); }
 
+function coordText(v){
+  if(v === null || v === undefined || v === "") return `<span class="muted">-</span>`;
+  return safe(v);
+}
+
+function to3(val){
+  // ✅ 保留 3 位小数，空值返回 null
+  if(val === null || val === undefined) return null;
+  const s = String(val).trim();
+  if(s === "") return null;
+  const num = Number(s);
+  if(Number.isNaN(num)) return null;
+  return Number(num.toFixed(3));
+}
+
 // ---------- render ----------
 function renderStats(stats){
   $("kpiTotal").textContent = stats.total ?? "-";
@@ -107,8 +135,9 @@ function renderTable(data){
   const rows = data.rows || [];
   state.lastPageRows = rows;
 
+  // ✅ 现在表格是 11 列（加了经纬度），所以空行 colspan=11
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center muted py-4">暂无数据</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="text-center muted py-4">暂无数据</td></tr>`;
   }else{
     for(const r of rows){
       const nameLine = `<b>${safe(r.name)}</b> <span class="muted">(${safe(r.code)})</span>`;
@@ -121,6 +150,10 @@ function renderTable(data){
           <td>${safe(r.id)}</td>
           <td>${nameLine}</td>
           <td>${safe(r.location) || `<span class="muted">-</span>`}</td>
+
+          <td>${coordText(r.longitude)}</td>
+          <td>${coordText(r.latitude)}</td>
+
           <td>${tempRangeText(r.temp_min, r.temp_max)}</td>
           <td>${tempCurrent}</td>
           <td>${chip(r.status || "normal")}</td>
@@ -181,6 +214,20 @@ async function apiDelete(id){
   return fetchJSON(API.detail(id), { method: "DELETE" });
 }
 
+// ✅ 可选：调用你后端封装的高德逆地理接口（经纬度 -> 地址）
+async function apiAmapRegeo(lng, lat){
+  // 如果你启用 CSRF，就把 X-CSRFToken 打开
+  return fetchJSON(API.amapRegeo, {
+    method: "POST",
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      // "X-CSRFToken": getCookie("csrftoken"),
+    },
+    body: JSON.stringify({ lng, lat }),
+  });
+}
+
 // ---------- modal helpers ----------
 function openCreate(){
   $("modalTitle").textContent = "新增冷库";
@@ -188,6 +235,11 @@ function openCreate(){
   $("crName").value = "";
   $("crCode").value = "";
   $("crLocation").value = "";
+
+  // ✅ 新增字段清空
+  $("crLng").value = "";
+  $("crLat").value = "";
+
   $("crTempMin").value = "";
   $("crTempMax").value = "";
   $("crStatus").value = "normal";
@@ -202,6 +254,11 @@ function openEdit(row){
   $("crName").value = row.name ?? "";
   $("crCode").value = row.code ?? "";
   $("crLocation").value = row.location ?? "";
+
+  // ✅ 回填经纬度
+  $("crLng").value = (row.longitude ?? "");
+  $("crLat").value = (row.latitude ?? "");
+
   $("crTempMin").value = (row.temp_min ?? "");
   $("crTempMax").value = (row.temp_max ?? "");
   $("crStatus").value = row.status ?? "normal";
@@ -222,8 +279,13 @@ function collectFormPayload(){
   const temp_min = temp_min_raw === "" ? null : Number(temp_min_raw);
   const temp_max = temp_max_raw === "" ? null : Number(temp_max_raw);
 
+  // ✅ 经度/纬度：保留 3 位小数
+  const longitude = to3($("crLng").value);
+  const latitude  = to3($("crLat").value);
+
   if(!name) return { error: "请填写冷库名称" };
   if(!code) return { error: "请填写冷库编号" };
+
   if((temp_min !== null && Number.isNaN(temp_min)) || (temp_max !== null && Number.isNaN(temp_max))){
     return { error: "温度输入格式不正确" };
   }
@@ -231,10 +293,22 @@ function collectFormPayload(){
     return { error: "最低温不能高于最高温" };
   }
 
+  // ✅ 经纬度格式校验（可选：你不填也允许）
+  if(longitude !== null && (longitude < -180 || longitude > 180)){
+    return { error: "经度范围应为 -180 ~ 180" };
+  }
+  if(latitude !== null && (latitude < -90 || latitude > 90)){
+    return { error: "纬度范围应为 -90 ~ 90" };
+  }
+
   return {
     payload: {
       name, code, location, status, note,
-      temp_min, temp_max
+      temp_min, temp_max,
+
+      // ✅ 提交给后端保存
+      longitude,
+      latitude
     }
   };
 }
@@ -247,7 +321,8 @@ function exportCsvCurrentPage(){
     return;
   }
 
-  const header = ["ID","冷库名称","冷库编号","位置/区域","最低温","最高温","当前温度","状态","设备数","更新时间"];
+  // ✅ CSV 增加经纬度
+  const header = ["ID","冷库名称","冷库编号","位置/区域","经度","纬度","最低温","最高温","当前温度","状态","设备数","更新时间"];
   const lines = [header.join(",")];
 
   for(const r of rows){
@@ -256,6 +331,8 @@ function exportCsvCurrentPage(){
       `"${safe(r.name).replaceAll('"','""')}"`,
       `"${safe(r.code).replaceAll('"','""')}"`,
       `"${safe(r.location).replaceAll('"','""')}"`,
+      safe(r.longitude ?? ""),
+      safe(r.latitude ?? ""),
       safe(r.temp_min ?? ""),
       safe(r.temp_max ?? ""),
       safe(r.temp_current ?? ""),
@@ -301,6 +378,31 @@ async function init(){
   try { await loadList(); } catch(e){ console.warn("list failed:", e); }
 }
 
+// ---------- 可选：经纬度变化 -> 自动调用高德逆地理 -> 自动填地址 ----------
+let _regeoTimer = null;
+function debounceRegeo(){
+  if(_regeoTimer) clearTimeout(_regeoTimer);
+  _regeoTimer = setTimeout(async ()=>{
+    try{
+      const lng = to3($("crLng").value);
+      const lat = to3($("crLat").value);
+      if(lng === null || lat === null) return;
+
+      // ✅ 只在“地址为空”时自动填（避免覆盖你手动输入）
+      const loc = $("crLocation").value.trim();
+      if(loc) return;
+
+      const data = await apiAmapRegeo(lng, lat);
+      if(data && data.ok && data.address){
+        $("crLocation").value = data.address;
+      }
+    }catch(err){
+      // 不影响主流程，只打印
+      console.warn("amap regeo failed:", err);
+    }
+  }, 400); // 0.4s 防抖
+}
+
 // ---------- events ----------
 function bindEvents(){
   // KPI 下钻
@@ -339,10 +441,16 @@ function bindEvents(){
     state.page = Math.max(1, state.page - 1);
     loadList().catch(console.warn);
   });
+
   $("btnNext").addEventListener("click", ()=>{
     state.page += 1;
     loadList().catch(console.warn);
   });
+
+  // ✅ 可选：经纬度输入框变化时自动填地址（高德逆地理）
+  // 注意：输入框在弹窗里，所以页面加载后就能绑定到 DOM
+  $("crLng")?.addEventListener("input", debounceRegeo);
+  $("crLat")?.addEventListener("input", debounceRegeo);
 
   // 表格按钮事件委托
   $("tableBody").addEventListener("click", async (e)=>{
@@ -353,7 +461,6 @@ function bindEvents(){
     const id = btn.dataset.id;
 
     if(action === "devices"){
-      // 你可以改成跳转：/devices/?coldroom_id=xxx
       location.href = `/devices/?coldroom_id=${encodeURIComponent(id)}`;
       return;
     }

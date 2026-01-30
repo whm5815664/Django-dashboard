@@ -188,6 +188,10 @@
                 <th style="width:70px;">ID</th>
                 <th>冷库名称/编号</th>
                 <th style="width:140px;">位置/区域</th>
+
+                <!-- ✅ 经纬度 -->
+                <th style="width:120px;">经度</th>
+                <th style="width:120px;">纬度</th>
                 <th style="width:140px;">温度范围</th>
                 <th style="width:120px;">当前温度</th>
                 <th style="width:110px;">状态</th>
@@ -236,6 +240,17 @@
             <div class="col-12">
               <label class="form-label">位置/区域</label>
               <input class="form-control" id="crLocation" placeholder="例如：一楼北侧 / A区 / 1号门旁">
+            </div>
+
+            <!-- ✅ 经纬度（3位小数） -->
+            <div class="col-12 col-md-6">
+              <label class="form-label">经度 (Longitude)</label>
+              <input class="form-control" id="crLng" type="number" step="0.001" placeholder="例如：114.305">
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">纬度 (Latitude)</label>
+              <input class="form-control" id="crLat" type="number" step="0.001" placeholder="例如：30.593">
             </div>
 
             <div class="col-12 col-md-4">
