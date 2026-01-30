@@ -178,9 +178,9 @@ computed: {
     return filtered
   }
 },
-mounted: function(){
-  this.getDatasets(); // 组件挂载时获取数据集列表信息
-},
+// mounted: function(){
+//   this.getDatasets(); // 组件挂载时获取数据集列表信息
+// },
 methods: {
   openCreateDialog(){
     this.dialogVisible = true;
