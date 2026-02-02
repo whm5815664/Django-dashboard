@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="{% static 'labDatasets/favicon.ico' %}">
+    <title>实验室数据集管理</title>
+  </head>
+  <body>
+    <noscript>
+      <strong>很抱歉，实验室数据集管理系统需要启用 JavaScript 才能正常工作。请启用 JavaScript 后继续。</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- Vue 应用构建后的文件将在这里自动注入 -->
+    <!-- 注意：需要先构建 Vue 应用，然后将构建后的文件复制到 static/labDatasets/ 目录下 -->
+    <!-- 构建命令：cd labDatasets/lab_data && npm run build -->
+    <!-- 构建后的文件应该在 labDatasets/lab_data/dist/ 目录下 -->
+  </body>
+</html>
+

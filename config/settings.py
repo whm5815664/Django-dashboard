@@ -43,6 +43,7 @@ INSTALLED_APPS = [
 
     "storageSystem",
     "screen",  # screen
+    "labDatasets",  # 实验室数据集管理
 ]
 
 MIDDLEWARE = [
