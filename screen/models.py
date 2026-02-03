@@ -39,18 +39,19 @@ class Citrus_variety_production_history_area(models.Model):
         managed = False
     
 
-# 柑橘基地表 screen_basemap
-class Basemap(models.Model):
-    baseID = models.CharField('基地编号', max_length=10, primary_key=True) # primary_key
-    baseName = models.CharField('基地名称', max_length=20)
+# 柑橘基地表 base
+class Base(models.Model):
+    base_id = models.CharField('基地编号', max_length=10, primary_key=True) # primary_key
+    base_name = models.CharField('基地名称', max_length=20)
     longitude = models.FloatField('经度')
     latitude = models.FloatField('纬度')
-    province = models.CharField('省份', max_length=10)
-    city = models.CharField('城市', max_length=10)
-    description = models.CharField('描述', max_length=50)
+    province_name = models.CharField('省份', max_length=10)
+    city_name = models.CharField('城市', max_length=10)
+    base_description = models.CharField('描述', max_length=50)
+    base_pic = models.CharField('描述', max_length=50)
 
     class Meta:
-        db_table = 'screen_basemap'  # 确保与数据库表名一致
+        db_table = 'base'  # 确保与数据库表名一致
         verbose_name = '柑橘基地表'
         managed = False  # 禁止django自动添加id主键
 

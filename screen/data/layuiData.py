@@ -12,11 +12,32 @@ def get_layui_base_data(request):
         page = int(request.GET.get('page', 1))
         limit = int(request.GET.get('limit', 10))
 
-        # 2. 查询数据库
-        queryset = Basemap.objects.all().values(
-            'baseID', 'baseName', 'longitude', 'latitude',
-            'province', 'city', 'description'
-        )
+        # 2. 查询数据库（输出字段名与前端保持一致：baseID/baseName/province/city/description）
+        qs = Base.objects.all()
+
+        # 支持Layui表格 where: { baseName: 'xxx' } 的模糊搜索
+        base_name_kw = request.GET.get('baseName')
+        if base_name_kw:
+            qs = qs.filter(base_name__icontains=base_name_kw.strip())
+
+        # 不使用 F/annotate：先取模型原字段，再在 Python 中组装为前端需要的别名
+        rows = list(qs.values(
+            'base_id', 'base_name', 'longitude', 'latitude',
+            'province_name', 'city_name', 'base_description', 'base_pic'
+        ))
+        queryset = [
+            {
+                'baseID': r.get('base_id'),
+                'baseName': r.get('base_name'),
+                'longitude': r.get('longitude'),
+                'latitude': r.get('latitude'),
+                'province': r.get('province_name'),
+                'city': r.get('city_name'),
+                'description': r.get('base_description'),
+                'basePic': r.get('base_pic'),
+            }
+            for r in rows
+        ]
 
         # 3. 分页处理
         paginator = Paginator(queryset, limit)

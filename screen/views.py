@@ -35,13 +35,8 @@ def base_map(request, province_name):
 
 
 # 基地管理页面
-def baseIndex(request, baseID):
-    print(baseID)
-    # 传递参数
-    context = {
-        'baseID': baseID,
-    }
-    return render(request, 'base/baseIndex.html', context)
+def baseIndex(request):
+    return render(request, 'base/baseIndex.html')
 
 
 

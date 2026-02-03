@@ -7,14 +7,17 @@ def get_devices_page(
     page: int,
     page_size: int,
     *,
-    cold_room: str = "",
+    base_id: str = "",
     status: str = "",
     keyword: str = "",
 ):
-    qs = Device.objects.select_related("cold_room").all().order_by("-last_seen", "-id")
+    """
+    按基地（base_id）分页获取设备列表。
+    """
+    qs = Device.objects.select_related("base").all().order_by("-last_seen", "-id")
 
-    if cold_room:
-        qs = qs.filter(cold_room__name=cold_room)
+    if base_id:
+        qs = qs.filter(base__base_id=base_id)
 
     if status:
         qs = qs.filter(status=status)
@@ -33,7 +36,7 @@ def get_devices_page(
                 "id": d.id,
                 "name": d.name,
                 "code": d.code,
-                "cold_room": d.cold_room.name,
+                "base_id": d.base.base_id,
                 "location": d.location,
                 "status": d.status,
                 "last_seen": d.last_seen.strftime("%Y-%m-%d %H:%M:%S") if d.last_seen else "",

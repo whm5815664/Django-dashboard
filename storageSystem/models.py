@@ -14,23 +14,21 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
-class ColdRoom(TimeStampedModel):
-    """
-    冷库
-    """
-    name = models.CharField("冷库名称", max_length=64, unique=True)
-    code = models.CharField("冷库编号", max_length=64, unique=True)
-    address = models.CharField("地址/场地", max_length=255, blank=True, default="")
-    description = models.CharField("描述", max_length=255, blank=True, default="")
-    is_active = models.BooleanField("是否启用", default=True)
+# 柑橘基地表 base
+class Base(models.Model):
+    base_id = models.CharField('基地编号', max_length=10, primary_key=True) # primary_key
+    base_name = models.CharField('基地名称', max_length=20)
+    longitude = models.FloatField('经度')
+    latitude = models.FloatField('纬度')
+    province_name = models.CharField('省份', max_length=10)
+    city_name = models.CharField('城市', max_length=10)
+    base_description = models.CharField('描述', max_length=50)
+    base_pic = models.CharField('描述', max_length=50)
 
     class Meta:
-        db_table = "coldroom"
-        verbose_name = "冷库"
-        verbose_name_plural = "冷库"
-
-    def __str__(self) -> str:
-        return f"{self.name}({self.code})"
+        db_table = 'base'  # 确保与数据库表名一致
+        verbose_name = '柑橘基地表'
+        managed = False  # 禁止django自动添加id主键
 
 
 class Device(TimeStampedModel):
@@ -50,11 +48,14 @@ class Device(TimeStampedModel):
     name = models.CharField("设备名称", max_length=64)
     code = models.CharField("设备编号", max_length=64, unique=True)
 
-    cold_room = models.ForeignKey(
-        ColdRoom,
+    # 与柑橘基地 Base 表的关联，使用 base.base_id 作为外键
+    base = models.ForeignKey(
+        Base,
+        db_column="base_id",     # 对应数据库中的 base_id 字段
+        to_field="base_id",      # 引用 Base.base_id 作为主键
         on_delete=models.PROTECT,
         related_name="devices",
-        verbose_name="所属冷库",
+        verbose_name="所属基地",
     )
 
     location = models.CharField("位置信息", max_length=128, blank=True, default="")
@@ -71,7 +72,7 @@ class Device(TimeStampedModel):
         verbose_name = "设备"
         verbose_name_plural = "设备"
         indexes = [
-            models.Index(fields=["cold_room", "status"]),
+            models.Index(fields=["base", "status"]),
             models.Index(fields=["code"]),
         ]
 

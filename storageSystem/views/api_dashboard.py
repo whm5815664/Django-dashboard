@@ -1,15 +1,18 @@
 # storageSystem/views/api_dashboard.py
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from datetime import datetime, date
+from typing import Any, Dict, List, Optional, Tuple
 
+import json
+import re
+import traceback
+
+import pymysql
 from django.conf import settings
 from django.http import JsonResponse
-from django.views.decorators.http import require_GET
-
-import traceback
-import pymysql
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
 
 
 # ========= 配置与连接 =========
@@ -30,20 +33,14 @@ def _pick(cfg: dict, *keys, default=None):
 
 def _get_remote_conn():
     cfg = _get_cfg()
-    # 数据库连接配置在config/settings.py中
 
     host = _pick(cfg, "HOST", "host")
     user = _pick(cfg, "USER", "user", "USERNAME", "username")
-    password = _pick(cfg, "PASSWORD", "password", "PASS", "pass")
+    password = _pick(cfg, "PASSWORD", "password", "PASS", "pass") or ""
     database = _pick(cfg, "NAME", "name", "DATABASE", "database", "DB", "db")
     port = int(_pick(cfg, "PORT", "port", default=3306))
     charset = _pick(cfg, "CHARSET", "charset", default="utf8mb4")
-    
-    # 如果 password 缺失，则设置为空字符串（表示无密码）
-    if not password:
-        password = ""
 
-    # password 可以为空，所以不检查 password
     missing = [k for k, v in [("host", host), ("user", user), ("database", database)] if not v]
     if missing:
         raise RuntimeError(f"REMOTE_MYSQL 配置缺失字段: {', '.join(missing)}（请检查 settings.REMOTE_MYSQL 键名）")
@@ -68,7 +65,7 @@ def _get_remote_conn():
 def _json_ok(data: Dict[str, Any]) -> JsonResponse:
     payload = {"ok": True}
     payload.update(data)
-    return JsonResponse(payload)
+    return JsonResponse(payload, json_dumps_params={"ensure_ascii": False})
 
 
 def _json_err(e: Exception, status: int = 500) -> JsonResponse:
@@ -76,10 +73,22 @@ def _json_err(e: Exception, status: int = 500) -> JsonResponse:
     payload = {"ok": False, "error": repr(e)}
     if getattr(settings, "DEBUG", False):
         payload["traceback"] = traceback.format_exc()
-    return JsonResponse(payload, status=status)
+    return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
 
 
-# ========= 工具：挑选可画折线的数值列 =========
+# ========= 安全：表名/列名校验（防止注入） =========
+
+_IDENT_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+def _safe_ident(name: str, what: str = "identifier") -> str:
+    name = (name or "").strip()
+    if not name or not _IDENT_RE.match(name):
+        raise RuntimeError(f"非法{what}: {name!r}")
+    return name
+
+
+# ========= 工具：字段/表结构 =========
 
 _NUM_PREFIX = ("int", "bigint", "smallint", "tinyint", "mediumint", "float", "double", "decimal")
 
@@ -90,9 +99,7 @@ def _is_numeric_mysql_type(mysql_type: str) -> bool:
 
 
 def _get_table_columns(cur, table: str) -> Tuple[List[dict], List[str], List[str]]:
-    """
-    返回：cols_info, pk_cols, all_col_names
-    """
+    table = _safe_ident(table, "table")
     cur.execute(f"SHOW COLUMNS FROM `{table}`")
     cols = cur.fetchall()  # Field, Type, Null, Key, Default, Extra
     pk_cols = [c["Field"] for c in cols if c.get("Key") == "PRI"]
@@ -100,25 +107,119 @@ def _get_table_columns(cur, table: str) -> Tuple[List[dict], List[str], List[str
     return cols, pk_cols, all_names
 
 
+def _parse_date_ymd(s: str) -> Optional[date]:
+    s = (s or "").strip()
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def _parse_json_body(request) -> Dict[str, Any]:
+    ctype = (request.META.get("CONTENT_TYPE") or "").lower()
+    if "application/json" in ctype:
+        try:
+            raw = request.body.decode("utf-8") if request.body else ""
+            return json.loads(raw) if raw else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _to_float_or_none(v):
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if s == "":
+        return None
+    return float(s)
+
+
+def _to_int_or_none(v):
+    if v is None:
+        return None
+    if isinstance(v, int):
+        return int(v)
+    s = str(v).strip()
+    if s == "":
+        return None
+    return int(s)
+
+
+def _key_in(d: Dict[str, Any], *keys: str) -> bool:
+    """只要 key 存在就算（即使值是 null/""）"""
+    return any(k in d for k in keys)
+
+
+def _build_device_where(dev_id, dev_name: str, dev_code: str):
+    """
+    返回 (where_sql, where_params)
+    定位优先级：id > device_name > device_code
+    """
+    if dev_id not in (None, "", 0):
+        return "`id`=%s", [int(dev_id)]
+    if dev_name:
+        return "`device_name`=%s", [dev_name]
+    if dev_code:
+        return "`device_code`=%s", [dev_code]
+    return None, None
+
+
+def _fetch_one_device(cur, devices_table: str, where_sql: str, where_params: List[Any]):
+    """
+    按你 devices 表结构固定输出（并给前端友好别名）
+    """
+    cur.execute(
+        f"""
+        SELECT
+          `id` AS id,
+          `device_name` AS device_name,
+          `device_code` AS code,
+          `base_id` AS base_id,
+          `longitude` AS longitude,
+          `latitude` AS latitude,
+          `location` AS location,
+          `status` AS status,
+          `last_report_time` AS last_seen
+        FROM `{devices_table}`
+        WHERE {where_sql}
+        LIMIT 1
+        """,
+        where_params,
+    )
+    row = cur.fetchone()
+    if row and isinstance(row.get("last_seen"), datetime):
+        row["last_seen"] = row["last_seen"].strftime("%Y-%m-%d %H:%M:%S")
+    return row
+
+
 # ========= API =========
 
 @require_GET
 def device_names(request):
     """
-    下拉框设备列表：只取 devices 表的 device_name
-    GET /api/device-names/
+    下拉框设备列表：devices.device_name
+    GET /storage/api/device-names/
     """
+    devices_table = _safe_ident(getattr(settings, "DEVICES_TABLE", "devices"), "table")
+
     conn = None
     try:
         conn = _get_remote_conn()
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT DISTINCT device_name
-                FROM devices
-                WHERE device_name IS NOT NULL AND device_name <> ''
-                ORDER BY device_name
-            """)
-            rows = cur.fetchall()
+            cur.execute(
+                f"""
+                SELECT DISTINCT `device_name` AS device_name
+                FROM `{devices_table}`
+                WHERE `device_name` IS NOT NULL AND `device_name` <> ''
+                ORDER BY `device_name`
+                """
+            )
+            rows = cur.fetchall() or []
 
         names = [r["device_name"] for r in rows if r.get("device_name")]
         return _json_ok({"device_names": names})
@@ -136,25 +237,177 @@ def device_names(request):
 @require_GET
 def stats(request):
     """
-    目前可先不做；给前端占位，避免 500
+    KPI：从 devices.status 统计 online/offline/alarm
+    GET /storage/api/dashboard/stats/
     """
-    return _json_ok({"kpi": {}})
+    devices_table = _safe_ident(getattr(settings, "DEVICES_TABLE", "devices"), "table")
+
+    conn = None
+    try:
+        conn = _get_remote_conn()
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT
+                  COUNT(*) AS total,
+                  SUM(status='online')  AS online,
+                  SUM(status='offline') AS offline,
+                  SUM(status='alarm')   AS alarm
+                FROM `{devices_table}`
+                """
+            )
+            row = cur.fetchone() or {}
+
+        row["total"] = int(row.get("total") or 0)
+        row["online"] = int(row.get("online") or 0)
+        row["offline"] = int(row.get("offline") or 0)
+        row["alarm"] = int(row.get("alarm") or 0)
+
+        return _json_ok({"kpi": row, "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+
+    except Exception as e:
+        return _json_err(e)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@require_GET
+def dashboard_devices(request):
+    """
+    ✅ 设备明细表：分页 + 筛选
+    GET /storage/api/dashboard/devices/?page=1&page_size=10&base_id=HB001&status=online&device_name=xxx&keyword=xxx&date_from=2026-01-01&date_to=2026-01-31
+    说明：
+    - base_id：按基地编号过滤
+    - date_from/date_to：按 last_report_time 过滤
+    """
+    devices_table = _safe_ident(getattr(settings, "DEVICES_TABLE", "devices"), "table")
+
+    # 分页
+    try:
+        page = max(int(request.GET.get("page", "1")), 1)
+        page_size = min(max(int(request.GET.get("page_size", "10")), 1), 100)
+    except Exception:
+        page, page_size = 1, 10
+    offset = (page - 1) * page_size
+
+    status = (request.GET.get("status") or "").strip().lower()
+    device_name = (request.GET.get("device_name") or "").strip()
+    keyword = (request.GET.get("keyword") or "").strip()
+    date_from = _parse_date_ymd(request.GET.get("date_from") or "")
+    date_to = _parse_date_ymd(request.GET.get("date_to") or "")
+
+    conn = None
+    try:
+        conn = _get_remote_conn()
+        with conn.cursor() as cur:
+            where = ["1=1"]
+            params: List[Any] = []
+
+            # 按基地编号过滤（base_id）
+            base_id = (request.GET.get("base_id") or "").strip()
+            if base_id:
+                where.append("`base_id`=%s")
+                params.append(base_id)
+
+            if status:
+                where.append("`status`=%s")
+                params.append(status)
+
+            if device_name:
+                where.append("`device_name`=%s")
+                params.append(device_name)
+
+            if keyword:
+                like = f"%{keyword}%"
+                where.append("(`device_name` LIKE %s OR `device_code` LIKE %s OR `location` LIKE %s)")
+                params.extend([like, like, like])
+
+            if date_from:
+                where.append("DATE(`last_report_time`) >= %s")
+                params.append(date_from.strftime("%Y-%m-%d"))
+            if date_to:
+                where.append("DATE(`last_report_time`) <= %s")
+                params.append(date_to.strftime("%Y-%m-%d"))
+
+            where_sql = " AND ".join(where)
+
+            # total
+            cur.execute(f"SELECT COUNT(*) AS cnt FROM `{devices_table}` WHERE {where_sql}", params)
+            total = int((cur.fetchone() or {}).get("cnt", 0) or 0)
+
+            # items（输出前端友好字段名）
+            cur.execute(
+                f"""
+                SELECT
+                  `id` AS id,
+                  `device_name` AS device_name,
+                  `device_code` AS code,
+                  `base_id` AS base_id,
+                  `longitude` AS longitude,
+                  `latitude` AS latitude,
+                  `location` AS location,
+                  `status` AS status,
+                  `last_report_time` AS last_seen
+                FROM `{devices_table}`
+                WHERE {where_sql}
+                ORDER BY `id` DESC
+                LIMIT %s OFFSET %s
+                """,
+                (*params, page_size, offset),
+            )
+            items = cur.fetchall() or []
+            print('设备明细表items:', items)
+
+            # KPI（全表统计）
+            cur.execute(
+                f"""
+                SELECT
+                  SUM(status='online')  AS online,
+                  SUM(status='offline') AS offline,
+                  SUM(status='alarm')   AS alarm
+                FROM `{devices_table}`
+                """
+            )
+            row = cur.fetchone() or {}
+            kpi = {
+                "online": int(row.get("online") or 0),
+                "offline": int(row.get("offline") or 0),
+                "alarm": int(row.get("alarm") or 0),
+            }
+
+        # 格式化时间
+        for it in items:
+            ls = it.get("last_seen")
+            if isinstance(ls, datetime):
+                it["last_seen"] = ls.strftime("%Y-%m-%d %H:%M:%S")
+
+        return _json_ok({"items": items, "total": total, "kpi": kpi})
+
+    except Exception as e:
+        return _json_err(e)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @require_GET
 def trend(request):
     """
-    折线图数据：
-- X轴：collected_at（或 settings.SENSOR_TIME_COL）
-- Y轴：除主键和 image_path 外的“数值列”全部输出为 series
-- 若表里没有 device_name 列，则忽略按设备过滤（但返回 note 提示）
-- 时间范围按“MAX(collected_at) 往前 N 天”，避免数据旧导致空
-
-GET /api/dashboard/trend?range=7d|30d&device_name=xxx&limit=800
+    趋势折线：
+    - X轴：settings.SENSOR_TIME_COL（默认 collected_at）
+    - Y轴：排除主键/image_path/device_name/time_col 后的数值列
+    - 如果 readings 表有 device_name 列，就按 device_name 过滤
     """
     device_name = (request.GET.get("device_name") or "").strip()
 
-    range_ = (request.GET.get("range") or "7d").strip()
+    range_ = (request.GET.get("range") or "7d").strip().lower()
     days = 7 if range_ == "7d" else 30
 
     try:
@@ -163,19 +416,18 @@ GET /api/dashboard/trend?range=7d|30d&device_name=xxx&limit=800
         limit = 800
     limit = max(50, min(limit, 2000))
 
-    table = getattr(settings, "SENSOR_TABLE", "sensor_readings1")
-    time_col = getattr(settings, "SENSOR_TIME_COL", "collected_at")
+    table = _safe_ident(getattr(settings, "SENSOR_TABLE", "sensor_readings1"), "table")
+    time_col = _safe_ident(getattr(settings, "SENSOR_TIME_COL", "collected_at"), "column")
 
     conn = None
     try:
         conn = _get_remote_conn()
         with conn.cursor() as cur:
             cols_info, pk_cols, all_cols = _get_table_columns(cur, table)
+            all_cols_set = set(all_cols)
 
-            # 1) 判断是否存在 device_name 列
-            has_device_col = "device_name" in all_cols
+            has_device_col = "device_name" in all_cols_set
 
-            # 2) 选出要画的列：数值列；排除 pk、image_path、device_name、time_col
             series_cols: List[str] = []
             for c in cols_info:
                 name = c["Field"]
@@ -190,16 +442,13 @@ GET /api/dashboard/trend?range=7d|30d&device_name=xxx&limit=800
             if not series_cols:
                 return _json_ok({"x": [], "series": [], "note": "没有可绘制的数值列（已排除主键/image_path）"})
 
-            select_list = ", ".join([f"`{time_col}` AS t"] + [f"`{c}`" for c in series_cols])
+            select_list = ", ".join([f"`{time_col}` AS t"] + [f"`{_safe_ident(c,'column')}`" for c in series_cols])
 
-            # 3) 时间范围：相对“该表最新时间”往前 N 天（避免旧数据为空）
-            #    注意：如果表为空，MAX 会是 NULL，这时 WHERE 条件会导致 0 行，属于正常返回空
             where_parts = [
                 f"`{time_col}` >= (SELECT MAX(`{time_col}`) FROM `{table}`) - INTERVAL %s DAY"
             ]
             params: List[Any] = [days]
 
-            # 4) 有 device_name 列且前端传了 device_name，才过滤
             note = None
             if device_name and has_device_col:
                 where_parts.append("`device_name`=%s")
@@ -209,7 +458,6 @@ GET /api/dashboard/trend?range=7d|30d&device_name=xxx&limit=800
 
             where_sql = " AND ".join(where_parts)
 
-            # 取最新 limit 条再反转为时间升序
             cur.execute(
                 f"""
                 SELECT {select_list}
@@ -220,11 +468,10 @@ GET /api/dashboard/trend?range=7d|30d&device_name=xxx&limit=800
                 """,
                 (*params, limit),
             )
-            rows = cur.fetchall()
+            rows = cur.fetchall() or []
 
         rows = list(reversed(rows))
 
-        # X 轴：格式化时间
         x: List[str] = []
         for r in rows:
             t = r.get("t")
@@ -233,15 +480,316 @@ GET /api/dashboard/trend?range=7d|30d&device_name=xxx&limit=800
             else:
                 x.append(str(t) if t is not None else "")
 
-        # series：每列一个折线
-        series = []
-        for col in series_cols:
-            series.append({"name": col, "data": [rr.get(col) for rr in rows]})
+        series = [{"name": col, "data": [rr.get(col) for rr in rows]} for col in series_cols]
 
         out = {"x": x, "series": series}
         if note:
             out["note"] = note
         return _json_ok(out)
+
+    except Exception as e:
+        return _json_err(e)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ========= ✅ 保存经纬度（只操作 devices 表） =========
+
+@csrf_exempt
+@require_POST
+def save_device_location(request):
+    """
+    POST /storage/api/dashboard/device-location/
+    {
+      "id": 123,                     # 推荐
+      "device_name": "xxx",          # 可选
+      "device_code": "SN001",        # 可选
+      "longitude": 113.123456,
+      "latitude": 23.123456,
+      "location": "详细地址/备注"     # 可选（允许 "" -> NULL）
+    }
+    """
+    devices_table = _safe_ident(getattr(settings, "DEVICES_TABLE", "devices"), "table")
+
+    body = _parse_json_body(request)
+    data: Dict[str, Any] = {}
+    data.update(request.POST.dict() if hasattr(request, "POST") else {})
+    data.update(body or {})
+
+    dev_id = data.get("id") or data.get("device_id")
+    dev_name = (data.get("device_name") or "").strip()
+    dev_code = (data.get("device_code") or "").strip()
+
+    lng = data.get("longitude")
+    lat = data.get("latitude")
+    loc = (data.get("location") or "").strip()
+
+    if lng is None or lat is None:
+        return _json_err(ValueError("缺少 longitude/latitude"), status=400)
+
+    try:
+        lng_f = float(lng)
+        lat_f = float(lat)
+    except Exception:
+        return _json_err(ValueError("longitude/latitude 必须是数字"), status=400)
+
+    if not (-180.0 <= lng_f <= 180.0) or not (-90.0 <= lat_f <= 90.0):
+        return _json_err(ValueError("longitude/latitude 超出范围"), status=400)
+
+    where_sql, where_params = _build_device_where(dev_id, dev_name, dev_code)
+    if not where_sql:
+        return _json_err(ValueError("缺少定位字段：id 或 device_name 或 device_code"), status=400)
+
+    conn = None
+    try:
+        conn = _get_remote_conn()
+        with conn.cursor() as cur:
+            set_parts = ["`longitude`=%s", "`latitude`=%s"]
+            params: List[Any] = [lng_f, lat_f]
+
+            if _key_in(data, "location"):
+                if loc == "":
+                    set_parts.append("`location`=NULL")
+                else:
+                    set_parts.append("`location`=%s")
+                    params.append(loc)
+
+            sql = f"""
+            UPDATE `{devices_table}`
+            SET {", ".join(set_parts)}
+            WHERE {where_sql}
+            LIMIT 1
+            """
+            cur.execute(sql, (*params, *where_params))
+            affected = cur.rowcount or 0
+
+            if affected <= 0:
+                exists = _fetch_one_device(cur, devices_table, where_sql, where_params)
+                if not exists:
+                    return _json_err(RuntimeError("未更新：设备不存在或条件未命中"), status=404)
+
+        return _json_ok({"updated": int(affected), "longitude": lng_f, "latitude": lat_f, "location": loc})
+
+    except Exception as e:
+        return _json_err(e)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ========= ✅ 更新设备（只操作 devices 表） =========
+
+@csrf_exempt
+@require_POST
+def update_device(request):
+    """
+    POST /storage/api/dashboard/device-update/
+    Content-Type: application/json
+    {
+      "id": 123,                 # 推荐：用 id 定位（优先）
+      "device_name": "新名称",    # 可选
+      "device_code": "SN001",    # 可选
+      "base_id": "HB001",        # 可选（基地编号）
+      "longitude": 113.1,        # 可选（null/"" -> NULL）
+      "latitude": 30.4,          # 可选
+      "location": "武汉",        # 可选（"" -> NULL）
+      "status": "online"         # 可选：online/offline/alarm/normal（与前端一致）
+    }
+
+    """
+    devices_table = _safe_ident(getattr(settings, "DEVICES_TABLE", "devices"), "table")
+
+    body = _parse_json_body(request)
+    data: Dict[str, Any] = {}
+    data.update(request.POST.dict() if hasattr(request, "POST") else {})
+    data.update(body or {})
+
+    dev_id = data.get("id") or data.get("device_id")
+    dev_name = (data.get("device_name") or "").strip()
+    dev_code = (data.get("device_code") or "").strip()
+
+    # 允许用 match_* 作为 WHERE（兼容旧前端）
+    match_name = (data.get("match_device_name") or "").strip()
+    match_code = (data.get("match_device_code") or "").strip()
+    where_sql, where_params = _build_device_where(
+        dev_id,
+        match_name or dev_name,
+        match_code or dev_code
+    )
+    if not where_sql:
+        return _json_err(ValueError("缺少定位字段：id 或 device_name 或 device_code"), status=400)
+
+    # 是否有更新字段
+    if not any(
+        k in data for k in [
+            "device_name", "device_code",
+            "base_id",
+            "longitude", "latitude",
+            "location",
+            "status",
+        ]
+    ):
+        return _json_err(ValueError("没有提供任何可更新字段"), status=400)
+
+    set_parts: List[str] = []
+    params: List[Any] = []
+
+    # device_name
+    if _key_in(data, "device_name"):
+        v = data.get("device_name")
+        v = "" if v is None else str(v).strip()
+        if v == "":
+            set_parts.append("`device_name`=NULL")
+        else:
+            set_parts.append("`device_name`=%s")
+            params.append(v)
+
+    # device_code
+    if _key_in(data, "device_code"):
+        v = data.get("device_code")
+        v = "" if v is None else str(v).strip()
+        if v == "":
+            set_parts.append("`device_code`=NULL")
+        else:
+            set_parts.append("`device_code`=%s")
+            params.append(v)
+
+    # base_id 直接映射
+    if _key_in(data, "base_id"):
+        raw = data.get("base_id", None)
+        bid = str(raw).strip() if raw is not None else ""
+        if not bid:
+            set_parts.append("`base_id`=NULL")
+        else:
+            set_parts.append("`base_id`=%s")
+            params.append(bid)
+
+    # longitude
+    if _key_in(data, "longitude"):
+        lng = _to_float_or_none(data.get("longitude"))
+        if lng is None:
+            set_parts.append("`longitude`=NULL")
+        else:
+            if not (-180.0 <= lng <= 180.0):
+                return _json_err(ValueError("longitude 超出范围"), status=400)
+            set_parts.append("`longitude`=%s")
+            params.append(lng)
+
+    # latitude
+    if _key_in(data, "latitude"):
+        lat = _to_float_or_none(data.get("latitude"))
+        if lat is None:
+            set_parts.append("`latitude`=NULL")
+        else:
+            if not (-90.0 <= lat <= 90.0):
+                return _json_err(ValueError("latitude 超出范围"), status=400)
+            set_parts.append("`latitude`=%s")
+            params.append(lat)
+
+    # location
+    if _key_in(data, "location"):
+        loc = data.get("location")
+        loc = "" if loc is None else str(loc).strip()
+        if loc == "":
+            set_parts.append("`location`=NULL")
+        else:
+            set_parts.append("`location`=%s")
+            params.append(loc)
+
+    # status（与前端一致）
+    if _key_in(data, "status"):
+        st = data.get("status")
+        st = "" if st is None else str(st).strip().lower()
+        if st == "":
+            set_parts.append("`status`=NULL")
+        else:
+            allow = {"online", "offline", "alarm", "normal"}
+            if st not in allow:
+                return _json_err(ValueError(f"status 不合法：{st}（允许 {sorted(list(allow))}）"), status=400)
+            set_parts.append("`status`=%s")
+            params.append(st)
+
+    if not set_parts:
+        return _json_err(RuntimeError("提供了字段但没有形成任何可更新列（请检查字段名）"), status=400)
+
+    conn = None
+    try:
+        conn = _get_remote_conn()
+        with conn.cursor() as cur:
+            sql = f"""
+            UPDATE `{devices_table}`
+            SET {", ".join(set_parts)}
+            WHERE {where_sql}
+            LIMIT 1
+            """
+            cur.execute(sql, (*params, *where_params))
+            affected = cur.rowcount or 0
+
+            row = _fetch_one_device(cur, devices_table, where_sql, where_params)
+            if not row:
+                return _json_err(RuntimeError("未更新：设备不存在或条件未命中"), status=404)
+
+        return _json_ok({"updated": int(affected), "device": row})
+
+    except Exception as e:
+        return _json_err(e)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# ========= ✅ 删除设备（只操作 devices 表） =========
+
+@csrf_exempt
+@require_POST
+def delete_device(request):
+    """
+    POST /storage/api/dashboard/device-delete/
+    { "id": 123 }  # 推荐
+    或
+    { "device_name": "xxx" }
+    或
+    { "device_code": "SN001" }
+    """
+    devices_table = _safe_ident(getattr(settings, "DEVICES_TABLE", "devices"), "table")
+
+    body = _parse_json_body(request)
+    data: Dict[str, Any] = {}
+    data.update(request.POST.dict() if hasattr(request, "POST") else {})
+    data.update(body or {})
+
+    dev_id = data.get("id") or data.get("device_id")
+    dev_name = (data.get("device_name") or "").strip()
+    dev_code = (data.get("device_code") or "").strip()
+
+    where_sql, where_params = _build_device_where(dev_id, dev_name, dev_code)
+    if not where_sql:
+        return _json_err(ValueError("缺少定位字段：id 或 device_name 或 device_code"), status=400)
+
+    conn = None
+    try:
+        conn = _get_remote_conn()
+        with conn.cursor() as cur:
+            # 先查一下要删的是谁（便于前端提示）
+            row = _fetch_one_device(cur, devices_table, where_sql, where_params)
+
+            cur.execute(f"DELETE FROM `{devices_table}` WHERE {where_sql} LIMIT 1", where_params)
+            affected = cur.rowcount or 0
+
+            if affected <= 0 and not row:
+                return _json_err(RuntimeError("未删除：设备不存在或条件未命中"), status=404)
+
+        return _json_ok({"deleted": int(affected), "device": row})
 
     except Exception as e:
         return _json_err(e)

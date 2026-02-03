@@ -1,220 +1,600 @@
-<!DOCTYPE html>
-
-<html>
+<!doctype html>
+{% load static %}
+<html lang="zh-CN">
 <head>
-  {% load static %}
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>模型构建</title>
-  <link rel="stylesheet" href="{% static 'css/layui/css/layui.css' %}">
-  <link rel="stylesheet" href="{% static 'css/font-awesome-4.7.0/css/font-awesome.min.css' %}" media="all">
-  <script src="{% static 'css/echarts/echarts.min.js' %}"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>基地总览 - 模型构建</title>
 
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
+  <!-- 复用 storageSystem 的 dashboard 样式，让风格一致 -->
+  <link rel="stylesheet" href="{% static 'storageSystem/css/dashboard.css' %}?v=20260122_1700">
 
+  <!-- 地图容器样式 -->
+  <style>
+    #amapContainer {
+      width: 100%;
+      height: 420px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f2f3f5;
+    }
+  </style>
+
+  <!-- 高德地图 Loader -->
+  <script src="https://webapi.amap.com/loader.js"></script>
 </head>
-<body class="layui-layout-body">
 
+<body>
 
-<div class="layui-layout layui-layout-admin">
+  <!-- 顶部导航 -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top nav-fixed">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="#">
+        <i class="fa-solid fa-tree-city me-2"></i>柑橘基地总览
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="topNav">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="javascript:void(0);" onclick="history.back(); return false;">
+              <i class="fa-solid fa-arrow-left me-1"></i>返回上一页
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-  <!-- 头部区域（可配合layui已有的水平导航） -->
-  <div class="layui-header">
-    <div class="layui-logo">基地</div>
-    <ul class="layui-nav layui-layout-right">
-      <li class="layui-nav-item">
-      </li>
-      <li class="layui-nav-item"><a href="../exit.php">退出</a></li>
-    </ul>
-  </div>
-  <!-- 头部区域 结束-->
+  <main class="main">
+    <!-- 标题及说明 -->
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <div>
+        <div class="page-title">基地总览</div>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <div class="muted small" id="lastUpdated">最后更新：-</div>
+        <button class="btn btn-sm btn-outline-secondary" id="btnRefreshBase" type="button">
+          <i class="fa-solid fa-rotate"></i> 刷新
+        </button>
+      </div>
+    </div>
 
+    <!-- 上半：地图 -->
+    <div class="cardx mb-3">
+      <div class="cardx-hd d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-map-location-dot me-2"></i>基地分布地图</span>
+        <div class="muted small">点击地图标记可查看基地名称与编号</div>
+      </div>
+      <div class="cardx-bd">
+        <div id="amapContainer"></div>
+      </div>
+    </div>
 
-  <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
-  <div class="layui-side layui-bg-black">
-    <div class="layui-side-scroll">
-      <ul class="layui-nav layui-nav-tree"  lay-filter="test">
+    <!-- 下半：Base 表格 -->
+    <div class="cardx">
+      <div class="cardx-hd d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-table me-2"></i>基地列表（Base 表）</span>
+        <div class="d-flex gap-2 align-items-center">
+          <input id="baseSearch" class="form-control form-control-sm" style="width: 220px;" placeholder="按名称/省份/城市搜索">
+        </div>
+      </div>
 
-        <li class="layui-nav-item"><a href="">模型构建</a></li>
+      <div class="cardx-bd">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle" id="baseTable">
+            <thead>
+              <tr>
+                <th style="width:100px;">基地编号</th>
+                <th style="width:160px;">基地名称</th>
+                <th style="width:120px;">省份</th>
+                <th style="width:120px;">城市</th>
+                <th style="width:120px;">经度</th>
+                <th style="width:120px;">纬度</th>
+                <th>描述</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="text-center muted small py-2 d-none" id="baseEmpty">暂无基地数据</div>
+      </div>
+    </div>
+  </main>
 
-        <li class="layui-nav-item layui-nav-itemed">
-          <a class="" href="javascript:;">管理中心</a>
-          <dl class="layui-nav-child">
-            <dd><a href="modelAM.php">模型管理</a></dd>
-            <dd><a href="dataAM.php">数据管理</a></dd>
-          </dl>
-        </li>
-     </ul>
+  <!-- 添加基地弹窗 -->
+  <div class="modal fade" id="addBaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fa-solid fa-plus me-2"></i>添加新基地
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addBaseForm" enctype="multipart/form-data">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">基地编号 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="addBaseId" required maxlength="10" placeholder="例如：HB001">
+                <div class="form-text">基地编号必须唯一，将作为预览图文件名</div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">基地名称 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="addBaseName" required maxlength="20" placeholder="例如：湖北柑橘基地1">
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">省份 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="addProvinceName" required maxlength="10" placeholder="请输入省份">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">城市 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="addCityName" required maxlength="10" placeholder="请输入城市">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">经度 <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="addLongitude" required step="0.000001" placeholder="请输入经度">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">纬度 <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="addLatitude" required step="0.000001" placeholder="请输入纬度">
+              </div>
+              <div class="col-12">
+                <label class="form-label">描述</label>
+                <textarea class="form-control" id="addBaseDescription" rows="2" maxlength="50" placeholder="基地描述信息（可选）"></textarea>
+              </div>
+              <div class="col-12">
+                <label class="form-label">预览图 <span class="text-danger">*</span></label>
+                <input type="file" class="form-control" id="addBasePicFile" accept="image/*">
+                <div class="form-text">图片自动命名为：省份缩写+编号（例如：HB001.jpg）</div>
+                <div id="addBasePicPreview" class="mt-2" style="display:none;">
+                  <img id="addBasePicPreviewImg" src="" alt="预览" style="max-width:200px;max-height:150px;border-radius:6px;border:1px solid #ddd;">
+                </div>
+              </div>
+            </div>
+            <div class="text-danger small mt-3 d-none" id="addBaseError"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="btnSubmitAddBase">
+            <i class="fa-solid fa-floppy-disk me-1"></i>保存
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-  <!-- 左侧导航区域 结束 -->
 
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- jQuery -->
+  <script src="{% static 'js/jquery.js' %}"></script>
 
-  <!-- 内容主体区域 -->
-  <div class="layui-body layui-bg-gray">
-    <div class="info-nav">
-			<p class="info-cont">当前位置：<i class="info-tail">模型构建</i></p>
-	</div>
+  <script>
+    (function () {
+      const API_BASE_LIST = "{% url 'get_layui_base_data' %}";
+      const STATIC_BASE_PIC_PREFIX = "{% static 'base_pic/' %}";
 
-    <br><br>
+      let allBases = [];
+      let map = null;
 
+      // 本轮地图对象（每次 initMap 都会重建）
+      let baseInfoWindow = null;
+      let addBaseInfoWindow = null;
+      let markers = [];
 
-    <div class="layui-row" align="center">
-    	<br><br>
-        <h1 style="color: #16baaa; font-family: 'Arial', sans-serif;">请选择要组合的深度学习模块</h1>
-    </div>
-    <br><hr><br>
+      // 用于抑制“marker click 后触发 map click”的误触
+      let lastMarkerClickTs = 0;
 
-    <form class="layui-form" action="creatModel/creatModel.php" method="post" target="showModel">
-    <!-- action=url,当提交表单时，发送表单数据到名为 "url" 的文件 -->
-    <!-- target，指示在何处打开 action URL，即在何处显示提交表单后，接收到的响应,与iframe可配合,则是在iframe的何处展示结果。 -->
-    <!-- form传递的值，就是在form便签中出现的"value"，比如value="CBAM"等 -->
+      function setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
 
-    <div class="layui-row">
-        <div class="layui-col-md4" style="text-align:center">
-            <img src="../img/CPCNN.png" height=250 width=90% id="block1_img">
-        </div>
-        <div class="layui-col-md4" style="text-align:center">
-            <img src="../img/CBAM.png" height=250 width=100% id="block2_img">
-        </div>
-        <div class="layui-col-md4" style="text-align:center">
-            <iframe src="https://netron.app/" name="showModel" id="showModel" scrolling="1" frameborder="0" style="width: 80%;height:250px;"> </iframe>
-            <br><br><br>
-            <div class="layui-col-md4 layui-col-md-offset4">
-                <button class="layui-btn" lay-submit name="submit" value='viewModelParameter' >查看模型参数</button>
+      function formatNow() {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+
+      function renderTable(list) {
+        const tbody = document.querySelector("#baseTable tbody");
+        const empty = document.getElementById("baseEmpty");
+        if (!tbody) return;
+        while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+        if (!list || list.length === 0) {
+          if (empty) empty.classList.remove("d-none");
+          return;
+        }
+        if (empty) empty.classList.add("d-none");
+
+        list.forEach((b) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${b.baseID || "-"}</td>
+            <td>${b.baseName || "-"}</td>
+            <td>${b.province || "-"}</td>
+            <td>${b.city || "-"}</td>
+            <td>${b.longitude != null ? Number(b.longitude).toFixed(6) : "-"}</td>
+            <td>${b.latitude != null ? Number(b.latitude).toFixed(6) : "-"}</td>
+            <td>${b.description || "-"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function applySearch() {
+        const q = (document.getElementById("baseSearch")?.value || "").trim().toLowerCase();
+        if (!q) {
+          renderTable(allBases);
+          return;
+        }
+        const filtered = allBases.filter((b) => {
+          const name = String(b.baseName || "").toLowerCase();
+          const prov = String(b.province || "").toLowerCase();
+          const city = String(b.city || "").toLowerCase();
+          return name.includes(q) || prov.includes(q) || city.includes(q);
+        });
+        renderTable(filtered);
+      }
+
+      function destroyMapIfExists() {
+        try {
+          if (map) {
+            baseInfoWindow && baseInfoWindow.close();
+            addBaseInfoWindow && addBaseInfoWindow.close();
+
+            if (markers && markers.length) {
+              map.remove(markers);
+            }
+            map.destroy();
+          }
+        } catch (e) {
+          console.warn("destroyMapIfExists error:", e);
+        } finally {
+          map = null;
+          baseInfoWindow = null;
+          addBaseInfoWindow = null;
+          markers = [];
+        }
+      }
+
+      function openAddBaseModalWithLngLat(lng, lat) {
+        const lngInput = document.getElementById("addLongitude");
+        const latInput = document.getElementById("addLatitude");
+        if (lngInput) lngInput.value = Number(lng).toFixed(6);
+        if (latInput) latInput.value = Number(lat).toFixed(6);
+
+        const modalEl = document.getElementById("addBaseModal");
+        if (modalEl) {
+          const modal = new bootstrap.Modal(modalEl);
+          modal.show();
+        }
+      }
+
+      function initMapWithAMap(AMap) {
+        destroyMapIfExists();
+
+        const fallbackCenter = [114.360622, 30.473526];
+        const center = allBases.length
+          ? [Number(allBases[0].longitude) || fallbackCenter[0], Number(allBases[0].latitude) || fallbackCenter[1]]
+          : fallbackCenter;
+
+        map = new AMap.Map("amapContainer", {
+          zoom: 6,
+          center: center,
+        });
+
+        // 统一的基地信息窗口（marker 点击）
+        baseInfoWindow = new AMap.InfoWindow({
+          anchor: "bottom-center",
+          offset: new AMap.Pixel(0, -20),
+          isCustom: false,
+        });
+
+        // “添加基地”窗口（空白点击）
+        addBaseInfoWindow = new AMap.InfoWindow({
+          anchor: "bottom-center",
+          offset: new AMap.Pixel(0, -10),
+          isCustom: true,   // 关键：使用自定义 DOM
+        });
+
+        // ====== marker ======
+        allBases.forEach((b) => {
+          if (b.longitude == null || b.latitude == null) return;
+
+          const marker = new AMap.Marker({
+            position: [Number(b.longitude), Number(b.latitude)],
+            title: b.baseName || b.baseID || "",
+          });
+
+          marker.setExtData(b);
+          marker.setMap(map);
+          markers.push(marker);
+
+          marker.on("click", () => {
+            lastMarkerClickTs = Date.now();
+
+            // 关闭“添加基地”窗口
+            addBaseInfoWindow && addBaseInfoWindow.close();
+
+            const baseData = marker.getExtData() || b;
+            const picName = baseData.basePic || "";
+            const picUrl = picName ? (STATIC_BASE_PIC_PREFIX + picName) : "";
+
+            const baseId = baseData.baseID || "";
+            const detailUrl = baseId
+              ? `/storage/dashboard/?base_id=${encodeURIComponent(baseId)}`
+              : `/storage/dashboard/`;
+
+            const html = `
+              <div style="max-width:260px;padding:8px;">
+                <div style="font-weight:600;margin-bottom:6px;font-size:14px;">基地编号：${baseData.baseID || "-"}</div>
+                <div style="font-weight:600;margin-bottom:8px;font-size:14px;">基地名称：${baseData.baseName || "-"}</div>
+                ${
+                  picUrl
+                    ? `<div style="width:180px;height:110px;margin:0 auto;overflow:hidden;border-radius:6px;border:1px solid #ddd;">
+                        <img src="${picUrl}" alt="基地预览图"
+                             style="width:100%;height:100%;object-fit:cover;display:block;" />
+                       </div>`
+                    : `<div style="color:#888;text-align:center;padding:20px;">暂无预览图</div>`
+                }
+                <div style="margin-top:10px;text-align:right;">
+                  <a href="${detailUrl}"
+                     style="display:inline-block;padding:4px 10px;border-radius:999px;
+                            background:#2563eb;color:#fff;font-size:12px;
+                            text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.35);">
+                    进入平台
+                  </a>
+                </div>
+              </div>
+            `;
+
+            baseInfoWindow.setContent(html);
+            baseInfoWindow.open(map, marker.getPosition());
+          });
+        });
+
+        // ====== 空白点击：弹出“添加基地”（白底 + 右上角 X） ======
+        map.on("click", (e) => {
+          // 抑制 marker 点击后紧跟触发的 map click
+          if (Date.now() - lastMarkerClickTs < 250) return;
+
+          const lnglat = e.lnglat;
+          if (!lnglat) return;
+
+          // 关闭基地信息窗口
+          baseInfoWindow && baseInfoWindow.close();
+
+          // 自定义白色弹窗 DOM
+          const wrap = document.createElement("div");
+          wrap.style.cssText = `
+            position: relative;
+            min-width: 240px;
+            padding: 12px 14px 14px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+            font-size: 13px;
+            color: #333;
+          `;
+
+          wrap.innerHTML = `
+            <div id="closeAddBaseInfo"
+                 title="关闭"
+                 style="
+                   position:absolute;
+                   top:6px;
+                   right:8px;
+                   cursor:pointer;
+                   font-size:18px;
+                   line-height:18px;
+                   color:#999;
+                   user-select:none;
+                 ">×</div>
+
+            <div style="font-weight:600;margin-bottom:8px;font-size:14px;">
+              在此位置添加基地
             </div>
 
-        </div>
+            <div style="font-size:12px;color:#666;margin-bottom:10px;line-height:1.5;">
+              经度：${lnglat.lng.toFixed(6)}<br>
+              纬度：${lnglat.lat.toFixed(6)}
+            </div>
 
-    </div>
-    <br><hr><br>
+            <button type="button"
+                    class="btn btn-sm btn-primary"
+                    id="btnAddBaseAtLocation"
+                    style="width:100%;">
+              <i class="fa-solid fa-plus me-1"></i>添加基地
+            </button>
+          `;
 
+          addBaseInfoWindow.setContent(wrap);
+          addBaseInfoWindow.open(map, lnglat);
 
-    <div class="layui-row">
-        <div class="layui-col-md4 layui-col-md-offset3">
-            <div class="layui-form-item" pane>
-                <div class="layui-input-block">
-                    <input name="modelName" id="modelName" type="text" class="layui-input" placeholder="请输入模型名称" >
-                </div>
-             </div>
-        </div>
-        <div class="layui-col-md4">
-            &nbsp;&nbsp;&nbsp;&nbsp;
-            <button class="layui-btn" lay-submit lay-filter="formDemo" name="submit" value="saveModel">保存模型</button>
-        </div>
-    </div>
-    </form>
+          // 关闭按钮
+          const closeBtn = wrap.querySelector("#closeAddBaseInfo");
+          if (closeBtn) {
+            closeBtn.addEventListener("click", () => {
+              addBaseInfoWindow && addBaseInfoWindow.close();
+            }, { once: true });
+          }
 
+          // 添加基地按钮
+          const btn = wrap.querySelector("#btnAddBaseAtLocation");
+          if (btn) {
+            btn.addEventListener("click", () => {
+              addBaseInfoWindow && addBaseInfoWindow.close();
+              openAddBaseModalWithLngLat(lnglat.lng, lnglat.lat);
+            }, { once: true });
+          }
+        });
+      }
 
-    <div>
-        <table class="layui-hide" id="base-table"></table>
-        <script type="text/html" id="table-operate">
-            <a class="layui-btn layui-btn-xs" lay-event="detail"><i class="fa fa-eye"></i> 查看</a>
-            </a>
-        </script>
-    </div>
+      function initMap() {
+        if (window.AMap) {
+          initMapWithAMap(window.AMap);
+          return;
+        }
 
+        if (!window.AMapLoader) {
+          console.warn("AMapLoader 未就绪");
+          return;
+        }
 
-    <div>
-        <iframe src="{% url 'chat' %}" width="600" height="400"></iframe>
-    </div>
+        AMapLoader.load({
+          key: "9969ad3b8112bd56b65dc90191ab4753", // TODO: 可从 settings 注入
+          version: "2.0",
+        }).then((AMap) => {
+          initMapWithAMap(AMap);
+        }).catch((e) => {
+          console.error("地图加载失败:", e);
+        });
+      }
 
+      async function loadBaseList() {
+        try {
+          const url = `${API_BASE_LIST}?page=1&limit=1000`;
+          const resp = await fetch(url, { credentials: "same-origin" });
+          const data = await resp.json();
+          allBases = data.data || [];
+          renderTable(allBases);
+          setText("lastUpdated", `最后更新：${formatNow()}`);
+          initMap();
+        } catch (e) {
+          console.error("加载基地列表失败:", e);
+        }
+      }
 
+      function showAddBaseError(msg) {
+        const el = document.getElementById("addBaseError");
+        if (!el) return;
+        if (!msg) {
+          el.classList.add("d-none");
+          el.textContent = "";
+        } else {
+          el.classList.remove("d-none");
+          el.textContent = msg;
+        }
+      }
 
-  </div>
-  <!--内容主体 结束-->
+      // 图片预览
+      function handlePicPreview() {
+        const fileInput = document.getElementById("addBasePicFile");
+        const preview = document.getElementById("addBasePicPreview");
+        const previewImg = document.getElementById("addBasePicPreviewImg");
+        if (!fileInput || !preview || !previewImg) return;
 
-</div>
+        fileInput.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            if (!file.type.startsWith("image/")) {
+              alert("请选择图片文件");
+              fileInput.value = "";
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              previewImg.src = ev.target.result;
+              preview.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+          } else {
+            preview.style.display = "none";
+          }
+        });
+      }
 
+      async function submitAddBase() {
+        const btn = document.getElementById("btnSubmitAddBase");
+        if (btn) btn.disabled = true;
+        showAddBaseError("");
 
-<script src="{% static 'js/jquery.js' %}"></script>
-<script src="{% static 'css/layui/layui.js' %}"></script>
-<script>
-//layui样式
-layui.use('element', function(){
-  var element = layui.element;
+        try {
+          const getValue = (id) => document.getElementById(id)?.value?.trim() || "";
+          const baseId = getValue("addBaseId");
+          const baseName = getValue("addBaseName");
+          const provinceName = getValue("addProvinceName");
+          const cityName = getValue("addCityName");
+          const longitude = getValue("addLongitude");
+          const latitude = getValue("addLatitude");
+          const baseDescription = getValue("addBaseDescription");
+          const picFile = document.getElementById("addBasePicFile")?.files[0];
 
-});
-</script>
+          if (!baseId || !baseName || !provinceName || !cityName || !longitude || !latitude || !picFile) {
+            showAddBaseError("请填写所有必填字段");
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append("base_id", baseId);
+          formData.append("base_name", baseName);
+          formData.append("province_name", provinceName);
+          formData.append("city_name", cityName);
+          formData.append("longitude", longitude);
+          formData.append("latitude", latitude);
+          formData.append("base_description", baseDescription);
+          formData.append("base_pic", picFile);
+
+          const resp = await fetch("{% url 'add_base' %}", {
+            method: "POST",
+            headers: { "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "" },
+            body: formData
+          });
+
+          const data = await resp.json();
+          if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById("addBaseModal"))?.hide();
+            document.getElementById("addBaseForm")?.reset();
+            document.getElementById("addBasePicPreview").style.display = "none";
+            await loadBaseList();
+            alert("基地添加成功！");
+          } else {
+            showAddBaseError(data.error || "添加失败");
+          }
+        } catch (e) {
+          showAddBaseError("网络错误，请稍后重试");
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const btnRefresh = document.getElementById("btnRefreshBase");
+        if (btnRefresh) btnRefresh.addEventListener("click", loadBaseList);
+
+        const inputSearch = document.getElementById("baseSearch");
+        if (inputSearch) inputSearch.addEventListener("input", applySearch);
+
+        const btnSubmitAdd = document.getElementById("btnSubmitAddBase");
+        if (btnSubmitAdd) btnSubmitAdd.addEventListener("click", submitAddBase);
+
+        // 弹窗关闭时清空错误信息
+        const addBaseModal = document.getElementById("addBaseModal");
+        if (addBaseModal) {
+          addBaseModal.addEventListener("hidden.bs.modal", () => {
+            showAddBaseError("");
+            document.getElementById("addBaseForm")?.reset();
+            document.getElementById("addBasePicPreview").style.display = "none";
+          });
+        }
+
+        handlePicPreview();
+        loadBaseList();
+      });
+    })();
+  </script>
 
 </body>
 </html>
-
-
-
-
-<script>
-    const baseID = encodeURIComponent("{{ baseID }}");
-    $.ajax({
-        url: "{% url 'get_base_info' %}",
-        type: "GET",
-        data: { baseID: baseID },
-        success: function(response)
-        {
-            console.log(response)
-
-        },
-        error: function(xhr)
-        {
-            console.error('基地信息查询失败:', xhr.statusText);
-        }
-    });
-
-</script>
-
-
-<script>
-    layui.use(['table', 'jquery'], function(){
-        var table = layui.table;
-        var $ = layui.jquery;
-
-        // 初始化表格
-        table.render({
-            elem: '#base-table',
-            url: `{% url 'get_layui_base_data' %}`,  // 替换为您的Django后端API地址
-            cols: [[
-                {field: 'baseID', title: '基地ID', width: 100, sort: true},
-                {field: 'baseName', title: '基地名称', width: 150},
-                {field: 'province', title: '省份', width: 120},
-                {field: 'city', title: '城市', width: 120},
-                {field: 'description', title: '描述', minWidth: 200},
-                {fixed: 'right', title: '操作', toolbar: '#table-operate', width: 120}
-            ]],
-            page: true,
-            limits: [10, 20, 50, 100],
-            limit: 10,
-            request: {
-                pageName: 'page',  // 页码的参数名称，默认：page
-                limitName: 'limit' // 每页数据量的参数名，默认：limit
-            },
-            response: {
-                statusName: 'code',  // 规定数据状态的字段名称，默认：code
-                statusCode: 200,     // 规定成功的状态码，默认：0
-                countName: 'count', // 规定数据总数的字段名称，默认：count
-                dataName: 'data'     // 规定数据列表的字段名称，默认：data
-            },
-            parseData: function(res) { // res 即为原始返回的数据
-                return {
-                    "code": res.code, // 解析接口状态
-                    "msg": res.msg,   // 解析提示文本
-                    "count": res.count, // 解析数据长度
-                    "data": res.data  // 解析数据列表
-                };
-            }
-        });
-
-        // 操作按钮事件
-        table.on('tool(base-table)', function(obj){
-            var data = obj.data;
-            if(obj.event === 'detail'){
-                layer.msg('基地ID：'+ data.baseID + ' 的查看操作');
-                // 这里可以跳转到详情页或打开详情弹窗
-                window.open('/base_detail/' + data.baseID + '/', '_blank');
-            } else if(obj.event === 'edit'){
-                layer.msg('基地ID：'+ data.baseID + ' 的编辑操作');
-                // 这里可以跳转到编辑页或打开编辑弹窗
-            }
-        });
-    });
-
-</script>

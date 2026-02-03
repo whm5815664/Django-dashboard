@@ -19,6 +19,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+
+# 处理浏览器开发工具自动请求的路径（Chrome/Edge等）
+def chrome_devtools_handler(request):
+    """处理 /.well-known/appspecific/com.chrome.devtools.json 请求"""
+    return JsonResponse({})
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,6 +32,8 @@ urlpatterns = [
     path('aiModels/', include('aiModels.urls')),
     path("storage/", include("storageSystem.urls")),
     path("labDatasets/", include("labDatasets.urls")),
+    # 处理浏览器开发工具的自动请求，避免404错误
+    path(".well-known/appspecific/com.chrome.devtools.json", chrome_devtools_handler),
 ]
 
 # 添加媒体文件的URL路由（仅在开发环境中）

@@ -25,7 +25,7 @@ urlpatterns = [
     path('base_map/<str:province_name>/', views.base_map, name='base_map'),  # 跳转到省份高德地图
 
     # 基地主页
-    path('baseIndex/<str:baseID>/', views.baseIndex, name='baseIndex'),
+    path('baseIndex', views.baseIndex, name='baseIndex'),
 
     # 功能-摄像头
     path('video_feed', video.video_feed, name='video1_feed'),  # 摄像头
@@ -40,6 +40,7 @@ urlpatterns = [
     path('get_base_info', baseData.get_base_by_baseID, name='get_base_info'),  # 得到对应基地全部信息
     path('get_citrus_production_by_province', baseData.get_citrus_production_by_province, name='get_citrus_production_by_province'),  # 得到指定省份的柑橘产量历史数据
     path('get_variety_production_last_months', baseData.get_variety_production_last_months, name='get_variety_production_last_months'),  # 指定省份最近月份的品种产量
+    path('add_base', baseData.add_base, name='add_base'),  # 添加基地
 
     # 功能-数据库-layui表格相关
     path('get_layui_base_data', layuiData.get_layui_base_data, name='get_layui_base_data'),

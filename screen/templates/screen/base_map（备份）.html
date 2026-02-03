@@ -6,387 +6,122 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>数据可视化</title>
     <style>
-      /* === 覆盖 index.css：地图做全屏背景，面板悬浮在上层 === */
-      html, body { height: 100%; }
-      body {
-        margin: 0;
-        overflow: hidden;
-        /* 最底层背景图（bg.jpg） */
-        background: url("{% static 'images/bg.jpg' %}") no-repeat top center !important;
-        background-size: cover !important;
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100vh; /* 使用视口高度 */
       }
-
-      /* 顶部标题固定悬浮 */
-      header {
-        /* 保持原 index.css 的头部背景与占位，不再覆盖地图 */
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        column-gap: 12px;
+      .chart, #base-table, .box {
+        height: calc(100% - 50px); /* 减去标题和底部的高度 */
+        width: 100%;
       }
-      .logo { justify-self: start; margin-left: 4ch; }
-      .logo img { height: 42px; display: block; }
-      header h1 { margin: 0; justify-self: center; }
-      .show-time { justify-self: end; }
-
-      /* 地图全屏铺底 */
-      .map-bg {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        top: 1.25rem; /* 让地图从头部下方开始 */
-        z-index: 1; /* 地图层高于 bg.jpg */
-      }
-      #GaodeMap {
+      .box img {
         width: 100%;
         height: 100%;
+        object-fit: cover;
       }
 
-      /* 面板层 */
-      .overlay {
-        position: fixed;
-        top: 1.25rem; /* 对齐头部高度，避免覆盖头部 */
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10; /* 面板层高于地图 */
-        pointer-events: none; /* 默认不吃事件，面板自身再开启 */
+      /* 列通用样式 */
+      .column {
+          display: flex;
+          flex-direction: column;
+          padding: 10px;
+          box-sizing: border-box;
+          min-width: 0;
+          height: 100%; /* 继承容器高度 */
       }
 
-      .overlay .side {
-        position: absolute;
-        top: 0.2rem;
-        bottom: 0.2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.18rem;
-        pointer-events: auto;
-      }
-      /* 按屏幕比例：左 1/6，右 2/6，中间留给地图 */
-      .overlay .side.left { left: 0.2rem; width: 20vw; }
-      .overlay .side.right { right: 0.2rem; width: 20vw; }
+      /* 比例分配 */
+      .column-left { flex: 3; }
+      .column-center { flex: 4; }
+      .column-right { flex: 3; }
 
-      /* 复用 index.css 的 panel 外观，但让其更“玻璃感” */
-      .overlay .panel {
-        margin-bottom: 0 !important;
-        height: auto !important;
-        background: rgba(0, 0, 0, 0.25) !important;
-        backdrop-filter: blur(6px);
+      /* 面板样式 - 限制为屏幕高度的1/3 */
+      .panel {
+          height: calc(33.33vh - 20px); /* 屏幕高度的1/3，减去padding */
+          margin-bottom: 15px;
+          background: #fff;
+          border-radius: 5px;
+          box-shadow: 0 0 5px rgba(0,0,0,0.1);
+          overflow: hidden; /* 防止内容溢出 */
       }
-      .overlay .panel .chart { height: 3.05rem; }
+      
+      /* 工具箱样式 */
+      .toolbox {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-around;
+          align-items: center;
+          height: calc(100% - 60px); /* 减去标题高度 */
+          padding: 20px;
+          box-sizing: border-box;
+      }
+      
+      .tool-item {
+          flex: 0 0 22%; /* 一行4个，每个占22%宽度 */
+          text-align: center;
+          margin-bottom: 15px;
+      }
+      
+      .tool-item a {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-decoration: none;
+          color: #333;
+          padding: 15px 10px;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          border: 1px solid #e1e8ed;
+      }
+      
+      .tool-item a:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+      }
+      
+      .tool-item i {
+          font-size: 32px;
+          margin-bottom: 8px;
+          color: #2f89cf;
+      }
+      
+      .tool-item:hover i {
+          color: white;
+      }
+      
+      .tool-item span {
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1.2;
+      }
+        
+        /* 搜索框样式 */
+        .search-box {
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+        
+        .search-box .layui-input {
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #e6e6e6;
+        }
 
-      /* 左侧三块：各占 1/3 高度 */
-      .left .panel { flex: 1; min-height: 0; }
-      .left .panel .chart { height: calc(100% - 0.6rem - 0.5rem); } /* 减去 h2 + footer 预留 */
-
-      /* 左侧图表标题：居中、白色；图表区域贴底 */
-      .overlay .side.left .panel {
-        display: flex;
-        flex-direction: column;
-      }
-      .overlay .side.left .panel > h2 {
-        text-align: center;
-        color: #fff;
-        font-size: 0.26rem;
-        padding: 0.08rem 0 0;
-        box-sizing: border-box;
-      }
-      .overlay .side.left .panel .chart {
-        flex: 1;
-        min-height: 0;
-        /* 图表区域在面板中部显示（不再贴底） */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.12rem 0;
-      }
-
-      /* 右侧：顶部数字两块 + 底部监控 */
-      .right-top {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.18rem;
-      }
-      .stat-card {
-        position: relative;
-        border: 1px solid rgba(25, 186, 139, 0.17);
-        background: rgba(0, 0, 0, 0.25);
-        backdrop-filter: blur(6px);
-        padding: 0.12rem 0.12rem 0.18rem;
-        min-height: 1.45rem;
-      }
-      .stat-card .value {
-        font-family: electronicFont, monospace;
-        color: #ffeb7b;
-        font-size: 0.65rem;
-        line-height: 0.9rem;
-        text-align: center;
-        margin-top: 0.05rem;
-      }
-      .stat-card .label {
-        color: rgba(255, 255, 255, 0.75);
-        font-size: 0.22rem;
-        text-align: center;
-        margin-top: 0.05rem;
-      }
-      .stat-card::before, .stat-card::after {
-        position: absolute;
-        top: 0;
-        width: 10px;
-        height: 10px;
-        content: '';
-      }
-      .stat-card::before { left: 0; border-left: 2px solid #02a6b5; border-top: 2px solid #02a6b5; }
-      .stat-card::after { right: 0; border-right: 2px solid #02a6b5; border-top: 2px solid #02a6b5; }
-
-      /* 右侧基地详情面板 */
-      .baseinfo-panel {
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        position: relative; /* 作为工具按钮定位的参照 */
-      }
-      .baseinfo-body {
-        flex: 1;
-        min-height: 0;
-        padding: 0.1rem 0.16rem 0.14rem;
-        overflow: auto;
-      }
-      .baseinfo-empty {
-        color: rgba(255,255,255,0.75);
-        font-size: 0.22rem;
-        line-height: 0.36rem;
-        padding-top: 0.08rem;
-        text-align: center;
-      }
-      .baseinfo-kv {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 0.08rem;
-      }
-      .baseinfo-row {
-        display: grid;
-        grid-template-columns: 0.9rem 1fr;
-        gap: 0.12rem;
-        align-items: start;
-      }
-      .baseinfo-key {
-        color: rgba(255,255,255,0.65);
-        font-size: 0.22rem;
-        text-align: right;
-        white-space: nowrap;
-      }
-      .baseinfo-val {
-        color: rgba(255,255,255,0.92);
-        font-size: 0.22rem;
-        word-break: break-word;
-      }
-      /* 顶部中央搜索栏 */
-      .top-search {
-        position: absolute;
-        top: 0.2rem;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 20;
-        display: flex;
-        align-items: center;
-        gap: 0.12rem;
-        padding: 0.08rem 0.16rem;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.45);
-        box-shadow: 0 2px 12px rgba(0,0,0,0.35);
-        backdrop-filter: blur(8px);
-        pointer-events: auto;
-      }
-      .top-search-inner {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 0.12rem;
-      }
-      .top-search input {
-        width: 3.8rem;
-        border: none;
-        outline: none;
-        padding: 0.08rem 0.16rem;
-        border-radius: 999px;
-        font-size: 0.22rem;
-        background: rgba(255,255,255,0.96);
-        color: #333;
-      }
-      .top-search button {
-        border: none;
-        outline: none;
-        padding: 0.08rem 0.26rem;
-        border-radius: 999px;
-        font-size: 0.22rem;
-        cursor: pointer;
-        color: #fff;
-        background: linear-gradient(135deg,#02a6b5,#1890ff);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-        white-space: nowrap;
-      }
-      .top-search button:hover {
-        background: linear-gradient(135deg,#12c2e9,#1890ff);
-      }
-      .top-search-suggest {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: calc(100% + 6px);
-        max-height: 3.2rem;
-        overflow: auto;
-        padding: 6px;
-        border-radius: 10px;
-        background: rgba(255,255,255,0.98);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.35);
-        display: none;
-        z-index: 30;
-      }
-      .top-search-suggest .item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        color: #333;
-        font-size: 14px;
-      }
-      .top-search-suggest .item:hover {
-        background: #e6f7ff;
-      }
-      .top-search-suggest .name {
-        font-weight: 600;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .top-search-suggest .meta {
-        color: #666;
-        font-size: 12px;
-        white-space: nowrap;
-      }
-      .top-search-suggest .empty {
-        padding: 10px;
-        color: #888;
-        text-align: center;
-        font-size: 13px;
-      }
-      /* 工具箱按钮与弹窗 */
-      .toolbox-button {
-        width: 0.6rem;
-        height: 0.6rem;
-        border-radius: 50%;
-        border: none;
-        outline: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: radial-gradient(circle at 30% 30%, #34d399, #059669);
-        color: #fff;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.45);
-        cursor: pointer;
-        font-size: 0.3rem;
-      }
-      .toolbox-button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.55);
-      }
-      .toolbox-rail {
-        position: absolute;
-        left: 0.08rem;
-        bottom: 0.12rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.12rem;
-        z-index: 20;
-      }
-      .toolbox-button-agent {
-        background: radial-gradient(circle at 30% 30%, #38bdf8, #0ea5e9);
-      }
-      .toolbox-modal-mask {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.55);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 40;
-      }
-      .toolbox-modal {
-        width: 5.2rem;
-        max-width: 90vw;
-        background: rgba(15,23,42,0.96);
-        border-radius: 12px;
-        box-shadow: 0 18px 45px rgba(0,0,0,0.65);
-        border: 1px solid rgba(148,163,184,0.4);
-        padding: 0.24rem 0.28rem 0.3rem;
-        color: #e5e7eb;
-      }
-      .toolbox-modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.18rem;
-      }
-      .toolbox-modal-header h2 {
-        font-size: 0.26rem;
-        margin: 0;
-      }
-      .toolbox-modal-header button {
-        border: none;
-        background: transparent;
-        color: #9ca3af;
-        font-size: 0.26rem;
-        cursor: pointer;
-      }
-      .toolbox-modal-header button:hover {
-        color: #e5e7eb;
-      }
-      .toolbox-modal-desc {
-        font-size: 0.2rem;
-        color: #9ca3af;
-        margin-bottom: 0.18rem;
-      }
-      .toolbox-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.18rem;
-      }
-      .toolbox-item {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.08rem;
-        border-radius: 10px;
-        padding: 0.14rem 0.14rem 0.12rem;
-        background: radial-gradient(circle at 0 0, rgba(52,211,153,0.12), rgba(15,23,42,0.9));
-        border: 1px solid rgba(55,65,81,0.8);
-        text-decoration: none;
-        color: #e5e7eb;
-      }
-      .toolbox-item:hover {
-        border-color: #34d399;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-      }
-      .toolbox-item-title {
-        display: flex;
-        align-items: center;
-        gap: 0.1rem;
-        font-size: 0.22rem;
-        font-weight: 600;
-      }
-      .toolbox-item-title i {
-        font-size: 0.26rem;
-      }
-      .toolbox-item-text {
-        font-size: 0.18rem;
-        color: #9ca3af;
-      }
+        /* 头部布局：左Logo，中标题，右时间 */
+        header {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          column-gap: 12px;
+        }
+        .logo { justify-self: start; margin-left: 4ch; }
+        .logo img { height: 42px; display: block; }
+        header h1 { margin: 0; justify-self: center; }
+        .show-time { justify-self: end; }
     </style>
     <link rel="stylesheet" href="{% static 'css/layui/css/layui.css' %}">
     <link rel="stylesheet" href="{% static 'css/font-awesome-4.7.0/css/font-awesome.min.css' %}" media="all">
@@ -419,146 +154,111 @@
       </script>
     </header>
 
-    <!-- 地图背景（铺底） -->
-    <div class="map-bg">
-      <div id="GaodeMap"></div>
-    </div>
-
-    <!-- 悬浮面板层 -->
-    <div class="overlay">
-      <!-- 顶部中央搜索栏：按基地编号或名称定位 -->
-      <div class="top-search">
-        <div class="top-search-inner">
-          <input
-            id="base-search-input"
-            type="text"
-            placeholder="输入基地编号或名称"
-            autocomplete="off"
-            onkeydown="if (event.key === 'Enter') { handleBaseSearch(); }"
-            oninput="handleBaseSuggest()"
-            onfocus="handleBaseSuggest()"
-          />
-          <div id="base-search-suggest" class="top-search-suggest"></div>
+    <!-- 页面主体 -->
+    <section class="mainbox">
+      <!-- 左侧盒子 -->
+      <div class="column" style="flex: 3;">
+        <div class="panel bar">
+          <h2>实时监控</h2>
+          <div class="box"><a href="{% url 'video1_feed' %}" ><img src="{% url 'video1_feed' %}" alt="实时监控" align="center"></a></div>
+          <div class="panel-footer"></div>
         </div>
-        <button type="button" onclick="handleBaseSearch()">搜索</button>
+
+        <div class="panel" style="overflow: auto;">
+          <h2>{{ province_name }}基地信息</h2>
+          <!-- 基地名称搜索 -->
+          <div class="search-box">
+            <input type="text" id="base-name-search" placeholder="搜索基地名称..." class="layui-input">
+          </div>
+          <table class="layui-hide" id="base-table"></table>
+          <!-- 操作栏模板 -->
+          <script type="text/html" id="table-operate">
+            <a class="layui-btn layui-btn-xs" lay-event="view">查看</a>
+          </script>
+          <div class="panel-footer"></div>
+        </div>
+
+        <div class="panel bar">
+          <h2>工具箱</h2>
+          <!-- 工具箱内容 -->
+          <div class="toolbox">
+            <div class="tool-item">
+              <a href="{% url 'upload' %}" title="疾病识别">
+                <i class="fa fa-search"></i>
+                <span>疾病识别</span>
+              </a>
+            </div>
+            <div class="tool-item">
+              <a href="{% url 'chat' %}" title="智能问答">
+                <i class="fa fa-comments"></i>
+                <span>智能问答</span>
+              </a>
+            </div>
+            <div class="tool-item">
+              <a href="" title="实时监控">
+                <i class="fa fa-video-camera"></i>
+                <span>实时监控</span>
+              </a>
+            </div>
+            <div class="tool-item">
+              <a href="{% url 'graph' %}" title="关系提取">
+                <i class="fa fa-bar-chart"></i>
+                <span>数据分析</span>
+              </a>
+            </div>
+          </div>
+          <!-- 伪元素绘制盒子下边角 -->
+          <div class="panel-footer"></div>
+        </div>
       </div>
-      <!-- 左侧：3个窗格（当日温湿度、湖北柑橘总产量、湖北不同品种产量） -->
-      <div class="side left">
+
+      <!-- 中间盒子 -->
+      <div class="column" style="flex: 4;">
+        <!-- 头部 no模块 -->
+        <div class="no">
+          <div class="no-hd">
+            <ul>
+              <li>588.7</li>
+              <li>3</li>
+            </ul>
+          </div>
+          <div class="no-bd">
+            <ul>
+              <li>柑橘总产量（万吨）</li>
+              <li>示范基地数（个）</li>
+            </ul>
+          </div>
+        </div>
+        <!-- map模块 -->
+        <div class="map">
+          <div id="GaodeMap" style="width:100%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- 右侧盒子 -->
+      <div class="column" style="flex: 3;">
         <div class="panel bar2">
-          <h2>当日温湿度（数据来源：湖北气象局）</h2>
+          <h2>{{ province_name }}温湿度（数据来源：湖北气象局）</h2>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
-
         <div class="panel line2">
-          <h2>湖北柑橘总产量</h2>
+          <h2>{{ province_name }}柑橘总产量</h2>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
-
         <div class="panel pie2">
-          <h2>湖北不同品种产量（按月）</h2>
+          <h2>{{ province_name }}不同品种产量（按月）</h2>
           <div id="pie2-months" style="padding:6px 10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center;"></div>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
       </div>
-
-      <!-- 右侧：顶部2个数字小窗格 + 右下角监控 -->
-      <div class="side right">
-        <div class="right-top">
-          <div class="stat-card">
-            <div class="value" id="stat-total-production">588.7</div>
-            <div class="label">柑橘总产量（万吨）</div>
-          </div>
-          <div class="stat-card">
-            <div class="value" id="stat-base-count">3</div>
-            <div class="label">示范基地数（个）</div>
-          </div>
-        </div>
-
-        <div class="panel baseinfo-panel">
-          <h2>基地信息</h2>
-          <div class="baseinfo-body" id="base-info">
-            <div class="baseinfo-empty">点击地图钉查看基地详情</div>
-          </div>
-          <!-- 工具箱与智能体按钮：位于基地信息框左下角，竖直排列 -->
-          <div class="toolbox-rail">
-            <a href="{% url 'baseIndex'%}" class="toolbox-button" title="进入基地列表">
-              <i class="fa fa-plus"></i>
-            </a>
-            <button type="button" class="toolbox-button" onclick="openToolboxModal()" title="深度学习工具箱">
-              <i class="fa fa-wrench"></i>
-            </button>
-            <a href="{% url 'chat' %}" class="toolbox-button toolbox-button-agent" title="智能体助手">
-              <i class="fa fa-android"></i>
-            </a>
-          </div>
-          <div class="panel-footer"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 深度学习工具箱弹窗 -->
-    <div id="toolbox-modal-mask" class="toolbox-modal-mask" onclick="if (event.target.id === 'toolbox-modal-mask') closeToolboxModal();">
-      <div class="toolbox-modal">
-        <div class="toolbox-modal-header">
-          <h2>深度学习工具箱</h2>
-          <button type="button" onclick="closeToolboxModal()">&times;</button>
-        </div>
-        <div class="toolbox-modal-desc">
-          选择下列工具进入对应的深度学习功能模块。
-        </div>
-        <div class="toolbox-grid">
-          <a href="{% url 'upload' %}" class="toolbox-item">
-            <div class="toolbox-item-title">
-              <i class="fa fa-search"></i>
-              <span>疾病识别</span>
-            </div>
-            <div class="toolbox-item-text">上传作物图像，进行病虫害智能识别。</div>
-          </a>
-          <a href="{% url 'chat' %}" class="toolbox-item">
-            <div class="toolbox-item-title">
-              <i class="fa fa-comments"></i>
-              <span>智能问答</span>
-            </div>
-            <div class="toolbox-item-text">面向农业领域的对话与知识问答。</div>
-          </a>
-          <a href="" class="toolbox-item">
-            <div class="toolbox-item-title">
-              <i class="fa fa-video-camera"></i>
-              <span>实时监控</span>
-            </div>
-            <div class="toolbox-item-text">接入监控视频流，查看基地实时画面。</div>
-          </a>
-          <a href="{% url 'graph' %}" class="toolbox-item">
-            <div class="toolbox-item-title">
-              <i class="fa fa-bar-chart"></i>
-              <span>数据分析</span>
-            </div>
-            <div class="toolbox-item-text">基于多模态数据的可视化分析与挖掘。</div>
-          </a>
-        </div>
-      </div>
-    </div>
+    </section>
 
     <script src="{% static 'js/flexible.js' %}"></script>
     <script src="{% static 'js/echarts.min.js' %}"></script>
     <script src="{% static 'js/jquery.js' %}"></script>
-    <script>
-      function openToolboxModal() {
-        var mask = document.getElementById('toolbox-modal-mask');
-        if (mask) {
-          mask.style.display = 'flex';
-        }
-      }
-      function closeToolboxModal() {
-        var mask = document.getElementById('toolbox-modal-mask');
-        if (mask) {
-          mask.style.display = 'none';
-        }
-      }
-    </script>
     <!-- 引入china.js 完成地图模块 -->
     <script src="{% static 'js/china.js' %}"></script>
 
@@ -1042,7 +742,7 @@
 
   // 更新图表标题
   function updateChartTitle(year) {
-    var newTitle = provinceName + '柑橘总产量';
+    var newTitle = provinceName + '柑橘总产量（数据来源：农业农村厅）';
     // 更新HTML中的标题
     var titleElement = document.querySelector('.line2 h2');
     if (titleElement) {
@@ -1300,6 +1000,99 @@
 
 
 
+<script type="text/javascript">
+  //--------------------layui表格渲染----------------------------
+  layui.use(['table', 'jquery'], function(){
+      var table = layui.table;
+      var $ = layui.jquery;
+
+      // 初始化表格
+      table.render({
+          elem: '#base-table',
+          url: `{% url 'get_layui_base_data' %}`,  // 替换为您的Django后端API地址
+          response: true, //响应式列表
+          cols: [[
+              {field: 'baseID', title: '基地ID', width: 100, sort: true},
+              {field: 'baseName', title: '基地名称', width: 150},
+              {field: 'province', title: '省份', width: 120},
+              {field: 'city', title: '城市', width: 120},
+              {field: 'description', title: '描述', minWidth: 200},
+              {fixed: 'right', title: '操作', toolbar: '#table-operate', width: 120}
+          ]],
+          page: true,
+          limits: [2, 5, 10],
+          limit: 2,
+          request: {
+              pageName: 'page',  // 页码的参数名称，默认：page
+              limitName: 'limit' // 每页数据量的参数名，默认：limit
+          },
+          response: {
+              statusName: 'code',  // 规定数据状态的字段名称，默认：code
+              statusCode: 200,     // 规定成功的状态码，默认：0
+              countName: 'count', // 规定数据总数的字段名称，默认：count
+              dataName: 'data'     // 规定数据列表的字段名称，默认：data
+          },
+          parseData: function(res) { // res 即为原始返回的数据
+              return {
+                  "code": res.code, // 解析接口状态
+                  "msg": res.msg,   // 解析提示文本
+                  "count": res.count, // 解析数据长度
+                  "data": res.data  // 解析数据列表
+              };
+          },
+          where: {} // 搜索条件
+      });
+
+      // 基地名称模糊搜索功能
+      var searchTimer;
+      $('#base-name-search').on('input', function() {
+          var searchValue = $(this).val().trim();
+          
+          // 清除之前的定时器
+          clearTimeout(searchTimer);
+          
+          // 设置延迟搜索，避免频繁请求
+          searchTimer = setTimeout(function() {
+              if (searchValue) {
+                  // 重新加载表格，添加基地名称搜索条件
+                  table.reload('base-table', {
+                      where: {
+                          baseName: searchValue
+                      },
+                      page: {
+                          curr: 1 // 搜索后回到第一页
+                      }
+                  });
+              } else {
+                  // 清空搜索条件，显示所有数据
+                  table.reload('base-table', {
+                      where: {},
+                      page: {
+                          curr: 1
+                      }
+                  });
+              }
+          }, 500); // 500ms延迟
+      });
+
+      // 操作按钮事件
+      table.on('tool(base-table)', function(obj){
+          var data = obj.data;
+          if(obj.event === 'view'){
+              layer.msg('基地ID：'+ data.baseID + ' 的查看操作');
+              // 跳转到baseIndex页面
+              //var urlTemplate = "{% url 'baseIndex' baseID='BASEID' %}";
+              //var url = urlTemplate.replace("BASEID", encodeURIComponent(data.baseID));
+              //window.open(url, '_blank');
+          } else if(obj.event === 'edit'){
+              layer.msg('基地ID：'+ data.baseID + ' 的编辑操作');
+              // 这里可以跳转到编辑页或打开编辑弹窗
+          }
+      });
+  });
+
+</script>
+
 
 
 
@@ -1317,253 +1110,6 @@
   let currentLayerType = 'satellite'; // 当前图层类型
   let satelliteLayer, roadLayer, buildingLayer; // 图层实例
   let markers = []; // 存储所有标记，用于重新添加
-  let infoWindow = null; // 地图钉信息窗
-  let _baseSuggestHideTimer = null;
-
-  // 公共：根据基地数据和坐标，在地图上展示信息窗并更新右侧详情
-  function showBaseDetail(markerData, lnglat) {
-    if (!markerData) return;
-
-    // 1) 弹出信息窗（基地编号 + 名称 + 预览图），固定在地图钉正上方
-    try {
-      if (!infoWindow) {
-        infoWindow = new AMap.InfoWindow({
-          isCustom: false,
-          // 锚点在底部中间，向上偏移更多像素，确保不覆盖地图钉图标
-          anchor: 'bottom-center',
-          offset: new AMap.Pixel(0, -40)
-        });
-      }
-      const picName = markerData.base_pic || '';
-      const picUrl = picName ? (`{% static 'base_pic/' %}${picName}`) : '';
-      const safeBaseId = (markerData.base_id ?? '').toString();
-      const safeBaseName = (markerData.base_name ?? '').toString();
-      const detailUrl = safeBaseId
-        ? `/storage/dashboard/?base_id=${encodeURIComponent(safeBaseId)}`
-        : `/storage/dashboard/`;
-
-      const content =
-        `<div style="max-width:260px;">
-          <div style="font-weight:600;margin-bottom:6px;">基地编号：${safeBaseId}</div>
-          <div style="margin-bottom:8px;">基地名称：${safeBaseName}</div>
-          ${picUrl ? `<div style="width:180px;height:110px;margin:0 auto;overflow:hidden;border-radius:6px;">
-                        <img src="${picUrl}" alt="基地预览图"
-                             style="width:100%;height:100%;object-fit:cover;display:block;" />
-                      </div>`
-                    : `<div style="color:#888;">暂无预览图</div>`}
-          <div style="margin-top:10px;text-align:right;">
-            <a href="${detailUrl}"
-               style="display:inline-block;padding:4px 10px;border-radius:999px;
-                      background:#2563eb;color:#fff;font-size:12px;
-                      text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.35);">
-              进入平台
-            </a>
-          </div>
-        </div>`;
-
-      infoWindow.setContent(content);
-      if (lnglat && map) {
-        infoWindow.open(map, lnglat);
-      }
-    } catch (err) {
-      console.warn('打开信息窗失败:', err);
-    }
-
-    // 2) 更新右侧“基地信息”面板
-    const box = document.getElementById('base-info');
-    if (!box) return;
-
-    const preferredKeys = [
-      ['base_id', '基地编号'],
-      ['base_name', '基地名称'],
-      ['province_name', '省份'],
-      ['city_name', '城市'],
-      ['base_description', '描述'],
-      ['longitude', '经度'],
-      ['latitude', '纬度']
-    ];
-
-    const used = new Set();
-    let html = '<div class="baseinfo-kv">';
-
-    preferredKeys.forEach(([k, label]) => {
-      if (markerData[k] !== undefined && markerData[k] !== null && String(markerData[k]).trim() !== '') {
-        used.add(k);
-        html += `
-          <div class="baseinfo-row">
-            <div class="baseinfo-key">${label}</div>
-            <div class="baseinfo-val">${String(markerData[k])}</div>
-          </div>
-        `;
-      }
-    });
-
-    // 追加“其它字段”
-    Object.keys(markerData).forEach((k) => {
-      if (used.has(k)) return;
-      const v = markerData[k];
-      if (v === undefined || v === null) return;
-      const s = String(v);
-      if (!s.trim()) return;
-      html += `
-        <div class="baseinfo-row">
-          <div class="baseinfo-key">${k}</div>
-          <div class="baseinfo-val">${s}</div>
-        </div>
-      `;
-    });
-
-    html += '</div>';
-    box.innerHTML = html;
-  }
-
-  // 搜索建议：渲染下拉列表
-  function renderBaseSuggestList(items, keyword) {
-    const box = document.getElementById('base-search-suggest');
-    if (!box) return;
-
-    if (!keyword || !keyword.trim()) {
-      box.style.display = 'none';
-      box.innerHTML = '';
-      return;
-    }
-
-    if (!items || items.length === 0) {
-      box.innerHTML = `<div class="empty">未找到匹配结果</div>`;
-      box.style.display = 'block';
-      return;
-    }
-
-    // 最多显示 10 条
-    const limited = items.slice(0, 10);
-    box.innerHTML = limited.map((it, idx) => {
-      const name = (it.base_name ?? '').toString();
-      const id = (it.base_id ?? '').toString();
-      return `
-        <div class="item" data-idx="${idx}">
-          <div class="name">${name || '(未命名基地)'}</div>
-          <div class="meta">ID: ${id || '-'}</div>
-        </div>
-      `;
-    }).join('');
-    box.style.display = 'block';
-
-    // 绑定点击事件
-    const nodes = box.querySelectorAll('.item');
-    nodes.forEach((node) => {
-      node.addEventListener('mousedown', function(e) {
-        // 用 mousedown 避免 input blur 先触发导致列表被隐藏
-        e.preventDefault();
-        const i = Number(this.dataset.idx);
-        const chosen = limited[i];
-        if (chosen) {
-          selectBaseFromSuggest(chosen);
-        }
-      });
-    });
-  }
-
-  function hideBaseSuggestSoon() {
-    const box = document.getElementById('base-search-suggest');
-    if (!box) return;
-    if (_baseSuggestHideTimer) clearTimeout(_baseSuggestHideTimer);
-    _baseSuggestHideTimer = setTimeout(() => {
-      box.style.display = 'none';
-    }, 120);
-  }
-
-  function selectBaseFromSuggest(baseData) {
-    const input = document.getElementById('base-search-input');
-    if (input) {
-      input.value = (baseData.base_name ?? baseData.base_id ?? '').toString();
-    }
-    const box = document.getElementById('base-search-suggest');
-    if (box) box.style.display = 'none';
-
-    // 在 markers 中找到对应 marker（优先 base_id 精确匹配）
-    const target = findMarkerByBaseData(baseData);
-    if (!target) {
-      alert('未找到匹配的基地');
-      return;
-    }
-    focusMarker(target);
-  }
-
-  function focusMarker(marker) {
-    const pos = marker.getPosition && marker.getPosition();
-    if (map && pos) {
-      const currentZoom = map.getZoom ? map.getZoom() : 15;
-      map.setZoom(Math.max(currentZoom, 15));
-      map.setCenter(pos);
-    }
-    const data = marker.getExtData ? (marker.getExtData() || {}) : {};
-    const lnglat = pos ? pos : null;
-    showBaseDetail(data, lnglat);
-  }
-
-  function findMarkerByBaseData(baseData) {
-    const idStr = baseData && baseData.base_id != null ? String(baseData.base_id) : '';
-    // 先按 base_id 精确找
-    if (idStr) {
-      for (const marker of markers) {
-        const data = marker.getExtData() || {};
-        if (data.base_id != null && String(data.base_id) === idStr) {
-          return marker;
-        }
-      }
-    }
-    // 再按 base_name 精确找
-    const nameStr = baseData && baseData.base_name != null ? String(baseData.base_name) : '';
-    if (nameStr) {
-      for (const marker of markers) {
-        const data = marker.getExtData() || {};
-        if (data.base_name != null && String(data.base_name) === nameStr) {
-          return marker;
-        }
-      }
-    }
-    return null;
-  }
-
-  // 输入提示：根据输入关键字进行模糊匹配
-  function handleBaseSuggest() {
-    const input = document.getElementById('base-search-input');
-    if (!input) return;
-    const keyword = (input.value || '').trim();
-    if (!keyword) {
-      renderBaseSuggestList([], '');
-      return;
-    }
-    const lower = keyword.toLowerCase();
-
-    // 从 markers 中抽取 base 数据做匹配（名称包含 / id 包含）
-    const matched = [];
-    for (const marker of markers) {
-      const data = marker.getExtData() || {};
-      const idStr = data.base_id != null ? String(data.base_id) : '';
-      const nameStr = data.base_name != null ? String(data.base_name) : '';
-      if (
-        (nameStr && nameStr.toLowerCase().includes(lower)) ||
-        (idStr && idStr.toLowerCase().includes(lower))
-      ) {
-        matched.push(data);
-      }
-    }
-
-    // 简单排序：名称前缀命中优先，其次 id 前缀命中，再其次包含
-    matched.sort((a, b) => {
-      const an = (a.base_name ?? '').toString().toLowerCase();
-      const bn = (b.base_name ?? '').toString().toLowerCase();
-      const ai = (a.base_id ?? '').toString().toLowerCase();
-      const bi = (b.base_id ?? '').toString().toLowerCase();
-      const aScore = (an.startsWith(lower) ? 0 : 2) + (ai.startsWith(lower) ? 0 : 1);
-      const bScore = (bn.startsWith(lower) ? 0 : 2) + (bi.startsWith(lower) ? 0 : 1);
-      if (aScore !== bScore) return aScore - bScore;
-      return an.localeCompare(bn);
-    });
-
-    renderBaseSuggestList(matched, keyword);
-  }
 
   // 获取数据功能（需要AMap.Marker插件）
   function loadMapData()
@@ -1589,21 +1135,21 @@
             // 单条数据信息
             const longitude = parseFloat(item.longitude);
             const latitude = parseFloat(item.latitude);
-            // 与 models.py 的 Base 字段命名保持一致
-            const base_id = item.base_id;
-            const base_name = item.base_name;
-            const province_name = item.province_name;
-            const city_name = item.city_name;
-            const base_description = item.base_description;
-            const base_pic = item.base_pic; // 预览图文件名（存放于 screen/static/base_pic）
+            const baseID = item.baseID;
+            const baseName = item.baseName;
+            const province = item.province;
+            const city = item.city;
+            const description = item.description;
 
             // 加入地图钉标记
             const marker = new AMap.Marker({
                position: [longitude, latitude],
                map: map,
-               title: base_name,
-               // 点击后需要展示“基地全部信息”，直接把接口返回的一整条记录挂到 extData 上
-               extData: item,
+               title: baseName,
+               extData:{
+                  baseID:baseID,
+                  baseName:baseName,
+               },
             });
 
             // 存储标记引用
@@ -1611,9 +1157,16 @@
 
             // 加入标记点击事件
             marker.on('click', function(e) {
-              const markerData = e.target.getExtData() || {};
-              console.log('点击的基地信息:', markerData);
-              showBaseDetail(markerData, e.lnglat);
+              // 获取点击的标记的extData
+              const markerData = e.target.getExtData();
+              console.log('点击的基地ID:', markerData.baseID);
+              console.log('点击的基地名称:', markerData.baseName);
+
+              // 操作
+              alert(`基地: ${markerData.baseName} (ID: ${markerData.baseID})`);
+              //var urlTemplate = "{% url 'baseIndex' baseID='BASEID' %}";
+              //var url = urlTemplate.replace("BASEID", encodeURIComponent(markerData.baseID));
+              //window.open(url, '_blank');
             });
 
           }
@@ -1665,64 +1218,6 @@
     });
   }
 
-  // 搜索：根据输入的基地编号或名称在现有 markers 中定位
-  function handleBaseSearch() {
-    const input = document.getElementById('base-search-input');
-    if (!input) return;
-    const raw = input.value || '';
-    const keyword = raw.trim();
-    if (!keyword) {
-      return;
-    }
-
-    const lower = keyword.toLowerCase();
-    let targetMarker = null;
-
-    for (const marker of markers) {
-      const data = marker.getExtData() || {};
-      const idStr = data.base_id != null ? String(data.base_id) : '';
-      const nameStr = data.base_name != null ? String(data.base_name) : '';
-
-      // 模糊匹配编号/名称（包含即可）；若输入就是编号，优先命中
-      if (idStr === keyword || idStr.toLowerCase() === lower) {
-        targetMarker = marker;
-        break;
-      }
-      if (nameStr.toLowerCase().includes(lower) || idStr.toLowerCase().includes(lower)) {
-        targetMarker = marker;
-      }
-    }
-
-    if (!targetMarker) {
-      alert('未找到匹配的基地');
-      return;
-    }
-
-    // 隐藏建议列表
-    const suggest = document.getElementById('base-search-suggest');
-    if (suggest) suggest.style.display = 'none';
-
-    focusMarker(targetMarker);
-  }
-
-  // 绑定：点击页面空白处关闭下拉
-  document.addEventListener('click', function(e) {
-    const input = document.getElementById('base-search-input');
-    const suggest = document.getElementById('base-search-suggest');
-    if (!suggest || !input) return;
-    const wrap = suggest.parentElement; // .top-search-inner
-    if (wrap && !wrap.contains(e.target)) {
-      suggest.style.display = 'none';
-    }
-  });
-
-  // 绑定：输入框失焦稍后关闭（留给点击候选项）
-  document.addEventListener('focusout', function(e) {
-    if (e.target && e.target.id === 'base-search-input') {
-      hideBaseSuggestSoon();
-    }
-  });
-
   // 创建图层切换控件
   function createLayerControl() {
     // 检查是否已经存在控件，避免重复创建
@@ -1736,20 +1231,17 @@
     layerControlDiv.id = 'layer-control';
     layerControlDiv.style.cssText = `
       position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 20px;
+      right: 20px;
       background: rgba(255, 255, 255, 0.95);
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
       padding: 10px;
       z-index: 1000;
       display: flex;
-      flex-direction: row;
-      gap: 8px;
-      min-width: 0;
-      justify-content: center;
-      align-items: center;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 100px;
     `;
 
     // 图层选项配置
