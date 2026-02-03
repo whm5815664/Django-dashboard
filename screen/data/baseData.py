@@ -5,6 +5,7 @@ from django.http import StreamingHttpResponse, HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
+from django.core.paginator import Paginator
 import json
 
 # 数据库结构（models数据结构）
@@ -177,6 +178,49 @@ def get_province_abbr(province_name):
     province_name = province_name.replace('省', '').replace('市', '').replace('自治区', '').replace('特别行政区', '')
     return PROVINCE_ABBR.get(province_name, province_name[:2].upper() if len(province_name) >= 2 else province_name.upper())
 
+@require_GET
+def generate_base_id(request):
+    """
+    自动生成下一个可用的基地编号
+    GET /generate_base_id/?province_name=湖北
+    返回: {"base_id": "HB001"} 格式：省份缩写+3位数字序号
+    """
+    try:
+        province_name = request.GET.get('province_name', '').strip()
+        if not province_name:
+            return JsonResponse({'success': False, 'error': '缺少参数 province_name'}, status=400)
+        
+        province_abbr = get_province_abbr(province_name)
+        
+        # 查找该省份下已有的基地编号，找出最大序号
+        existing_bases = Base.objects.filter(
+            base_id__startswith=province_abbr
+        ).values_list('base_id', flat=True)
+        
+        max_num = 0
+        for base_id in existing_bases:
+            # 提取编号部分（省份缩写后的数字部分）
+            if len(base_id) > len(province_abbr):
+                try:
+                    num_part = base_id[len(province_abbr):]
+                    num = int(num_part)
+                    if num > max_num:
+                        max_num = num
+                except ValueError:
+                    continue
+        
+        # 生成下一个编号（3位数字，从001开始）
+        next_num = max_num + 1
+        new_base_id = f"{province_abbr}{next_num:03d}"
+        
+        return JsonResponse({
+            'success': True,
+            'base_id': new_base_id
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'生成编号失败：{str(e)}'}, status=500)
+
 @csrf_exempt
 @require_POST
 def add_base(request):
@@ -210,13 +254,13 @@ def add_base(request):
         if Base.objects.filter(base_id=base_id).exists():
             return JsonResponse({'success': False, 'error': f'基地编号 {base_id} 已存在'}, status=400)
         
-        # 处理图片：命名为 省份缩写+编号
+        # 处理图片：命名为与基地编号一致
         if not pic_file.content_type.startswith('image/'):
             return JsonResponse({'success': False, 'error': '请上传图片文件'}, status=400)
         
         ext = os.path.splitext(pic_file.name)[1] or '.jpg'
-        province_abbr = get_province_abbr(province_name)
-        pic_filename = f"{province_abbr}{base_id}{ext}"
+        # 图片命名与基地编号一致（基地编号已包含省份缩写）
+        pic_filename = f"{base_id}{ext}"
         
         # 保存图片
         static_dir = os.path.join(settings.BASE_DIR, 'screen', 'static', 'base_pic')
@@ -248,4 +292,223 @@ def add_base(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'添加失败：{str(e)}'}, status=500)
 
-    # 删除基地
+# 删除基地
+@csrf_exempt
+@require_POST
+def delete_base(request):
+    """
+    删除基地及其所有关联数据
+    POST /delete_base/
+    Content-Type: application/json 或 application/x-www-form-urlencoded
+    参数: base_id
+    删除所有包含该 base_id 的数据（包括 Base 表和 Device 表等）
+    """
+    try:
+        # 兼容 JSON 和 form-data 两种格式
+        if request.content_type == 'application/json':
+            import json
+            data = json.loads(request.body)
+            base_id = data.get('base_id', '').strip()
+        else:
+            base_id = request.POST.get('base_id', '').strip()
+        
+        if not base_id:
+            return JsonResponse({'success': False, 'error': '缺少参数 base_id'}, status=400)
+        
+        # 检查基地是否存在
+        base_obj = Base.objects.filter(base_id=base_id).first()
+        if not base_obj:
+            return JsonResponse({'success': False, 'error': f'基地编号 {base_id} 不存在'}, status=404)
+        
+        # 保存预览图文件名（删除 Base 后无法访问）
+        base_pic_filename = base_obj.base_pic if base_obj.base_pic else None
+        
+        # 导入 Device 模型（从 storageSystem.models）
+        try:
+            from storageSystem.models import Device, DeviceReading
+            DeviceAvailable = True
+        except ImportError:
+            # 如果导入失败，使用原生 SQL
+            Device = None
+            DeviceReading = None
+            DeviceAvailable = False
+        
+        deleted_tables = []
+        deleted_counts = {}
+        
+        # 1. 删除 DeviceReading 表中关联的数据（如果存在 base_id 字段或通过 device 关联）
+        if DeviceAvailable and DeviceReading:
+            try:
+                # 先找到所有关联的设备
+                devices = Device.objects.filter(base_id=base_id)
+                device_codes = [d.code for d in devices]
+                
+                # 如果 DeviceReading 有 device 外键，删除相关记录
+                if device_codes:
+                    count = DeviceReading.objects.filter(device__code__in=device_codes).delete()[0]
+                    if count > 0:
+                        deleted_tables.append('device_reading')
+                        deleted_counts['device_reading'] = count
+            except Exception as e:
+                print(f'删除 DeviceReading 数据时出错（可能表不存在）: {e}')
+        
+        # 2. 删除 Device 表中关联的数据
+        if DeviceAvailable and Device:
+            try:
+                count = Device.objects.filter(base_id=base_id).delete()[0]
+                if count > 0:
+                    deleted_tables.append('device')
+                    deleted_counts['device'] = count
+            except Exception as e:
+                print(f'删除 Device 数据时出错: {e}')
+        else:
+            # 使用原生 SQL 删除 device 表数据
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("DELETE FROM device WHERE base_id = %s", [base_id])
+                    count = cursor.rowcount
+                    if count > 0:
+                        deleted_tables.append('device')
+                        deleted_counts['device'] = count
+            except Exception as e:
+                print(f'使用 SQL 删除 Device 数据时出错（可能表不存在）: {e}')
+        
+        # 3. 删除 Base 表中的数据
+        base_obj.delete()
+        deleted_tables.append('base')
+        deleted_counts['base'] = 1
+        
+        # 4. 删除预览图文件（如果存在）
+        if base_pic_filename:
+            try:
+                import os
+                pic_path = os.path.join(settings.BASE_DIR, 'screen', 'static', 'base_pic', base_pic_filename)
+                if os.path.exists(pic_path):
+                    os.remove(pic_path)
+                    deleted_tables.append('base_pic_file')
+                    deleted_counts['base_pic_file'] = 1
+            except Exception as e:
+                print(f'删除预览图文件时出错: {e}')
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'基地 {base_id} 及其关联数据删除成功',
+            'deleted_tables': deleted_tables,
+            'deleted_counts': deleted_counts
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': f'删除失败：{str(e)}'}, status=500)
+
+
+# 查找基地
+@require_GET
+def get_base(request):
+    try:
+        # 1. 获取分页参数
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 10))
+
+        # 2. 查询数据库（输出字段名与前端保持一致：baseID/baseName/province/city/description）
+        qs = Base.objects.all()
+
+        # 支持Layui表格 where: { baseName: 'xxx' } 的模糊搜索
+        base_name_kw = request.GET.get('baseName')
+        if base_name_kw:
+            qs = qs.filter(base_name__icontains=base_name_kw.strip())
+
+        # 不使用 F/annotate：先取模型原字段，再在 Python 中组装为前端需要的别名
+        rows = list(qs.values(
+            'base_id', 'base_name', 'longitude', 'latitude',
+            'province_name', 'city_name', 'base_description', 'base_pic'
+        ))
+        queryset = [
+            {
+                'baseID': r.get('base_id'),
+                'baseName': r.get('base_name'),
+                'longitude': r.get('longitude'),
+                'latitude': r.get('latitude'),
+                'province': r.get('province_name'),
+                'city': r.get('city_name'),
+                'description': r.get('base_description'),
+                'basePic': r.get('base_pic'),
+            }
+            for r in rows
+        ]
+
+        # 3. 分页处理
+        paginator = Paginator(queryset, limit)
+        current_page = paginator.page(page)
+
+        # 4. 构造符合Layui规范的响应数据
+        response_data = {
+            "code": 200,  # 必须为200表示成功
+            "msg": "success",  # 提示信息
+            "count": paginator.count,  # 总数据量
+            "data": list(current_page)  # 当前页数据
+        }
+
+    except Exception as e:
+        # 错误处理
+        response_data = {
+            "code": 500,
+            "msg": f"服务器错误: {str(e)}",
+            "count": 0,
+            "data": []
+        }
+
+    return JsonResponse(response_data, safe=False)
+
+# 修改基地
+@csrf_exempt
+@require_POST
+def edit_base(request):
+    """
+    修改基地名称和描述
+    POST /edit_base/
+    - 支持 application/json 和 form-data
+    - 只允许修改 base_name 与 base_description
+    """
+    try:
+        # 兼容 JSON 与表单两种提交方式
+        if request.content_type and request.content_type.startswith("application/json"):
+            payload = json.loads(request.body or "{}")
+            base_id = (payload.get("base_id") or "").strip()
+            base_name = (payload.get("base_name") or "").strip()
+            base_description = (payload.get("base_description") or "").strip()
+        else:
+            base_id = (request.POST.get("base_id") or "").strip()
+            base_name = (request.POST.get("base_name") or "").strip()
+            base_description = (request.POST.get("base_description") or "").strip()
+
+        if not base_id:
+            return JsonResponse({"success": False, "error": "缺少参数 base_id"}, status=400)
+
+        base_obj = Base.objects.filter(base_id=base_id).first()
+        if not base_obj:
+            return JsonResponse({"success": False, "error": f"基地编号 {base_id} 不存在"}, status=404)
+
+        if not base_name:
+            return JsonResponse({"success": False, "error": "基地名称不能为空"}, status=400)
+
+        # 只更新名称和描述
+        base_obj.base_name = base_name
+        base_obj.base_description = base_description
+        base_obj.save(update_fields=["base_name", "base_description"])
+
+        return JsonResponse({
+            "success": True,
+            "message": "基地信息更新成功",
+            "data": {
+                "base_id": base_obj.base_id,
+                "base_name": base_obj.base_name,
+                "base_description": base_obj.base_description or "",
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"修改失败：{str(e)}"}, status=500)

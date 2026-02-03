@@ -762,6 +762,16 @@
 (function () {
   var myChart = echarts.init(document.querySelector(".map .chart"));
   var mydata = []
+
+  // 地图上显示的省份名称不带后缀（用于和 china.js 的地图 region.name 匹配）
+  // 同时保留原始名称到 province_name，供点击跳转时传递（不丢后缀/原样）
+  function normalizeProvinceNameNoSuffix(name) {
+    if (!name) return "";
+    return String(name)
+      .trim()
+      .replace(/(省|市|自治区|特别行政区)$/, "");
+  }
+
   // 从Django获取数据
   function loadMapData() {
     $.ajax({
@@ -770,8 +780,10 @@
       success: function(response) {
         // 转换数据格式
         var mydata = response.map(function(item) {
+          var rawName = JSON.parse('"' + item.area + '"'); // 原始地区名（可能带后缀）
           return {
-            name: JSON.parse('"' + item.area + '"'),
+            name: normalizeProvinceNameNoSuffix(rawName),   // 地图匹配用（不带后缀）
+            province_name: rawName,                         // 原名称（后续点击跳转用）
             value: item.value
           };
         });
@@ -859,7 +871,15 @@
   myChart.setOption(option);
   loadMapData();  //地图数据刷新
   myChart.on('click', function (params) {
-    var provinceName = params.name;
+    // 点击时优先传递原名称（province_name），拿不到再退回 params.name
+    var provinceName = "";
+    if (params && params.data && params.data.province_name) {
+      provinceName = String(params.data.province_name);
+    } else if (params && params.name) {
+      provinceName = String(params.name);
+    }
+    provinceName = provinceName.trim();
+    if (!provinceName) return;
 
     // 跳转到echart地图
     //var urlTemplate = "{% url 'province_map' province_name='PROVINCE_NAME' %}";

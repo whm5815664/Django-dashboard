@@ -42,6 +42,7 @@ def get_citrus_production_history(request):
         data[0]['growth'] = 0
     return JsonResponse(data, safe=False)
 
+# 按省份统计base的数量
 
 
 

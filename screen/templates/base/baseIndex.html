@@ -15,7 +15,6 @@
   <!-- 复用 storageSystem 的 dashboard 样式，让风格一致 -->
   <link rel="stylesheet" href="{% static 'storageSystem/css/dashboard.css' %}?v=20260122_1700">
 
-  <!-- 地图容器样式 -->
   <style>
     #amapContainer {
       width: 100%;
@@ -47,14 +46,13 @@
             <a class="nav-link" href="javascript:void(0);" onclick="history.back(); return false;">
               <i class="fa-solid fa-arrow-left me-1"></i>返回上一页
             </a>
-          </li>
-        </ul>
-      </div>
+        </li>
+     </ul>
     </div>
+  </div>
   </nav>
 
   <main class="main">
-    <!-- 标题及说明 -->
     <div class="d-flex justify-content-between align-items-end mb-3">
       <div>
         <div class="page-title">基地总览</div>
@@ -65,20 +63,18 @@
           <i class="fa-solid fa-rotate"></i> 刷新
         </button>
       </div>
-    </div>
+	</div>
 
-    <!-- 上半：地图 -->
     <div class="cardx mb-3">
       <div class="cardx-hd d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-map-location-dot me-2"></i>基地分布地图</span>
-        <div class="muted small">点击地图标记可查看基地名称与编号</div>
+        <div class="muted small">点击地图标记可查看基地名称与编号；点击空白处可快速添加基地</div>
       </div>
       <div class="cardx-bd">
         <div id="amapContainer"></div>
       </div>
     </div>
 
-    <!-- 下半：Base 表格 -->
     <div class="cardx">
       <div class="cardx-hd d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-table me-2"></i>基地列表（Base 表）</span>
@@ -99,6 +95,7 @@
                 <th style="width:120px;">经度</th>
                 <th style="width:120px;">纬度</th>
                 <th>描述</th>
+                <th style="width:120px;">操作</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -106,8 +103,43 @@
         </div>
         <div class="text-center muted small py-2 d-none" id="baseEmpty">暂无基地数据</div>
       </div>
-    </div>
+            </div>
   </main>
+
+  <!-- 修改基地弹窗 -->
+  <div class="modal fade" id="editBaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fa-solid fa-pen-to-square me-2"></i>修改基地信息
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editBaseForm">
+            <div class="mb-3">
+              <label class="form-label">基地编号</label>
+              <input type="text" class="form-control" id="editBaseId" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">基地名称 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="editBaseName" required maxlength="20">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">描述</label>
+              <textarea class="form-control" id="editBaseDescription" rows="3" maxlength="50"></textarea>
+            </div>
+            <div class="text-danger small d-none" id="editBaseError"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="btnSubmitEditBase">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- 添加基地弹窗 -->
   <div class="modal fade" id="addBaseModal" tabindex="-1" aria-hidden="true">
@@ -119,13 +151,14 @@
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+
         <div class="modal-body">
           <form id="addBaseForm" enctype="multipart/form-data">
             <div class="row g-3">
               <div class="col-12 col-md-6">
                 <label class="form-label">基地编号 <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="addBaseId" required maxlength="10" placeholder="例如：HB001">
-                <div class="form-text">基地编号必须唯一，将作为预览图文件名</div>
+                <input type="text" class="form-control" id="addBaseId" required maxlength="10" placeholder="自动生成" readonly>
+                <div class="form-text">基地编号自动生成（省份缩写+序号），将作为预览图文件名</div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">基地名称 <span class="text-danger">*</span></label>
@@ -135,11 +168,13 @@
               <div class="col-12 col-md-6">
                 <label class="form-label">省份 <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="addProvinceName" required maxlength="10" placeholder="请输入省份">
+                <div class="form-text">可自动识别；也可手动输入，输入后会自动生成基地编号</div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">城市 <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="addCityName" required maxlength="10" placeholder="请输入城市">
               </div>
+
               <div class="col-12 col-md-6">
                 <label class="form-label">经度 <span class="text-danger">*</span></label>
                 <input type="number" class="form-control" id="addLongitude" required step="0.000001" placeholder="请输入经度">
@@ -147,56 +182,81 @@
               <div class="col-12 col-md-6">
                 <label class="form-label">纬度 <span class="text-danger">*</span></label>
                 <input type="number" class="form-control" id="addLatitude" required step="0.000001" placeholder="请输入纬度">
-              </div>
+    </div>
+
               <div class="col-12">
                 <label class="form-label">描述</label>
                 <textarea class="form-control" id="addBaseDescription" rows="2" maxlength="50" placeholder="基地描述信息（可选）"></textarea>
               </div>
+
               <div class="col-12">
                 <label class="form-label">预览图 <span class="text-danger">*</span></label>
                 <input type="file" class="form-control" id="addBasePicFile" accept="image/*">
-                <div class="form-text">图片自动命名为：省份缩写+编号（例如：HB001.jpg）</div>
+                <div class="form-text">图片自动命名为：基地编号（例如：HB001.jpg）</div>
                 <div id="addBasePicPreview" class="mt-2" style="display:none;">
                   <img id="addBasePicPreviewImg" src="" alt="预览" style="max-width:200px;max-height:150px;border-radius:6px;border:1px solid #ddd;">
                 </div>
-              </div>
+             </div>
             </div>
+
             <div class="text-danger small mt-3 d-none" id="addBaseError"></div>
           </form>
         </div>
+
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-          <button type="button" class="btn btn-primary" id="btnSubmitAddBase">
-            <i class="fa-solid fa-floppy-disk me-1"></i>保存
-          </button>
+          <button type="button" class="btn btn-primary" id="btnSubmitAddBase">保存</button>
         </div>
-      </div>
+    </div>
     </div>
   </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- jQuery -->
-  <script src="{% static 'js/jquery.js' %}"></script>
+<script src="{% static 'js/jquery.js' %}"></script>
 
-  <script>
+  <script type="text/javascript">
+    //--------------------地图----------------------------
+    window._AMapSecurityConfig = {
+      securityJsCode: "3411731d2cf8f23b624a8182a47626cd",
+    };
+</script>
+  <script src="https://webapi.amap.com/loader.js"></script>
+
+<script>
     (function () {
-      const API_BASE_LIST = "{% url 'get_layui_base_data' %}";
+      const API_BASE_LIST = "{% url 'get_base' %}";
       const STATIC_BASE_PIC_PREFIX = "{% static 'base_pic/' %}";
 
       let allBases = [];
       let map = null;
 
-      // 本轮地图对象（每次 initMap 都会重建）
       let baseInfoWindow = null;
       let addBaseInfoWindow = null;
       let markers = [];
-
-      // 用于抑制“marker click 后触发 map click”的误触
       let lastMarkerClickTs = 0;
 
+      // ✅ 关键修复：缓存 AMap 命名空间（不要依赖 window.AMap）
+      let AMapNS = null;
+
+      // 逆地理编码器
+      let geocoder = null;
+
+      function qs(id) { return document.getElementById(id); }
+      function getCSRF() { return document.querySelector('meta[name="csrf-token"]')?.content || ""; }
+
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+      function escapeAttr(s) { return escapeHtml(s); }
+
       function setText(id, text) {
-        const el = document.getElementById(id);
+        const el = qs(id);
         if (el) el.textContent = text;
       }
 
@@ -208,37 +268,51 @@
 
       function renderTable(list) {
         const tbody = document.querySelector("#baseTable tbody");
-        const empty = document.getElementById("baseEmpty");
+        const empty = qs("baseEmpty");
         if (!tbody) return;
         while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
         if (!list || list.length === 0) {
-          if (empty) empty.classList.remove("d-none");
+          empty && empty.classList.remove("d-none");
           return;
         }
-        if (empty) empty.classList.add("d-none");
+        empty && empty.classList.add("d-none");
 
         list.forEach((b) => {
           const tr = document.createElement("tr");
+          const baseIdRaw = b.baseID || "";
+          const baseNameRaw = b.baseName || "";
+
           tr.innerHTML = `
-            <td>${b.baseID || "-"}</td>
-            <td>${b.baseName || "-"}</td>
-            <td>${b.province || "-"}</td>
-            <td>${b.city || "-"}</td>
+            <td>${escapeHtml(baseIdRaw || "-")}</td>
+            <td>${escapeHtml(baseNameRaw || "-")}</td>
+            <td>${escapeHtml(b.province || "-")}</td>
+            <td>${escapeHtml(b.city || "-")}</td>
             <td>${b.longitude != null ? Number(b.longitude).toFixed(6) : "-"}</td>
             <td>${b.latitude != null ? Number(b.latitude).toFixed(6) : "-"}</td>
-            <td>${b.description || "-"}</td>
+            <td>${escapeHtml(b.description || "-")}</td>
+            <td>
+              <button type="button"
+                class="btn btn-sm btn-outline-primary me-1 js-edit-base"
+                data-base-id="${escapeAttr(baseIdRaw)}" title="修改">
+                <i class="fa-solid fa-edit"></i>
+              </button>
+              <button type="button"
+                class="btn btn-sm btn-outline-danger js-delete-base"
+                data-base-id="${escapeAttr(baseIdRaw)}"
+                data-base-name="${escapeAttr(baseNameRaw)}" title="删除">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
           `;
           tbody.appendChild(tr);
         });
       }
 
       function applySearch() {
-        const q = (document.getElementById("baseSearch")?.value || "").trim().toLowerCase();
-        if (!q) {
-          renderTable(allBases);
-          return;
-        }
+        const q = (qs("baseSearch")?.value || "").trim().toLowerCase();
+        if (!q) return renderTable(allBases);
+
         const filtered = allBases.filter((b) => {
           const name = String(b.baseName || "").toLowerCase();
           const prov = String(b.province || "").toLowerCase();
@@ -253,10 +327,7 @@
           if (map) {
             baseInfoWindow && baseInfoWindow.close();
             addBaseInfoWindow && addBaseInfoWindow.close();
-
-            if (markers && markers.length) {
-              map.remove(markers);
-            }
+            if (markers?.length) map.remove(markers);
             map.destroy();
           }
         } catch (e) {
@@ -266,54 +337,86 @@
           baseInfoWindow = null;
           addBaseInfoWindow = null;
           markers = [];
+          geocoder = null;
+          AMapNS = null;
         }
       }
 
-      function openAddBaseModalWithLngLat(lng, lat) {
-        const lngInput = document.getElementById("addLongitude");
-        const latInput = document.getElementById("addLatitude");
-        if (lngInput) lngInput.value = Number(lng).toFixed(6);
-        if (latInput) latInput.value = Number(lat).toFixed(6);
+      // ✅ 修复：全程使用 AMapNS，不依赖 window.AMap
+      function reverseFillProvinceCity(lng, lat) {
+        return new Promise((resolve) => {
+          if (!geocoder || !AMapNS) return resolve({ ok: false });
 
-        const modalEl = document.getElementById("addBaseModal");
-        if (modalEl) {
-          const modal = new bootstrap.Modal(modalEl);
-          modal.show();
+          const lngLat = new AMapNS.LngLat(Number(lng), Number(lat));
+          geocoder.getAddress(lngLat, (status, result) => {
+            if (status === "complete" && result?.regeocode?.addressComponent) {
+              const ac = result.regeocode.addressComponent;
+              const province = ac.province || "";
+              const city = (ac.city && ac.city.length ? ac.city : (ac.province || ac.district || "")) || "";
+              resolve({ ok: true, province, city });
+            } else {
+              console.warn("reverse geocode failed:", status, result);
+              resolve({ ok: false });
+            }
+          });
+        });
+      }
+
+      async function openAddBaseModalWithLngLat(lng, lat) {
+        if (qs("addLongitude")) qs("addLongitude").value = Number(lng).toFixed(6);
+        if (qs("addLatitude")) qs("addLatitude").value = Number(lat).toFixed(6);
+
+        const modalEl = qs("addBaseModal");
+        if (modalEl) new bootstrap.Modal(modalEl).show();
+
+        // 清空（避免残留）
+        if (qs("addProvinceName")) qs("addProvinceName").value = "";
+        if (qs("addCityName")) qs("addCityName").value = "";
+
+        // 逆地理填充省市
+        const r = await reverseFillProvinceCity(lng, lat);
+        if (r.ok) {
+          if (qs("addProvinceName")) qs("addProvinceName").value = r.province || "";
+          if (qs("addCityName")) qs("addCityName").value = r.city || "";
+
+          if (r.province) {
+            await generateBaseId(r.province);
+          }
         }
       }
 
       function initMapWithAMap(AMap) {
         destroyMapIfExists();
 
+        // ✅ 缓存命名空间
+        AMapNS = AMap;
+
         const fallbackCenter = [114.360622, 30.473526];
         const center = allBases.length
           ? [Number(allBases[0].longitude) || fallbackCenter[0], Number(allBases[0].latitude) || fallbackCenter[1]]
           : fallbackCenter;
 
-        map = new AMap.Map("amapContainer", {
-          zoom: 6,
-          center: center,
-        });
+        map = new AMapNS.Map("amapContainer", { zoom: 6, center });
 
-        // 统一的基地信息窗口（marker 点击）
-        baseInfoWindow = new AMap.InfoWindow({
+        // ✅ 初始化 Geocoder（逆地理）
+        geocoder = new AMapNS.Geocoder({ radius: 1000, extensions: "base" });
+
+        baseInfoWindow = new AMapNS.InfoWindow({
           anchor: "bottom-center",
-          offset: new AMap.Pixel(0, -20),
+          offset: new AMapNS.Pixel(0, -20),
           isCustom: false,
         });
 
-        // “添加基地”窗口（空白点击）
-        addBaseInfoWindow = new AMap.InfoWindow({
+        addBaseInfoWindow = new AMapNS.InfoWindow({
           anchor: "bottom-center",
-          offset: new AMap.Pixel(0, -10),
-          isCustom: true,   // 关键：使用自定义 DOM
+          offset: new AMapNS.Pixel(0, -10),
+          isCustom: true,
         });
 
-        // ====== marker ======
         allBases.forEach((b) => {
           if (b.longitude == null || b.latitude == null) return;
 
-          const marker = new AMap.Marker({
+          const marker = new AMapNS.Marker({
             position: [Number(b.longitude), Number(b.latitude)],
             title: b.baseName || b.baseID || "",
           });
@@ -324,8 +427,6 @@
 
           marker.on("click", () => {
             lastMarkerClickTs = Date.now();
-
-            // 关闭“添加基地”窗口
             addBaseInfoWindow && addBaseInfoWindow.close();
 
             const baseData = marker.getExtData() || b;
@@ -339,8 +440,8 @@
 
             const html = `
               <div style="max-width:260px;padding:8px;">
-                <div style="font-weight:600;margin-bottom:6px;font-size:14px;">基地编号：${baseData.baseID || "-"}</div>
-                <div style="font-weight:600;margin-bottom:8px;font-size:14px;">基地名称：${baseData.baseName || "-"}</div>
+                <div style="font-weight:600;margin-bottom:6px;font-size:14px;">基地编号：${escapeHtml(baseData.baseID || "-")}</div>
+                <div style="font-weight:600;margin-bottom:8px;font-size:14px;">基地名称：${escapeHtml(baseData.baseName || "-")}</div>
                 ${
                   picUrl
                     ? `<div style="width:180px;height:110px;margin:0 auto;overflow:hidden;border-radius:6px;border:1px solid #ddd;">
@@ -365,18 +466,13 @@
           });
         });
 
-        // ====== 空白点击：弹出“添加基地”（白底 + 右上角 X） ======
         map.on("click", (e) => {
-          // 抑制 marker 点击后紧跟触发的 map click
           if (Date.now() - lastMarkerClickTs < 250) return;
-
           const lnglat = e.lnglat;
           if (!lnglat) return;
 
-          // 关闭基地信息窗口
           baseInfoWindow && baseInfoWindow.close();
 
-          // 自定义白色弹窗 DOM
           const wrap = document.createElement("div");
           wrap.style.cssText = `
             position: relative;
@@ -392,20 +488,9 @@
           wrap.innerHTML = `
             <div id="closeAddBaseInfo"
                  title="关闭"
-                 style="
-                   position:absolute;
-                   top:6px;
-                   right:8px;
-                   cursor:pointer;
-                   font-size:18px;
-                   line-height:18px;
-                   color:#999;
-                   user-select:none;
-                 ">×</div>
+                 style="position:absolute;top:6px;right:8px;cursor:pointer;font-size:18px;line-height:18px;color:#999;user-select:none;">×</div>
 
-            <div style="font-weight:600;margin-bottom:8px;font-size:14px;">
-              在此位置添加基地
-            </div>
+            <div style="font-weight:600;margin-bottom:8px;font-size:14px;">在此位置添加基地</div>
 
             <div style="font-size:12px;color:#666;margin-bottom:10px;line-height:1.5;">
               经度：${lnglat.lng.toFixed(6)}<br>
@@ -423,39 +508,27 @@
           addBaseInfoWindow.setContent(wrap);
           addBaseInfoWindow.open(map, lnglat);
 
-          // 关闭按钮
-          const closeBtn = wrap.querySelector("#closeAddBaseInfo");
-          if (closeBtn) {
-            closeBtn.addEventListener("click", () => {
-              addBaseInfoWindow && addBaseInfoWindow.close();
-            }, { once: true });
-          }
+          wrap.querySelector("#closeAddBaseInfo")?.addEventListener("click", () => {
+            addBaseInfoWindow && addBaseInfoWindow.close();
+          }, { once: true });
 
-          // 添加基地按钮
-          const btn = wrap.querySelector("#btnAddBaseAtLocation");
-          if (btn) {
-            btn.addEventListener("click", () => {
-              addBaseInfoWindow && addBaseInfoWindow.close();
-              openAddBaseModalWithLngLat(lnglat.lng, lnglat.lat);
-            }, { once: true });
-          }
+          wrap.querySelector("#btnAddBaseAtLocation")?.addEventListener("click", async () => {
+            addBaseInfoWindow && addBaseInfoWindow.close();
+            await openAddBaseModalWithLngLat(lnglat.lng, lnglat.lat);
+          }, { once: true });
         });
       }
 
       function initMap() {
-        if (window.AMap) {
-          initMapWithAMap(window.AMap);
-          return;
-        }
-
         if (!window.AMapLoader) {
           console.warn("AMapLoader 未就绪");
           return;
         }
 
         AMapLoader.load({
-          key: "9969ad3b8112bd56b65dc90191ab4753", // TODO: 可从 settings 注入
+          key: "9969ad3b8112bd56b65dc90191ab4753",
           version: "2.0",
+          plugins: ["AMap.Geocoder"], // ✅ 必须
         }).then((AMap) => {
           initMapWithAMap(AMap);
         }).catch((e) => {
@@ -478,7 +551,7 @@
       }
 
       function showAddBaseError(msg) {
-        const el = document.getElementById("addBaseError");
+        const el = qs("addBaseError");
         if (!el) return;
         if (!msg) {
           el.classList.add("d-none");
@@ -489,11 +562,33 @@
         }
       }
 
-      // 图片预览
+      async function generateBaseId(provinceName) {
+        if (!provinceName || !provinceName.trim()) {
+          if (qs("addBaseId")) qs("addBaseId").value = "";
+          return;
+        }
+
+        try {
+          const url = `{% url 'generate_base_id' %}?province_name=${encodeURIComponent(provinceName.trim())}`;
+          const resp = await fetch(url, { credentials: "same-origin" });
+          const data = await resp.json();
+
+          if (data.success && data.base_id) {
+            if (qs("addBaseId")) qs("addBaseId").value = data.base_id;
+          } else {
+            console.error("生成基地编号失败:", data.error);
+            alert(`生成基地编号失败：${data.error || "未知错误"}`);
+          }
+        } catch (e) {
+          console.error("生成基地编号请求失败:", e);
+          alert(`生成基地编号失败：${e.message}`);
+        }
+      }
+
       function handlePicPreview() {
-        const fileInput = document.getElementById("addBasePicFile");
-        const preview = document.getElementById("addBasePicPreview");
-        const previewImg = document.getElementById("addBasePicPreviewImg");
+        const fileInput = qs("addBasePicFile");
+        const preview = qs("addBasePicPreview");
+        const previewImg = qs("addBasePicPreviewImg");
         if (!fileInput || !preview || !previewImg) return;
 
         fileInput.addEventListener("change", (e) => {
@@ -517,12 +612,12 @@
       }
 
       async function submitAddBase() {
-        const btn = document.getElementById("btnSubmitAddBase");
+        const btn = qs("btnSubmitAddBase");
         if (btn) btn.disabled = true;
         showAddBaseError("");
 
         try {
-          const getValue = (id) => document.getElementById(id)?.value?.trim() || "";
+          const getValue = (id) => qs(id)?.value?.trim() || "";
           const baseId = getValue("addBaseId");
           const baseName = getValue("addBaseName");
           const provinceName = getValue("addProvinceName");
@@ -530,7 +625,7 @@
           const longitude = getValue("addLongitude");
           const latitude = getValue("addLatitude");
           const baseDescription = getValue("addBaseDescription");
-          const picFile = document.getElementById("addBasePicFile")?.files[0];
+          const picFile = qs("addBasePicFile")?.files[0];
 
           if (!baseId || !baseName || !provinceName || !cityName || !longitude || !latitude || !picFile) {
             showAddBaseError("请填写所有必填字段");
@@ -549,15 +644,15 @@
 
           const resp = await fetch("{% url 'add_base' %}", {
             method: "POST",
-            headers: { "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "" },
+            headers: { "X-CSRFToken": getCSRF() },
             body: formData
           });
 
           const data = await resp.json();
           if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById("addBaseModal"))?.hide();
-            document.getElementById("addBaseForm")?.reset();
-            document.getElementById("addBasePicPreview").style.display = "none";
+            bootstrap.Modal.getInstance(qs("addBaseModal"))?.hide();
+            qs("addBaseForm")?.reset();
+            if (qs("addBasePicPreview")) qs("addBasePicPreview").style.display = "none";
             await loadBaseList();
             alert("基地添加成功！");
           } else {
@@ -570,23 +665,190 @@
         }
       }
 
+      async function deleteBase(baseId) {
+        try {
+          const resp = await fetch("{% url 'delete_base' %}", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCSRF()
+            },
+            body: JSON.stringify({ base_id: baseId })
+          });
+
+          const data = await resp.json();
+          if (data.success) {
+            alert(`删除成功！\n已删除的表：${data.deleted_tables?.join(", ") || "base"}`);
+            await loadBaseList();
+          } else {
+            alert(`删除失败：${data.error || "未知错误"}`);
+          }
+        } catch (e) {
+          alert(`网络错误，请稍后重试：${e.message}`);
+        }
+      }
+
+      function openEditBaseModal(baseId) {
+        if (!baseId) {
+          alert("基地编号不能为空");
+          return;
+        }
+        const base = allBases.find((b) => String(b.baseID) === String(baseId));
+        if (!base) {
+          alert("未找到该基地数据，请刷新后重试");
+          return;
+        }
+        const idInput = qs("editBaseId");
+        const nameInput = qs("editBaseName");
+        const descInput = qs("editBaseDescription");
+        const errBox = qs("editBaseError");
+        if (idInput) idInput.value = base.baseID || "";
+        if (nameInput) nameInput.value = base.baseName || "";
+        if (descInput) descInput.value = base.description || "";
+        if (errBox) {
+          errBox.classList.add("d-none");
+          errBox.textContent = "";
+        }
+        const modalEl = qs("editBaseModal");
+        if (modalEl) new bootstrap.Modal(modalEl).show();
+      }
+
+      async function submitEditBase() {
+        const baseId = qs("editBaseId")?.value?.trim();
+        const baseName = qs("editBaseName")?.value?.trim();
+        const baseDescription = qs("editBaseDescription")?.value?.trim() || "";
+        const errBox = qs("editBaseError");
+        const btn = qs("btnSubmitEditBase");
+
+        if (errBox) {
+          errBox.classList.add("d-none");
+          errBox.textContent = "";
+        }
+
+        if (!baseName) {
+          if (errBox) {
+            errBox.textContent = "基地名称不能为空";
+            errBox.classList.remove("d-none");
+          } else {
+            alert("基地名称不能为空");
+          }
+          return;
+        }
+
+        if (btn) btn.disabled = true;
+        try {
+          const resp = await fetch("{% url 'edit_base' %}", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCSRF()
+            },
+            body: JSON.stringify({
+              base_id: baseId,
+              base_name: baseName,
+              base_description: baseDescription
+            })
+          });
+          const data = await resp.json();
+          if (data.success) {
+            bootstrap.Modal.getInstance(qs("editBaseModal"))?.hide();
+            await loadBaseList();
+            alert("基地信息更新成功！");
+          } else {
+            if (errBox) {
+              errBox.textContent = data.error || "修改失败";
+              errBox.classList.remove("d-none");
+            } else {
+              alert(`修改失败：${data.error || "未知错误"}`);
+            }
+          }
+        } catch (e) {
+          if (errBox) {
+            errBox.textContent = "网络错误，请稍后重试";
+            errBox.classList.remove("d-none");
+          } else {
+            alert(`网络错误，请稍后重试：${e.message}`);
+          }
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      }
+
+      function editBase(baseId) {
+        openEditBaseModal(baseId);
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
-        const btnRefresh = document.getElementById("btnRefreshBase");
-        if (btnRefresh) btnRefresh.addEventListener("click", loadBaseList);
+        qs("btnRefreshBase")?.addEventListener("click", loadBaseList);
+        qs("baseSearch")?.addEventListener("input", applySearch);
+        qs("btnSubmitAddBase")?.addEventListener("click", submitAddBase);
+        qs("btnSubmitEditBase")?.addEventListener("click", submitEditBase);
 
-        const inputSearch = document.getElementById("baseSearch");
-        if (inputSearch) inputSearch.addEventListener("input", applySearch);
+        qs("addBaseModal")?.addEventListener("hidden.bs.modal", () => {
+          showAddBaseError("");
+          qs("addBaseForm")?.reset();
+          if (qs("addBasePicPreview")) qs("addBasePicPreview").style.display = "none";
+          if (qs("addBaseId")) qs("addBaseId").value = "";
+        });
 
-        const btnSubmitAdd = document.getElementById("btnSubmitAddBase");
-        if (btnSubmitAdd) btnSubmitAdd.addEventListener("click", submitAddBase);
+        // 省份输入：自动生成基地编号（防抖）
+        const provinceInput = qs("addProvinceName");
+        if (provinceInput) {
+          let t = null;
+          provinceInput.addEventListener("input", () => {
+            clearTimeout(t);
+            const provinceName = provinceInput.value.trim();
+            if (!provinceName) {
+              if (qs("addBaseId")) qs("addBaseId").value = "";
+              return;
+            }
+            t = setTimeout(() => generateBaseId(provinceName), 300);
+          });
+          provinceInput.addEventListener("blur", () => {
+            const provinceName = provinceInput.value.trim();
+            if (provinceName) generateBaseId(provinceName);
+          });
+        }
 
-        // 弹窗关闭时清空错误信息
-        const addBaseModal = document.getElementById("addBaseModal");
-        if (addBaseModal) {
-          addBaseModal.addEventListener("hidden.bs.modal", () => {
-            showAddBaseError("");
-            document.getElementById("addBaseForm")?.reset();
-            document.getElementById("addBasePicPreview").style.display = "none";
+        qs("editBaseModal")?.addEventListener("hidden.bs.modal", () => {
+          const errBox = qs("editBaseError");
+          if (errBox) {
+            errBox.classList.add("d-none");
+            errBox.textContent = "";
+          }
+          qs("editBaseForm")?.reset();
+        });
+
+        // 表格事件委托：删除/编辑
+        const tbody = document.querySelector("#baseTable tbody");
+        if (tbody) {
+          tbody.addEventListener("click", async (ev) => {
+            const delBtn = ev.target.closest(".js-delete-base");
+            const editBtn = ev.target.closest(".js-edit-base");
+
+            if (delBtn) {
+              const baseId = (delBtn.getAttribute("data-base-id") || "").trim();
+              const baseName = (delBtn.getAttribute("data-base-name") || "").trim();
+              if (!baseId) return alert("基地编号不能为空");
+
+              const confirmMsg =
+                `确定要删除基地 "${baseName || baseId}" (编号: ${baseId}) 吗？\n\n` +
+                `此操作将删除所有包含该基地编号的数据，包括：\n` +
+                `- 基地基本信息\n- 关联的设备数据\n- 预览图文件\n\n` +
+                `此操作不可恢复！`;
+
+              if (!confirm(confirmMsg)) return;
+
+              delBtn.disabled = true;
+              try { await deleteBase(baseId); }
+              finally { delBtn.disabled = false; }
+              return;
+            }
+
+            if (editBtn) {
+              const baseId = (editBtn.getAttribute("data-base-id") || "").trim();
+              editBase(baseId);
+            }
           });
         }
 
@@ -594,7 +856,7 @@
         loadBaseList();
       });
     })();
-  </script>
+</script>
 
 </body>
 </html>

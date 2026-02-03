@@ -9,8 +9,6 @@ from .data import screenData
 # 基地数据读取
 from .data import baseData
 
-# layui表格数据渲染
-from .data import layuiData
 
 # 摄像头功能
 from .tool import video
@@ -40,11 +38,15 @@ urlpatterns = [
     path('get_base_info', baseData.get_base_by_baseID, name='get_base_info'),  # 得到对应基地全部信息
     path('get_citrus_production_by_province', baseData.get_citrus_production_by_province, name='get_citrus_production_by_province'),  # 得到指定省份的柑橘产量历史数据
     path('get_variety_production_last_months', baseData.get_variety_production_last_months, name='get_variety_production_last_months'),  # 指定省份最近月份的品种产量
-    path('add_base', baseData.add_base, name='add_base'),  # 添加基地
-
-    # 功能-数据库-layui表格相关
-    path('get_layui_base_data', layuiData.get_layui_base_data, name='get_layui_base_data'),
     
+    # 功能-数据库-baseIndex页面相关（基地管理）
+    path('add_base', baseData.add_base, name='add_base'),  # 添加基地
+    path('delete_base', baseData.delete_base, name='delete_base'),  # 删除基地
+    path('edit_base', baseData.edit_base, name='edit_base'),  # 修改基地
+    path('generate_base_id', baseData.generate_base_id, name='generate_base_id'),  # 自动生成基地编号
+    path('get_base', baseData.get_base, name='get_base'),  # 得到基地管理页面数据
+    
+
     # 天气API路由 
     path('weather/province_temperature/', weather_api.get_province_temperature_view, name='get_province_temperature'),
     path('weather/start_province_monitoring/', weather_api.start_province_monitoring_view, name='start_province_monitoring'),
