@@ -19,7 +19,6 @@ class Citrus_production_history_area(models.Model):
     production_volume = models.FloatField('产量')
     area = models.CharField('地区', max_length=50)
     
-
     class Meta:
         db_table = 'screen_Citrus_production_history_area'
         verbose_name = '地区每日总产量表'

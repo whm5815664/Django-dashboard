@@ -63,3 +63,6 @@ websocket-client==1.8.0
 # 新增：图谱可视化与中文NLP
 pyvis==0.3.2
 ltp==4.2.0
+
+# 新增：智能体系统依赖
+beautifulsoup4==4.12.3

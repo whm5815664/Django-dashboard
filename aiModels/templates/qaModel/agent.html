@@ -1,0 +1,715 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能体助手</title>
+    <style>
+        /* ========== 弹窗遮罩层 ========== */
+        .agent-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .agent-modal-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ========== 弹窗容器（白色客服风格，小尺寸） ========== */
+        .agent-modal-container {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            animation: slideUp 0.25s ease;
+            border: 1px solid #e5e7eb;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ========== 弹窗头部 ========== */
+        .agent-modal-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ffffff;
+        }
+
+        .agent-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .agent-modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f3f4f6;
+            color: #111827;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .agent-modal-close:hover {
+            background: #e5e7eb;
+            transform: rotate(90deg);
+        }
+
+        /* ========== 聊天容器 ========== */
+        .agent-chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ========== 消息显示区域 ========== */
+        .agent-chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f9fafb;
+        }
+
+        .agent-chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .agent-chat-box::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .agent-chat-box::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .agent-chat-box::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ========== 消息样式 ========== */
+        .agent-message {
+            display: flex;
+            gap: 10px;
+            animation: messageSlideIn 0.3s ease-out;
+            max-width: 90%;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .agent-message.user-message {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .agent-message.bot-message {
+            align-self: flex-start;
+        }
+
+        .agent-message-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .agent-message-content {
+            padding: 10px 12px;
+            border-radius: 10px;
+            line-height: 1.55;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            color: #111827;
+            font-size: 12px;
+        }
+
+        .agent-user-message .agent-message-content {
+            background: #eef2ff;
+            border-color: #e0e7ff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .agent-bot-message .agent-message-content {
+            background: #ffffff;
+            border-color: #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+
+        .agent-bot-content {
+            color: #111827;
+        }
+
+        .agent-bot-content code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .agent-bot-content pre {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        /* ========== 加载动画 ========== */
+        .agent-loading-dots {
+            display: inline-block;
+        }
+
+        .agent-loading-dots::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* ========== 输入区域 ========== */
+        .agent-input-area {
+            padding: 10px 12px;
+            border-top: 1px solid #e5e7eb;
+            background: #ffffff;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap;
+            font-size: 12px;
+        }
+
+        .agent-input-wrapper {
+            flex: 1;
+            position: relative;
+            min-width: 0; /* 关键：允许在小窗内收缩，避免遮挡按钮 */
+        }
+
+        .agent-question-input {
+            width: 100%;
+            padding: 9px 11px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            color: #111827;
+            font-size: 12px;
+            outline: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .agent-question-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+            background: #ffffff;
+        }
+
+        .agent-question-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .agent-send-btn {
+            padding: 9px 14px;
+            background: #6366f1;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+
+        .agent-send-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .agent-send-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .agent-clear-btn {
+            padding: 9px 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            color: #374151;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .agent-clear-btn:hover {
+            background: #e5e7eb;
+        }
+
+        /* ========== 欢迎消息 ========== */
+        .agent-welcome-message {
+            text-align: left;
+            padding: 6px 2px;
+            color: #4b5563;
+        }
+
+        .agent-welcome-message p {
+            margin: 4px 0;
+            font-size: 12px;
+        }
+
+        /* ========== 响应式设计 ========== */
+        @media (max-width: 768px) {
+            .agent-modal-container {
+                width: 100%;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .agent-message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <style>
+        /* 更小的基础字号（客服小窗更紧凑） */
+        body { font-size: 12px; }
+    </style>
+    <!-- 弹窗遮罩层 -->
+    <div id="agent-modal-overlay" class="agent-modal-overlay">
+        <div class="agent-modal-container">
+            <!-- 弹窗头部 -->
+            <div class="agent-modal-header">
+                <div class="agent-modal-title">
+                    <span>🤖</span>
+                    <span>智能体助手</span>
+                </div>
+                <button class="agent-modal-close" onclick="closeAgentModal()">×</button>
+            </div>
+
+            <!-- 聊天容器 -->
+            <div class="agent-chat-container">
+                <!-- 消息显示区域 -->
+                <div class="agent-chat-box" id="agent-chat-box">
+                    <!-- 欢迎消息 -->
+                    <div class="agent-message agent-bot-message">
+                        <div class="agent-message-avatar">🤖</div>
+                        <div class="agent-message-content agent-bot-content">
+                            <div class="agent-welcome-message">
+                                <p>🌱 欢迎使用AIoT实验室的农业大模型问答系统！</p>
+                                <p>🎆 系统基于DeepSeek-R1进行二次开发，测试版本0.3V</p>
+                                <p>请告诉我您想了解什么？</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输入区域 -->
+                <div class="agent-input-area">
+                    <div class="agent-input-wrapper">
+                        <input 
+                            type="text" 
+                            id="agent-question-input" 
+                            class="agent-question-input" 
+                            placeholder="请输入您的问题..." 
+                            autocomplete="off"
+                        >
+                    </div>
+                    <button class="agent-send-btn" id="agent-send-btn" onclick="sendAgentQuestion()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 全局变量 ==========
+        let agentChatHistory = [];
+        let isAgentProcessing = false;
+        let currentAgentAbortController = null;
+
+        // ========== 工具函数 ==========
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatResponse(text) {
+            // 简单的 Markdown 格式化
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+            text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+
+        // ========== 消息管理 ==========
+        function addAgentMessage(role, content, messageId = null, isLoading = false) {
+            const chatBox = document.getElementById('agent-chat-box');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `agent-message ${role === 'user' ? 'agent-user-message' : 'agent-bot-message'}`;
+            if (messageId) {
+                messageDiv.id = messageId;
+            }
+
+            const avatar = document.createElement('div');
+            avatar.className = 'agent-message-avatar';
+            avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'agent-message-content';
+            
+            if (role === 'user') {
+                contentDiv.textContent = content;
+            } else {
+                contentDiv.className += ' agent-bot-content';
+                if (isLoading) {
+                    contentDiv.innerHTML = content;
+                } else {
+                    contentDiv.innerHTML = formatResponse(escapeHtml(content));
+                }
+            }
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatBox.appendChild(messageDiv);
+
+            // 滚动到底部
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            return messageDiv;
+        }
+
+        // ========== 更新思考中消息 ==========
+        function updateThinkingMessage(thinkingId, message) {
+            const thinkingEl = document.getElementById(thinkingId);
+            if (thinkingEl) {
+                const contentDiv = thinkingEl.querySelector('.agent-message-content');
+                if (contentDiv) {
+                    contentDiv.innerHTML = message;
+                }
+            }
+        }
+
+        // ========== 发送问题 ==========
+        function sendAgentQuestion() {
+            const input = document.getElementById('agent-question-input');
+            const question = input.value.trim();
+            const sendBtn = document.getElementById('agent-send-btn');
+
+            if (!question) {
+                return;
+            }
+
+            if (isAgentProcessing) {
+                return;
+            }
+
+            // 添加用户消息
+            addAgentMessage('user', question);
+            input.value = '';
+            sendBtn.disabled = true;
+
+            // 添加加载中的机器人消息
+            const thinkingId = 'thinking-' + Date.now();
+            addAgentMessage('bot', '🤔 思考中<span class="agent-loading-dots"></span>', thinkingId, true);
+
+            isAgentProcessing = true;
+            currentAgentAbortController = new AbortController();
+
+            // 使用EventSource接收SSE流式响应
+            const apiEndpoint = '/aiModels/brain';
+            const formData = new FormData();
+            formData.append('question', question);
+            
+            // 由于EventSource不支持POST，我们需要使用fetch的流式读取
+            fetch(apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({
+                    question: question
+                }),
+                signal: currentAgentAbortController.signal
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络请求失败');
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            return;
+                        }
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || ''; // 保留最后一个不完整的行
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.substring(6));
+                                    
+                                    if (data.type === 'status') {
+                                        // 更新思考中消息，显示正在调用的智能体
+                                        updateThinkingMessage(thinkingId, `🤔 ${data.message}<span class="agent-loading-dots"></span>`);
+                                    } else if (data.type === 'result') {
+                                        // 处理最终结果
+                                        isAgentProcessing = false;
+                                        sendBtn.disabled = false;
+                                        
+                                        // 移除加载中的消息
+                                        const thinkingEl = document.getElementById(thinkingId);
+                                        if (thinkingEl) {
+                                            thinkingEl.remove();
+                                        }
+                                        
+                                        if (data.success && data.answer) {
+                                            // 添加机器人回答
+                                            addAgentMessage('bot', data.answer);
+                                            
+                                            // 更新聊天历史
+                                            agentChatHistory.push({ role: 'user', content: question });
+                                            agentChatHistory.push({ role: 'assistant', content: data.answer });
+                                        } else {
+                                            addAgentMessage('bot', '❌ 获取回答失败: ' + (data.error || '未知错误'));
+                                        }
+                                        return;
+                                    } else if (data.type === 'error') {
+                                        // 处理错误
+                                        isAgentProcessing = false;
+                                        sendBtn.disabled = false;
+                                        
+                                        const thinkingEl = document.getElementById(thinkingId);
+                                        if (thinkingEl) {
+                                            thinkingEl.remove();
+                                        }
+                                        
+                                        addAgentMessage('bot', '❌ 获取回答失败: ' + (data.error || '未知错误'));
+                                        return;
+                                    }
+                                } catch (e) {
+                                    console.error('解析SSE数据失败:', e);
+                                }
+                            }
+                        }
+                        
+                        readStream();
+                    }).catch(error => {
+                        if (error.name !== 'AbortError') {
+                            isAgentProcessing = false;
+                            sendBtn.disabled = false;
+                            
+                            const thinkingEl = document.getElementById(thinkingId);
+                            if (thinkingEl) {
+                                thinkingEl.remove();
+                            }
+                            
+                            addAgentMessage('bot', '❌ 请求失败: ' + error.message);
+                        }
+                    });
+                }
+                
+                readStream();
+            })
+            .catch(error => {
+                isAgentProcessing = false;
+                sendBtn.disabled = false;
+
+                // 移除加载中的消息
+                const thinkingEl = document.getElementById(thinkingId);
+                if (thinkingEl) {
+                    thinkingEl.remove();
+                }
+
+                if (error.name === 'AbortError') {
+                    addAgentMessage('bot', '⏹ 请求已取消');
+                } else {
+                    addAgentMessage('bot', '❌ 请求失败: ' + error.message);
+                }
+            });
+        }
+
+        // ========== 清空聊天 ==========
+        function resetAgentUIWithWelcome() {
+            const chatBox = document.getElementById('agent-chat-box');
+            if (!chatBox) return;
+            chatBox.innerHTML = '';
+            agentChatHistory = [];
+            // 添加欢迎消息
+            addAgentMessage('bot', '🌱 欢迎使用AIoT实验室的农业大模型问答系统！\n🎆 系统基于DeepSeek-R1进行二次开发，测试版本0.3V\n请告诉我您想了解什么？');
+        }
+
+        async function clearAgentContextSilently() {
+            try {
+                await fetch('/aiModels/clear_chat_history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    body: JSON.stringify({})
+                });
+            } catch (err) {
+                console.warn('清空上下文请求失败(忽略):', err);
+            }
+        }
+
+        // ========== 弹窗控制 ==========
+        function openAgentModal() {
+            const overlay = document.getElementById('agent-modal-overlay');
+            if (overlay) {
+                overlay.classList.add('show');
+                // ✅ 每次打开：自动清空上下文与界面
+                resetAgentUIWithWelcome();
+                clearAgentContextSilently();
+                // 聚焦输入框
+                setTimeout(() => {
+                    const input = document.getElementById('agent-question-input');
+                    if (input) {
+                        input.focus();
+                    }
+                }, 300);
+            }
+        }
+
+        function closeAgentModal() {
+            const overlay = document.getElementById('agent-modal-overlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+            // 通知父页面可以隐藏 iframe
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'agent-close' }, '*');
+                }
+            } catch (e) {
+                console.warn('postMessage 关闭指令失败:', e);
+            }
+        }
+
+        // ========== 事件监听 ==========
+        // 回车键发送
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('agent-question-input');
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendAgentQuestion();
+                    }
+                });
+            }
+
+            // 点击遮罩层关闭弹窗
+            const overlay = document.getElementById('agent-modal-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) {
+                        closeAgentModal();
+                    }
+                });
+            }
+        });
+
+        // ========== 导出函数供外部调用 ==========
+        window.openAgentModal = openAgentModal;
+        window.closeAgentModal = closeAgentModal;
+    </script>
+</body>
+</html>
+

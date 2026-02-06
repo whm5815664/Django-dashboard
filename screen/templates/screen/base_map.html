@@ -490,9 +490,9 @@
             <button type="button" class="toolbox-button" onclick="openToolboxModal()" title="深度学习工具箱">
               <i class="fa fa-wrench"></i>
             </button>
-            <a href="{% url 'chat' %}" class="toolbox-button toolbox-button-agent" title="智能体助手">
+            <button type="button" class="toolbox-button toolbox-button-agent" onclick="openAgentModal()" title="智能体助手">
               <i class="fa fa-android"></i>
-            </a>
+            </button>
           </div>
           <div class="panel-footer"></div>
         </div>
@@ -542,6 +542,42 @@
       </div>
     </div>
 
+    <!-- 智能体助手弹窗（小窗贴近按钮） -->
+    <iframe
+      id="agent-iframe"
+      src="/aiModels/agent"
+      style="
+        display: none;
+        position: fixed;
+        width: 320px;
+        height: 420px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 14px 40px rgba(0,0,0,0.2);
+        z-index: 4000;
+        background: #fff;
+        pointer-events: auto;
+      "
+      allow="clipboard-write *"
+      scrolling="no"
+    ></iframe>
+    <!-- 拖拽手柄：放在 iframe 顶部（父页面实现拖拽，避免 iframe 吞事件） -->
+    <div
+      id="agent-drag-handle"
+      style="
+        display:none;
+        position: fixed;
+        width: 320px;
+        height: 38px;
+        z-index: 4001;
+        cursor: move;
+        border-radius: 12px 12px 0 0;
+        background: rgba(255,255,255,0.01);
+        user-select: none;
+      "
+      title="按住拖动"
+    ></div>
+
     <script src="{% static 'js/flexible.js' %}"></script>
     <script src="{% static 'js/echarts.min.js' %}"></script>
     <script src="{% static 'js/jquery.js' %}"></script>
@@ -558,6 +594,153 @@
           mask.style.display = 'none';
         }
       }
+
+      // --- 智能体小窗：定位/拖拽 ---
+      function _syncAgentDragHandle() {
+        var iframe = document.getElementById('agent-iframe');
+        var handle = document.getElementById('agent-drag-handle');
+        if (!iframe || !handle) return;
+        if (iframe.style.display === 'none') {
+          handle.style.display = 'none';
+          return;
+        }
+        handle.style.display = 'block';
+        handle.style.left = iframe.style.left;
+        handle.style.top = iframe.style.top;
+        handle.style.width = iframe.style.width;
+      }
+
+      function _setAgentPos(left, top) {
+        var iframe = document.getElementById('agent-iframe');
+        if (!iframe) return;
+        iframe.style.left = left + 'px';
+        iframe.style.top = top + 'px';
+        _syncAgentDragHandle();
+      }
+
+      function _clampAgentPos(left, top) {
+        var w = 320, h = 420;
+        var pad = 12;
+        var maxLeft = Math.max(pad, window.innerWidth - w - pad);
+        var maxTop = Math.max(pad, window.innerHeight - h - pad);
+        var cl = Math.min(Math.max(left, pad), maxLeft);
+        var ct = Math.min(Math.max(top, pad), maxTop);
+        return { left: cl, top: ct };
+      }
+
+      function openAgentModal() {
+        var iframe = document.getElementById('agent-iframe');
+        if (!iframe) return;
+        // 计算小窗位置：尽量贴近按钮，默认放在按钮右侧
+        var btn = document.querySelector('.toolbox-button-agent');
+        var rect = btn ? btn.getBoundingClientRect() : null;
+        var w = 320, h = 420, gap = 10;
+        var left = 16, top = 16;
+        if (rect) {
+          // ✅ 默认放在按钮左侧
+          left = rect.left - gap - w;
+          top = rect.top + rect.height - h;
+          // 边界修正
+          if (left < 12) {
+            // 左侧放不下则退化到右侧
+            left = rect.right + gap;
+          }
+          if (left + w > window.innerWidth - 12) left = window.innerWidth - w - 12;
+          if (top < 12) top = rect.bottom + gap;
+          if (top + h > window.innerHeight - 12) top = window.innerHeight - h - 12;
+        }
+        var clamped = _clampAgentPos(left, top);
+        iframe.style.left = clamped.left + 'px';
+        iframe.style.top = clamped.top + 'px';
+        iframe.style.display = 'block';
+        _syncAgentDragHandle();
+
+        // 尝试直接调用（如果已加载）
+        try {
+          if (iframe.contentWindow && iframe.contentWindow.openAgentModal) {
+            iframe.contentWindow.openAgentModal();
+            return;
+          }
+        } catch (e) {
+          console.warn('无法访问 iframe contentWindow:', e);
+        }
+        
+        // 如果无法直接调用，等待 iframe 加载完成
+        iframe.onload = function() {
+          try {
+            iframe.style.display = 'block';
+            if (iframe.contentWindow && iframe.contentWindow.openAgentModal) {
+              iframe.contentWindow.openAgentModal();
+            }
+          } catch (e) {
+            console.error('调用 iframe openAgentModal 失败:', e);
+          }
+        };
+        
+        // 如果 iframe 还未开始加载，触发加载
+        if (!iframe.src || iframe.src === 'about:blank') {
+          iframe.src = '/aiModels/agent';
+        }
+      }
+
+      // 监听子页面关闭指令，隐藏 iframe
+      window.addEventListener('message', function (event) {
+        if (!event || !event.data) return;
+        if (event.data.type === 'agent-close') {
+          var iframe = document.getElementById('agent-iframe');
+          if (iframe) iframe.style.display = 'none';
+          var handle = document.getElementById('agent-drag-handle');
+          if (handle) handle.style.display = 'none';
+        }
+      });
+
+      // 拖拽逻辑（鼠标）
+      (function initAgentDrag() {
+        var handle = document.getElementById('agent-drag-handle');
+        if (!handle) return;
+        var dragging = false;
+        var offsetX = 0;
+        var offsetY = 0;
+
+        function onDown(e) {
+          var iframe = document.getElementById('agent-iframe');
+          if (!iframe || iframe.style.display === 'none') return;
+          dragging = true;
+          // 当前 iframe 左上角
+          var left = parseFloat(iframe.style.left || '0');
+          var top = parseFloat(iframe.style.top || '0');
+          offsetX = e.clientX - left;
+          offsetY = e.clientY - top;
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp, { once: true });
+          e.preventDefault();
+        }
+
+        function onMove(e) {
+          if (!dragging) return;
+          var newLeft = e.clientX - offsetX;
+          var newTop = e.clientY - offsetY;
+          var clamped = _clampAgentPos(newLeft, newTop);
+          _setAgentPos(clamped.left, clamped.top);
+          e.preventDefault();
+        }
+
+        function onUp() {
+          dragging = false;
+          document.removeEventListener('mousemove', onMove);
+        }
+
+        handle.addEventListener('mousedown', onDown);
+        window.addEventListener('resize', function () {
+          // resize 后保持在可视范围内
+          var iframe = document.getElementById('agent-iframe');
+          if (!iframe || iframe.style.display === 'none') return;
+          var left = parseFloat(iframe.style.left || '0');
+          var top = parseFloat(iframe.style.top || '0');
+          var clamped = _clampAgentPos(left, top);
+          _setAgentPos(clamped.left, clamped.top);
+        });
+      })();
     </script>
     <!-- 引入china.js 完成地图模块 -->
     <script src="{% static 'js/china.js' %}"></script>

@@ -27,3 +27,7 @@ def graph_view(request):
 def chatkg_view(request):
     return render(request, 'qaModel/chatKG.html')
 
+
+# 智能体助手弹窗页面
+def agent_view(request):
+    return render(request, 'qaModel/agent.html')

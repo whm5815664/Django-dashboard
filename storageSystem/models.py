@@ -68,7 +68,7 @@ class Device(TimeStampedModel):
     vendor = models.CharField("厂商", max_length=64, blank=True, default="")
 
     class Meta:
-        db_table = "device"
+        db_table = "devices"
         verbose_name = "设备"
         verbose_name_plural = "设备"
         indexes = [

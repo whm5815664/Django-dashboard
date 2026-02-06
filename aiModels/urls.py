@@ -5,6 +5,8 @@ from . import views
 # 问答功能api
 from aiModels.qaModel import spark_api
 from aiModels.qaModel import deepseek_r1_api
+# 智能体系统（大脑）
+from aiModels.agent import brain_agent as db_agent
 
 # 工具功能
 from aiModels.diseaseModel import diseaseRecognition
@@ -25,6 +27,9 @@ urlpatterns = [
     path('get_answer_deepseek', deepseek_r1_api.get_answer_view, name='get_answer_deepseek'),
     path('get_chat_history', deepseek_r1_api.get_chat_history_view, name='get_chat_history'),
     path('clear_chat_history', deepseek_r1_api.clear_chat_history_view, name='clear_chat_history'),
+    # 智能体系统（大脑）- 统一入口，调用 agent 文件夹下的功能
+    path('agent', views.agent_view, name='agent'),
+    path('brain', db_agent.agent_answer_view, name='brain'),
     
     # RAG知识库增强系统
     path('initialize_rag', RAG.initialize_rag_view, name='initialize_rag'),
