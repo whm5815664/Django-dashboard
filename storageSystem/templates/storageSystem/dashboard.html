@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>总览 - 设备运行监控</title>
 
-  <!-- ✅ 给 JS 用的 CSRF（可选：你也可以用 cookie 读取） -->
   <meta name="csrf-token" content="{{ csrf_token }}">
 
   <!-- Bootstrap 5 -->
@@ -14,10 +13,9 @@
   <!-- Font Awesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-  <!-- Page CSS（✅ 加版本号，避免缓存） -->
-  <link rel="stylesheet" href="{% static 'storageSystem/css/dashboard.css' %}?v=20260122_1700">
+  <!-- Page CSS -->
+  <link rel="stylesheet" href="{% static 'storageSystem/css/dashboard.css' %}?v=20260206_orm01">
 
-  <!-- ✅ 高德地图：容器样式（也可以挪到 dashboard.css） -->
   <style>
     #amapContainer {
       width: 100%;
@@ -26,16 +24,10 @@
       overflow: hidden;
       background: #f2f3f5;
     }
-    .map-kv {
-      font-size: 12px;
-    }
-    .map-kv code {
-      font-size: 12px;
-    }
+    .map-kv { font-size: 12px; }
+    .map-kv code { font-size: 12px; }
   </style>
 
-  <!-- ✅ 高德地图 AMap Loader（必须在 dashboard.js 之前加载） -->
-  <!-- 你可以把 key / securityJsCode 从 settings 注入到模板变量 AMAP_KEY / AMAP_SECURITY_JS_CODE -->
   <script>
     window.__AMAP_KEY__ = "{{ AMAP_KEY|default:'YOUR_AMAP_KEY' }}";
     window._AMapSecurityConfig = {
@@ -78,7 +70,6 @@
           </li>
         </ul>
 
-        <!-- 右侧：状态 + 登出 -->
         <div class="d-flex align-items-center gap-2">
           <div class="chip online" id="chipOnline">
             <span class="dot"></span><span>在线</span> <b id="kpiOnlineMini">-</b>
@@ -164,13 +155,13 @@
 
                   <div class="mt-2">
                     <select class="form-select kpi-select" id="kpiDeviceSelect">
-                      <option value="">加载中...</option>
+                      <option value="">全部设备</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              <!-- 数据总类（折线数量） -->
+              <!-- 数据总类 -->
               <div class="col-12 col-md-6">
                 <div class="cardx kpi p-3" data-drill="all">
                   <div class="d-flex justify-content-between align-items-start">
@@ -183,7 +174,6 @@
                   <div class="mt-2 value" id="kpiTotal">0</div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -253,12 +243,9 @@
       <div class="cardx-bd">
         <div class="row g-2 align-items-end">
           <div class="col-12 col-md-2">
-            <label class="form-label muted">所属冷库</label>
+            <label class="form-label muted">所属冷库ID（base_id）</label>
             <select class="form-select" id="filterColdRoom">
               <option value="">全部</option>
-              <option value="A库">A库</option>
-              <option value="B库">B库</option>
-              <option value="C库">C库</option>
             </select>
           </div>
 
@@ -275,7 +262,7 @@
           <div class="col-12 col-md-3">
             <label class="form-label muted">设备</label>
             <select class="form-select" id="filterDevice">
-              <option value="">加载中...</option>
+              <option value="">全部设备</option>
             </select>
           </div>
 
@@ -294,7 +281,7 @@
 
         <div class="row g-2 align-items-end mt-1">
           <div class="col-12 col-md-4">
-            <label class="form-label muted">日期（预留）</label>
+            <label class="form-label muted">日期（按 last_report_time）</label>
             <div class="d-flex gap-2">
               <input class="form-control" type="date" id="dateFrom">
               <input class="form-control" type="date" id="dateTo">
@@ -310,15 +297,13 @@
               <tr>
                 <th style="width:70px;">ID</th>
                 <th>设备名称/编号</th>
-                <th style="width:110px;">所属冷库</th>
-
+                <th style="width:140px;">所属冷库ID</th>
                 <th style="width:120px;">经度</th>
                 <th style="width:120px;">纬度</th>
-
                 <th>位置信息</th>
                 <th style="width:110px;">在线状态</th>
                 <th style="width:210px;">最后上报时间</th>
-                <th style="width:240px;">操作</th>
+                <th style="width:260px;">操作</th>
               </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -334,10 +319,9 @@
         </div>
       </div>
     </div>
-
   </main>
 
-  <!-- ✅ 页内小页：Modal -->
+  <!-- 快捷入口 Modal -->
   <div class="modal fade" id="quickModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
@@ -356,7 +340,7 @@
     </div>
   </div>
 
-  <!-- ✅ 地图选点 Modal（高德地图） -->
+  <!-- 地图选点 Modal -->
   <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
@@ -381,23 +365,14 @@
                   搜索
                 </button>
               </div>
-              <div class="muted small mt-1">
-                你也可以直接在地图上 <b>点击</b> 选点；支持拖动/缩放/卫星图（由 JS 控制切换）。
-              </div>
             </div>
 
             <div class="col-12 col-md-6">
               <label class="form-label muted">已选坐标</label>
               <div class="d-flex flex-wrap gap-2 map-kv">
-                <div class="px-2 py-1 bg-light rounded">
-                  经度：<code id="pickedLng">-</code>
-                </div>
-                <div class="px-2 py-1 bg-light rounded">
-                  纬度：<code id="pickedLat">-</code>
-                </div>
-                <div class="px-2 py-1 bg-light rounded flex-grow-1">
-                  地址：<code id="pickedAddr">-</code>
-                </div>
+                <div class="px-2 py-1 bg-light rounded">经度：<code id="pickedLng">-</code></div>
+                <div class="px-2 py-1 bg-light rounded">纬度：<code id="pickedLat">-</code></div>
+                <div class="px-2 py-1 bg-light rounded flex-grow-1">地址：<code id="pickedAddr">-</code></div>
               </div>
             </div>
           </div>
@@ -407,7 +382,7 @@
 
         <div class="modal-footer">
           <div class="me-auto muted small">
-            保存后会把经纬度写入 <code>devices.longitude / devices.latitude</code>（以及可选 location/address）
+            保存后会写入 <code>devices.longitude / devices.latitude / devices.location</code>
           </div>
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
           <button type="button" class="btn btn-primary" id="btnSaveLocation">
@@ -418,7 +393,7 @@
     </div>
   </div>
 
-  <!-- ✅ 新增：设备编辑 Modal -->
+  <!-- 编辑 Modal -->
   <div class="modal fade" id="editDeviceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
@@ -439,8 +414,8 @@
             </div>
 
             <div class="col-12 col-md-6">
-              <label class="form-label muted">所属冷库</label>
-              <input class="form-control" id="editColdRoom" placeholder="例如：A库">
+              <label class="form-label muted">所属冷库ID（base_id）</label>
+              <input class="form-control" id="editBaseId" placeholder="例如：A01 / 1">
             </div>
 
             <div class="col-12 col-md-6">
@@ -450,13 +425,12 @@
                 <option value="online">在线</option>
                 <option value="offline">离线</option>
                 <option value="alarm">告警</option>
-                <option value="normal">正常</option>
               </select>
             </div>
 
             <div class="col-12 col-md-6">
-              <label class="form-label muted">位置信息（location/address）</label>
-              <input class="form-control" id="editLocation" placeholder="例如：上海虹桥火车站">
+              <label class="form-label muted">位置信息（location）</label>
+              <input class="form-control" id="editLocation" placeholder="例如：一楼北侧/货架A3">
             </div>
 
             <div class="col-12 col-md-6">
@@ -485,7 +459,7 @@
     </div>
   </div>
 
-  <!-- ✅ 新增：删除确认 Modal -->
+  <!-- 删除确认 Modal -->
   <div class="modal fade" id="deleteDeviceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -501,10 +475,7 @@
           <div class="mb-2">
             你确定要删除设备：<b id="deleteDeviceName">-</b> 吗？
           </div>
-          <div class="muted small">
-            删除后无法恢复（建议只允许管理员操作）。
-          </div>
-
+          <div class="muted small">删除后无法恢复（建议只允许管理员操作）。</div>
           <div class="text-danger small mt-3 d-none" id="deleteErr">-</div>
         </div>
 
@@ -520,14 +491,11 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- ECharts（必须在 dashboard.js 之前） -->
+  <!-- ECharts -->
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-
-  <!-- 拼音/首字母（用于快捷入口搜索） -->
+  <!-- 拼音 -->
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.21.0/dist/index.js"></script>
 
-  <!-- ✅ Page JS（加版本号，强制刷新缓存） -->
-  <script src="{% static 'storageSystem/js/dashboard.js' %}?v=20260122_1700"></script>
+  <script src="{% static 'storageSystem/js/dashboard.js' %}?v=20260206_orm01"></script>
 </body>
 </html>
