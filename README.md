@@ -104,3 +104,57 @@ AIoT农业智能问答系统是一个基于Django框架开发的综合性农业�
            ├─ 冷库数据管理
            ├─ 实验室文件管理
            └─ 知识图谱
+```
+
+## 更新日志（2026-02-01 ～ 至今）
+
+### 智能体系统（Agent）与对话体验
+
+- **新增：智能体助手弹窗页**
+  - 新增 `aiModels/templates/qaModel/agent.html`，提供客服风格小窗 UI（欢迎语、输入框、发送、加载态）。
+  - 支持回车发送、点击遮罩关闭；关闭时通过 `postMessage` 通知父页面隐藏 iframe。
+  - 每次打开自动清空界面与上下文：调用 `/aiModels/clear_chat_history` 静默清理历史并重置欢迎信息。
+
+- **新增：大脑智能体（BrainAgent）统一入口 + 流式状态回传**
+  - 新增/完善 `aiModels/agent/brain_agent.py`，作为路由中枢，支持在「数据库智能体 / 网页爬虫智能体」之间决策调用。
+  - `POST /aiModels/brain` 使用 `StreamingHttpResponse` 以 SSE 形式推送：
+    - `type=status`：推送“正在调用：数据库/网页爬虫智能体”
+    - `type=result` / `type=error`：推送最终结果/错误信息
+  - 前端使用 `fetch + ReadableStream` 解析 `data: {...}` 行，实时更新“思考中”提示并渲染最终答案。
+
+### 数据库智能体（SearchDBAgent）能力增强
+
+- **自然语言自动选表/模型**
+  - `aiModels/agent/searchDB_agent.py` 增加意图规则（如：基地/设备/告警/产量/品种/传感器等关键词）自动路由到合适的 Django Model 或原生表。
+  - 新增 `auto_query`：输入自然语言问题即可返回匹配意图、命中关键词及查询结果。
+
+- **原生表查询与字段安全**
+  - 支持原生表白名单（示例：`sensor_readings1`）查询，且可通过 `SHOW COLUMNS` 获取真实字段并缓存，自动过滤不存在字段。
+  - 原生 SQL 执行限制为只读 `SELECT`，并对表名/字段名做基础安全校验。
+
+### 前端集成：主页工具箱接入可拖拽小窗
+
+- **改造：工具箱“智能体助手”入口**
+  - `screen/templates/screen/base_map.html` 将原先跳转链接改为按钮，点击后打开 `iframe` 小窗（`/aiModels/agent`）。
+  - 支持靠近按钮的自动定位与窗口拖拽（父页面实现拖拽手柄，避免 iframe 吞鼠标事件）。
+  - 监听子页面 `agent-close` 消息，统一隐藏小窗与拖拽手柄。
+
+### 后端路由与依赖更新
+
+- **新增路由**
+  - `aiModels/views.py` 新增 `agent_view`，用于渲染 `qaModel/agent.html`。
+  - `aiModels/urls.py` 新增：
+    - `/aiModels/agent`：智能体弹窗页
+    - `/aiModels/brain`：智能体统一问答入口（SSE 流式）
+
+- **新增依赖**
+  - `requirements.txt` 增加 `beautifulsoup4==4.12.3`（网页爬虫智能体解析 HTML 用）。
+  - 新增 `aiModels/agent/spider_agent.py`：支持百度 / DuckDuckGo 搜索、网页抓取与内容提取。
+
+### 数据模型与细节修正
+
+- **修正：设备表名映射**
+  - `storageSystem/models.py` 将 `Device.Meta.db_table` 修正为 `devices`（避免与真实表名不一致）。
+
+- **其他**
+  - `screen/models.py` 清理少量多余空行（不影响功能）。

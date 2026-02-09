@@ -2,10 +2,10 @@
 (() => {
   const API = {
     deviceNames: "/storage/api/device-names/",
-    trend: "/storage/api/dashboard/trend",
+    trend: "/storage/api/dashboard/trend/",
     deviceList: "/storage/api/dashboard/devices/",
 
-    // ✅ 新增：编辑 / 删除（按你前面 HTML 的两个 Modal 配套）
+    // 编辑 / 删除
     deviceUpdate: "/storage/api/dashboard/device-update/",
     deviceDelete: "/storage/api/dashboard/device-delete/",
   };
@@ -23,9 +23,7 @@
     c2h4: "C₂H₄",
   };
 
-  // ✅ 路线B：高德网页 marker 坐标系
-  // - "gaode"：GCJ-02（高德/腾讯/国内地图常用“火星坐标”）
-  // - "wgs84"：GPS/WGS84（如果你存的是原始 GPS 坐标，改成这个更准）
+  // 高德网页 marker 坐标系
   const AMAP_COORD_SYS = "gaode";
 
   const state = {
@@ -43,10 +41,10 @@
     tableTotal: 0,
     inFlightTable: false,
 
-    // ✅ 当前表格数据索引（用于点击行/编辑/删除）
+    // 当前表格数据索引（用于点击行/编辑/删除）
     tableIndex: new Map(), // key: String(id) -> item
 
-    // ✅ Modals
+    // Modals
     editModal: null,
     deleteModal: null,
 
@@ -127,7 +125,7 @@
     if (s === "online") return `<span class="badge text-bg-success">在线</span>`;
     if (s === "offline") return `<span class="badge text-bg-secondary">离线</span>`;
     if (s === "alarm") return `<span class="badge text-bg-danger">告警</span>`;
-    if (s === "normal") return `<span class="badge text-bg-success">正常</span>`;
+    if (s === "normal") return `<span class="badge text-bg-success">正常</span>`; // 兼容旧数据
     return `<span class="badge text-bg-light text-dark">${escapeHtml(statusRaw || "-")}</span>`;
   }
 
@@ -267,7 +265,7 @@
     setText("lastUpdated", `最后更新：${formatNow()}`);
   }
 
-  // ---------- ✅ 路线B：打开高德网页并按经纬度定位 ----------
+  // ---------- 高德网页定位 ----------
   function buildAmapMarkerUrl(lng, lat, title = "设备位置", coord = AMAP_COORD_SYS) {
     const ln = Number(lng);
     const lt = Number(lat);
@@ -294,7 +292,7 @@
     }
   }
 
-  // ---------- ✅ Edit/Delete Modals ----------
+  // ---------- Edit/Delete Modals ----------
   function ensureEditModal() {
     const el = document.getElementById("editDeviceModal");
     if (!el || !window.bootstrap?.Modal) return null;
@@ -347,7 +345,8 @@
 
     const id = pick(item, ["id", "device_id"], "");
     const name = pick(item, ["device_name", "name", "device"], "-");
-    const baseId = pick(item, ["base_id"], "");
+    // 冷库字段兼容：优先 base_id
+    const baseId = pick(item, ["base_id", "cold_room", "coldroom", "cold_room_name", "coldroom_name"], "");
     const status = String(pick(item, ["status", "state"], "") || "").toLowerCase().trim();
     const location = pick(item, ["location", "position", "address"], "");
     const lng = pick(item, ["longitude", "lng", "lon"], "");
@@ -355,7 +354,7 @@
 
     const elId = document.getElementById("editDeviceId");
     const elName = document.getElementById("editDeviceName");
-    const elBase = document.getElementById("editColdRoom");
+    const elBaseId = document.getElementById("editBaseId"); // 修复：使用正确的ID
     const elStatus = document.getElementById("editStatus");
     const elLoc = document.getElementById("editLocation");
     const elLng = document.getElementById("editLongitude");
@@ -363,13 +362,13 @@
 
     if (elId) elId.value = String(id ?? "");
     if (elName) elName.value = String(name ?? "");
-    if (elBase) elBase.value = toBlankIfDash(baseId);
+    if (elBaseId) elBaseId.value = toBlankIfDash(baseId);
     if (elLoc) elLoc.value = toBlankIfDash(location);
     if (elLng) elLng.value = toBlankIfDash(lng);
     if (elLat) elLat.value = toBlankIfDash(lat);
 
-    // status 只允许这几个值，否则不选
-    const allowed = new Set(["", "online", "offline", "alarm", "normal"]);
+    // ORM 版本只允许 online/offline/alarm（normal 仅展示兼容）
+    const allowed = new Set(["", "online", "offline", "alarm"]);
     if (elStatus) elStatus.value = allowed.has(status) ? status : "";
 
     modal.show();
@@ -401,6 +400,7 @@
 
   // ---------- table ----------
   function getTableFilters() {
+    // filterColdRoom 实际当作 base_id 过滤值
     const baseId = document.getElementById("filterColdRoom")?.value || "";
     const status = document.getElementById("filterStatus")?.value || "";
     const device = document.getElementById("filterDevice")?.value || "";
@@ -439,7 +439,10 @@
         const nameRaw = pick(it, ["device_name", "name", "device"], "-");
         const nameShow = escapeHtml(String(nameRaw));
 
-        const baseIdShow = escapeHtml(String(pick(it, ["base_id"], "-")));
+        // 显示 base_id（兼容多种字段名）
+        const baseIdShow = escapeHtml(
+          String(pick(it, ["base_id", "cold_room", "coldroom", "cold_room_name", "coldroom_name"], "-"))
+        );
 
         const lngRaw = pick(it, ["longitude", "lng", "lon"], "-");
         const latRaw = pick(it, ["latitude", "lat"], "-");
@@ -485,12 +488,10 @@
                   <i class="fa-solid fa-location-dot me-1"></i>地图
                 </button>
 
-                <!-- ✅ 编辑：打开编辑 Modal -->
                 <button class="btn btn-sm btn-outline-success js-edit-device" data-id="${escapeHtml(idKey)}">
                   <i class="fa-solid fa-pen-to-square me-1"></i>编辑
                 </button>
 
-                <!-- ✅ 删除：打开删除确认 Modal -->
                 <button class="btn btn-sm btn-outline-danger js-delete-device" data-id="${escapeHtml(idKey)}">
                   <i class="fa-solid fa-trash-can me-1"></i>删除
                 </button>
@@ -523,7 +524,7 @@
       });
     });
 
-    // 地图按钮 -> 高德网页定位
+    // 地图按钮
     tbody.querySelectorAll(".js-open-map").forEach((btn) => {
       btn.addEventListener("click", () => {
         const name = btn.dataset.name || "";
@@ -554,7 +555,7 @@
       });
     });
 
-    // ✅ 点击整行进入编辑（排除点击按钮区域）
+    // 点击整行进入编辑（排除按钮/输入控件）
     tbody.querySelectorAll("tr.js-row-edit").forEach((tr) => {
       tr.addEventListener("click", (e) => {
         const t = e.target;
@@ -591,11 +592,13 @@
     try {
       const filters = getTableFilters();
 
+      // ✅ 纯 ORM 版建议后端收 base_id；
+      // 同时带上 cold_room 兼容旧后端（可删除）
       const q = buildQuery({
         page: state.tablePage,
         page_size: state.tablePageSize,
 
-        base_id: filters.baseId || state.filterBaseId || "",
+        base_id: filters.baseId,
         status: filters.status,
         device_name: filters.device || "",
         keyword: filters.keyword,
@@ -608,7 +611,7 @@
       const items = data.items || data.devices || [];
       const total = data.total ?? data.count ?? (Array.isArray(items) ? items.length : 0);
 
-      // ✅ 建索引：id -> item
+      // 建索引：id -> item
       state.tableIndex.clear();
       for (const it of items) {
         const idRaw = pick(it, ["id", "device_id"], "");
@@ -623,7 +626,7 @@
       // 更新 KPI
       const kpi = data.kpi || data.summary || null;
       if (kpi) {
-        const online = kpi.online ?? kpi.normal ?? "-";
+        const online = kpi.online ?? "-";
         const offline = kpi.offline ?? "-";
         const alarm = kpi.alarm ?? "-";
 
@@ -855,7 +858,7 @@
     });
   }
 
-  // ---------- ✅ save edit / delete ----------
+  // ---------- save edit / delete ----------
   async function saveDeviceEdit() {
     if (state.inFlightSave) return;
     state.inFlightSave = true;
@@ -869,8 +872,8 @@
       const id = document.getElementById("editDeviceId")?.value || "";
       if (!id) throw new Error("缺少设备 ID");
 
-      const coldRoom = document.getElementById("editColdRoom")?.value || "";
-      const status = document.getElementById("editStatus")?.value || "";
+      const baseId = (document.getElementById("editBaseId")?.value || "").trim(); // 修复：使用正确的ID
+      let status = (document.getElementById("editStatus")?.value || "").trim().toLowerCase();
       const location = document.getElementById("editLocation")?.value || "";
       const lngStr = (document.getElementById("editLongitude")?.value || "").trim();
       const latStr = (document.getElementById("editLatitude")?.value || "").trim();
@@ -889,23 +892,26 @@
         latitude = n;
       }
 
-      // ✅ 发给后端：你可以在后端只取你需要的字段
+      // ORM Device.status 不含 normal
+      if (status === "normal") status = "online";
+      if (status && !["online", "offline", "alarm"].includes(status)) {
+        throw new Error("状态只允许：online / offline / alarm");
+      }
+
       const payload = {
         id: id,
         base_id: baseId,
         status: status,
         location: location,
-        longitude: longitude, // null 表示不修改或清空由后端决定
+        longitude: longitude, // null 表示清空（由后端决定）
         latitude: latitude,
       };
 
       await fetchJson(API.deviceUpdate, { method: "POST", body: payload });
 
-      // 关闭 modal
       const modal = ensureEditModal();
       modal?.hide();
 
-      // 刷新表格（保留当前页）
       await loadDeviceTable({ resetPage: false });
 
       setText("lastUpdated", `最后更新：${formatNow()}`);
@@ -938,7 +944,6 @@
       const modal = ensureDeleteModal();
       modal?.hide();
 
-      // 如果删的是当前选中的设备，清空趋势
       if (name && state.selectedDevice === name) {
         state.selectedDevice = "";
         const selKpi = document.getElementById("kpiDeviceSelect");
@@ -948,10 +953,8 @@
         showChartMessage("设备已删除，请重新选择设备");
       }
 
-      // 刷新 deviceNames（避免下拉还存在已删除设备）
       await loadDeviceNames();
 
-      // 刷新表格：如果当前页删空了，自动回退一页
       await loadDeviceTable({ resetPage: false });
       const maxPage = Math.max(1, Math.ceil((state.tableTotal || 0) / state.tablePageSize));
       if (state.tablePage > maxPage) {
@@ -1056,13 +1059,13 @@
       });
     }
 
-    // ✅ 编辑保存按钮
+    // 编辑保存按钮
     const btnSaveDeviceEdit = document.getElementById("btnSaveDeviceEdit");
     if (btnSaveDeviceEdit) {
       btnSaveDeviceEdit.addEventListener("click", saveDeviceEdit);
     }
 
-    // ✅ 删除确认按钮
+    // 删除确认按钮
     const btnConfirmDelete = document.getElementById("btnConfirmDelete");
     if (btnConfirmDelete) {
       btnConfirmDelete.addEventListener("click", confirmDeleteDevice);

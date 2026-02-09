@@ -5,7 +5,7 @@ from django.db import models
 
 class TimeStampedModel(models.Model):
     """
-    抽象基类：所有表通用的创建/更新时间
+    抽象基类：所有表通用的创建/更新时间（仅用于 ORM 管理表）
     """
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -31,9 +31,9 @@ class Base(models.Model):
         managed = False  # 禁止django自动添加id主键
 
 
-class Device(TimeStampedModel):
+class Device(models.Model):
     """
-    设备（冷库传感器/网关/温控设备等）
+    设备：映射现有 MySQL 表 devices（managed=False）
     """
     STATUS_ONLINE = "online"
     STATUS_OFFLINE = "offline"
@@ -45,8 +45,8 @@ class Device(TimeStampedModel):
         (STATUS_ALARM, "告警"),
     ]
 
-    name = models.CharField("设备名称", max_length=64)
-    code = models.CharField("设备编号", max_length=64, unique=True)
+    name = models.CharField("设备名称", max_length=64, db_column="device_name")
+    code = models.CharField("设备编号", max_length=64, unique=True, db_column="device_code")
 
     # 与柑橘基地 Base 表的关联，使用 base.base_id 作为外键
     base = models.ForeignKey(
@@ -61,14 +61,20 @@ class Device(TimeStampedModel):
     location = models.CharField("位置信息", max_length=128, blank=True, default="")
     status = models.CharField("在线状态", max_length=16, choices=STATUS_CHOICES, default=STATUS_OFFLINE, db_index=True)
 
-    last_seen = models.DateTimeField("最后上报时间", null=True, blank=True, db_index=True)
+    # 地理位置信息
+    longitude = models.DecimalField("经度", max_digits=10, decimal_places=6, null=True, blank=True, db_column="longitude")
+    latitude = models.DecimalField("纬度", max_digits=10, decimal_places=6, null=True, blank=True, db_column="latitude")
 
-    # 可选：设备类型/厂商等
-    device_type = models.CharField("设备类型", max_length=32, blank=True, default="")
-    vendor = models.CharField("厂商", max_length=64, blank=True, default="")
+    # devices.last_report_time
+    last_seen = models.DateTimeField("最后上报时间", db_column="last_report_time", null=True, blank=True, db_index=True)
+
+    # 对齐表中已有时间列
+    created_at = models.DateTimeField("创建时间", db_column="created_at", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", db_column="updated_at", auto_now=True)
 
     class Meta:
         db_table = "devices"
+        managed = False  # 映射现有表，禁止Django自动管理
         verbose_name = "设备"
         verbose_name_plural = "设备"
         indexes = [
@@ -77,43 +83,49 @@ class Device(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.name}({self.code})"
+        return f"{self.name}({self.code or ''})"
 
 
-class DeviceReading(TimeStampedModel):
+class DeviceReading(models.Model):
     """
-    设备上报数据（可选但很推荐，用于 dashboard 趋势图/历史数据追溯）
-    例如：温度、湿度、电量等（你后续可以按真实数据结构扩展字段）
+    设备上报：映射现有 MySQL 表 sensor_readings1（managed=False）
+    注意：只保留你目前确认存在的列，避免再出现 Unknown column。
     """
-    device = models.ForeignKey(
-        Device,
-        on_delete=models.CASCADE,
-        related_name="readings",
-        verbose_name="设备",
-    )
+    id = models.BigAutoField(primary_key=True, db_column="id")
 
-    reported_at = models.DateTimeField("上报时间", db_index=True)
+    # 如表里有 device_name 列可保留；如果没有就删掉这行
+    device_name = models.CharField("设备名", max_length=64, db_column="device_name", null=True, blank=True)
 
-    # 示例指标（按你的业务改）
-    temperature = models.FloatField("温度", null=True, blank=True)
-    humidity = models.FloatField("湿度", null=True, blank=True)
-    battery = models.FloatField("电量", null=True, blank=True)
+    reported_at = models.DateTimeField("上报时间", db_column="collected_at", db_index=True)
+
+    temperature = models.DecimalField("温度(℃)", max_digits=6, decimal_places=2, db_column="temperature", null=True, blank=True)
+    humidity = models.DecimalField("湿度(%)", max_digits=6, decimal_places=2, db_column="humidity", null=True, blank=True)
+
+    co2_ppm = models.IntegerField("CO2(ppm)", db_column="co2_ppm", null=True, blank=True)
+    h2_ppm = models.IntegerField("H2(ppm)", db_column="h2_ppm", null=True, blank=True)
+    co_ppm = models.IntegerField("CO(ppm)", db_column="co_ppm", null=True, blank=True)
+
+    c2h5oh = models.DecimalField("C2H5OH", max_digits=10, decimal_places=3, db_column="c2h5oh", null=True, blank=True)
+    voc = models.DecimalField("VOC", max_digits=10, decimal_places=3, db_column="voc", null=True, blank=True)
+    o2 = models.DecimalField("O2", max_digits=10, decimal_places=3, db_column="o2", null=True, blank=True)
+    c2h4 = models.DecimalField("C2H4", max_digits=10, decimal_places=3, db_column="c2h4", null=True, blank=True)
+
+    image_path = models.CharField("图片相对路径", max_length=255, db_column="image_path", null=True, blank=True)
 
     class Meta:
-        db_table = "device_reading"
+        db_table = "sensor_readings1"
+        managed = False
         verbose_name = "设备上报"
         verbose_name_plural = "设备上报"
-        indexes = [
-            models.Index(fields=["device", "reported_at"]),
-        ]
 
     def __str__(self) -> str:
-        return f"Reading<{self.device.code}@{self.reported_at:%Y-%m-%d %H:%M:%S}>"
+        ts = self.reported_at.strftime("%Y-%m-%d %H:%M:%S") if self.reported_at else "N/A"
+        return f"Reading<{ts}>"
 
 
 class Alarm(TimeStampedModel):
     """
-    告警（可以来自设备上报，也可以来自规则引擎/AI 分析）
+    告警（ORM管理）
     """
     LEVEL_INFO = "info"
     LEVEL_WARN = "warning"
@@ -125,16 +137,17 @@ class Alarm(TimeStampedModel):
         (LEVEL_CRIT, "严重"),
     ]
 
+    # 注意：Device 是 managed=False，建议关闭数据库级 FK 约束
     device = models.ForeignKey(
         Device,
         on_delete=models.CASCADE,
         related_name="alarms",
         verbose_name="设备",
+        db_constraint=False,
     )
 
     level = models.CharField("告警级别", max_length=16, choices=LEVEL_CHOICES, default=LEVEL_WARN, db_index=True)
     message = models.CharField("告警内容", max_length=255, blank=True, default="")
-
     is_active = models.BooleanField("是否未处理", default=True, db_index=True)
     occurred_at = models.DateTimeField("发生时间", db_index=True)
 
@@ -148,4 +161,6 @@ class Alarm(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
-        return f"Alarm<{self.device.code}:{self.level}:{self.occurred_at:%Y-%m-%d %H:%M:%S}>"
+        code = self.device.code if self.device else ""
+        ts = self.occurred_at.strftime("%Y-%m-%d %H:%M:%S") if self.occurred_at else "N/A"
+        return f"Alarm<{code}:{self.level}:{ts}>"
