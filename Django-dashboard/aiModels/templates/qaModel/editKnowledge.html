@@ -1,0 +1,257 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>农业知识库浏览 - ChatKG</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh; color: #fff; overflow-x: hidden; position: relative;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -1;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(120,119,198,.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,119,198,.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120,219,255,.2) 0%, transparent 50%);
+            animation: bgShift 20s ease-in-out infinite;
+        }
+        @keyframes bgShift { 0%,100%{opacity:1} 50%{opacity:.8} }
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 20px; min-height: 100vh; display:flex; flex-direction:column; }
+        .top-nav { display:flex; align-items:center; justify-content:space-between; padding:20px 0; margin-bottom:30px; border-bottom:1px solid rgba(255,255,255,.1); }
+        .logo-container { display:flex; align-items:center; gap:15px; }
+        .logo { width:80px; height:80px; object-fit:contain; filter: drop-shadow(0 0 20px rgba(120,219,255,.5)); transition: .3s; border-radius:15px; background: rgba(255,255,255,.05); padding:10px; backdrop-filter: blur(10px); }
+        .logo:hover { transform: scale(1.1) rotate(5deg); filter: drop-shadow(0 0 30px rgba(120,219,255,.8)); }
+        .system-title { font-size:1.8em; font-weight:700; background: linear-gradient(135deg,#78dfff,#ff77c6,#7877c6); background-clip:text; -webkit-background-clip:text; color:transparent; -webkit-text-fill-color:transparent; text-shadow:0 0 30px rgba(120,219,255,.5); }
+        .chat-container { flex:1; background: rgba(255,255,255,.05); backdrop-filter: blur(20px); border-radius:25px; border:1px solid rgba(255,255,255,.1); box-shadow: 0 25px 50px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1); padding:30px; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+        .chat-container::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background: linear-gradient(90deg, transparent, rgba(120,219,255,.5), transparent); }
+        .chat-box { flex:1; min-height:500px; max-height:600px; overflow-y:auto; margin-bottom:25px; padding:25px; background: rgba(0,0,0,.2); border-radius:20px; border:1px solid rgba(255,255,255,.1); position:relative; }
+        .chat-box::-webkit-scrollbar { width:6px; }
+        .chat-box::-webkit-scrollbar-track { background: rgba(255,255,255,.1); border-radius:3px; }
+        .chat-box::-webkit-scrollbar-thumb { background: linear-gradient(135deg,#78dfff,#ff77c6); border-radius:3px; }
+        .message { margin-bottom:20px; padding:20px 25px; border-radius:20px; max-width:100%; word-wrap:break-word; position:relative; animation:.4s ease-out messageSlideIn; backdrop-filter: blur(10px); }
+        @keyframes messageSlideIn { from{opacity:0; transform: translateY(30px) scale(.95);} to{opacity:1; transform:none;} }
+        .bot-message { background: linear-gradient(135deg, rgba(255,119,198,.1), rgba(120,119,198,.1)); border:1px solid rgba(255,119,198,.2); margin-right:auto; color:#fff; box-shadow:0 8px 25px rgba(255,119,198,.1); }
+        .user-message { background: linear-gradient(135deg, rgba(120,219,255,.2), rgba(120,119,198,.2)); border:1px solid rgba(120,219,255,.3); margin-left:auto; color:#fff; box-shadow:0 8px 25px rgba(120,219,255,.2); }
+        .controls { display:flex; gap:12px; align-items:center; margin-bottom:15px; }
+        .search-input { flex:1; padding:14px 18px; border:2px solid rgba(255,255,255,.1); border-radius:16px; background: rgba(0,0,0,.3); color:#fff; outline:none; transition:.3s; }
+        .search-input:focus { border-color: rgba(120,219,255,.6); box-shadow:0 0 20px rgba(120,219,255,.3); }
+        .btn { padding:12px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.2); background: linear-gradient(135deg,#6c5ce7,#5f3dc4); color:#fff; cursor:pointer; transition:.3s; }
+        .btn:hover { transform: translateY(-2px); box-shadow:0 12px 35px rgba(108,92,231,.4); }
+        .stat { font-size:14px; color:rgba(255,255,255,.8); }
+        .pill { display:inline-block; padding:2px 10px; border-radius:12px; background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); font-size:12px; margin-left:8px; }
+        .item-title { font-weight:700; font-size:16px; margin-bottom:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .field { margin: 4px 0; }
+        .field b { color:#78dfff; }
+        .back-button { position:relative; z-index:1000; }
+        .back-link { display:inline-flex; align-items:center; gap:8px; padding:12px 20px; background: rgba(255,255,255,.1); color:#fff; text-decoration:none; border-radius:25px; border:1px solid rgba(255,255,255,.2); transition:.3s; font-weight:500; font-size:14px; backdrop-filter: blur(10px); box-shadow:0 4px 15px rgba(0,0,0,.2); }
+        .back-link:hover { background: rgba(255,255,255,.2); transform: translateY(-2px); box-shadow:0 8px 25px rgba(0,0,0,.3); color:#78dfff; }
+        /* 添加弹窗样式 */
+        .modal { position: fixed; inset: 0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,.5); z-index:10000; }
+        .modal-card { width:90%; max-width:520px; background: rgba(30,30,50,.95); border:1px solid rgba(255,255,255,.1); border-radius:16px; padding:20px; box-shadow:0 25px 50px rgba(0,0,0,.5); }
+        .modal-title { font-size:18px; font-weight:700; margin-bottom:12px; }
+        .form-row { display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+        .form-row label { font-size:14px; color:rgba(255,255,255,.8); }
+        .form-row textarea, .form-row input { padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.3); color:#fff; resize:vertical; min-height:44px; }
+        .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:10px; }
+        @media (max-width: 768px) { .main-container{padding:10px} .chat-container{padding:20px; border-radius:20px} .chat-box{min-height:400px; padding:20px} .controls{flex-direction:column} .btn{width:100%} .search-input{width:100%} }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="top-nav">
+            <div class="logo-container">
+                <img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT实验室" class="logo">
+                <div class="system-title">农业知识库浏览</div>
+            </div>
+            <div class="back-button">
+                <a href="javascript:history.back()" class="back-link"><i class="fa fa-arrow-left"></i> 返回</a>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input id="kw" class="search-input" placeholder="搜索 知识库：支持问题/补充/答案 关键字">
+            <button id="reload" class="btn">重新加载</button>
+            <button id="addBtn" class="btn">添加</button>
+            <span id="stat" class="stat">加载中...</span>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-box" id="list">
+                <div class="message bot-message" id="welcome">
+                    欢迎查看本地 JSON 知识库（agriculture_dat.json）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加弹窗 -->
+    <div id="addModal" class="modal">
+        <div class="modal-card">
+            <div class="modal-title">添加知识条目</div>
+            <div class="form-row">
+                <label for="add_instruction">问题</label>
+                <textarea id="add_instruction" placeholder="请输入问题..."></textarea>
+            </div>
+            <div class="form-row">
+                <label for="add_input">补充</label>
+                <textarea id="add_input" placeholder="可选：补充信息..."></textarea>
+            </div>
+            <div class="form-row">
+                <label for="add_output">答案</label>
+                <textarea id="add_output" placeholder="请输入答案..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button id="addCancel" class="btn">取消</button>
+                <button id="addSubmit" class="btn">提交</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const api = '/aiModels/knowledge/data';
+        const delApi = '/aiModels/knowledge/delete';
+        const addApi = '/aiModels/knowledge/add';
+        const list = document.getElementById('list');
+        const stat = document.getElementById('stat');
+        const kw = document.getElementById('kw');
+        const reloadBtn = document.getElementById('reload');
+        const addBtn = document.getElementById('addBtn');
+        const addModal = document.getElementById('addModal');
+        const addInstruction = document.getElementById('add_instruction');
+        const addInput = document.getElementById('add_input');
+        const addOutput = document.getElementById('add_output');
+        const addCancel = document.getElementById('addCancel');
+        const addSubmit = document.getElementById('addSubmit');
+
+        let rawData = [];
+        let filtered = [];
+
+        function esc(s){ return (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+        function render(items){
+            list.innerHTML = '';
+            if(!items.length){
+                const div = document.createElement('div');
+                div.className = 'message bot-message';
+                div.textContent = '未找到匹配条目';
+                list.appendChild(div);
+                return;
+            }
+            items.forEach((it, idx)=>{
+                const box = document.createElement('div');
+                box.className = 'message bot-message';
+                box.innerHTML = `
+                    <div class="item-title">#${idx+1}
+                        <span class="pill">ID: ${esc(String(it.id ?? ''))}</span>
+                        <button class="btn" data-action="del" data-id="${esc(String(it.id ?? ''))}">删除</button>
+                    </div>
+                    <div class="field"><b>问题：</b>${esc(it.instruction || '')}</div>
+                    <div class="field"><b>补充：</b>${esc(it.input || '')}</div>
+                    <div class="field"><b>答案：</b>${esc(it.output || '')}</div>
+                `;
+                list.appendChild(box);
+            });
+        }
+
+        function applyFilter(){
+            const q = (kw.value || '').trim().toLowerCase();
+            if(!q){ filtered = rawData.slice(0, 200); render(filtered); stat.textContent = `共${rawData.length}条，显示前${filtered.length}条`; return; }
+            const tokens = q.split(/\s+/).filter(Boolean);
+            filtered = rawData.filter(it=>{
+                const blob = `${it.instruction||''}\n${it.input||''}\n${it.output||''}`.toLowerCase();
+                return tokens.every(t => blob.includes(t));
+            });
+            render(filtered.slice(0, 200));
+            stat.textContent = `匹配${filtered.length}条（共${rawData.length}条），显示前${Math.min(200, filtered.length)}条`;
+        }
+
+        function load(){
+            stat.textContent = '加载中...';
+            fetch(api, { method:'GET' })
+                .then(r=>{ if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                .then(j=>{
+                    if(!j.success) throw new Error(j.error||'加载失败');
+                    rawData = Array.isArray(j.data) ? j.data.map((d,i)=>({ id: d.id ?? i, instruction:d.instruction, input:d.input, output:d.output })) : [];
+                    stat.textContent = `已加载 ${rawData.length} 条`;
+                    applyFilter();
+                })
+                .catch(e=>{
+                    stat.textContent = '加载失败';
+                    list.innerHTML = `<div class="message bot-message">❌ ${esc(e.message)}</div>`;
+                });
+        }
+
+        function deleteItem(id){
+            if(!confirm(`确认删除ID为 ${id} 的条目吗？`)) return;
+            fetch(delApi, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            })
+            .then(r=>{ if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+            .then(j=>{
+                if(!j.success) throw new Error(j.error||'删除失败');
+                // 本地数据移除并刷新视图
+                rawData = rawData.filter(d => String(d.id) !== String(id));
+                applyFilter();
+                stat.textContent = `已加载 ${rawData.length} 条`;
+            })
+            .catch(e=>{
+                alert('删除失败：' + e.message);
+            });
+        }
+
+        function openAdd(){ addModal.style.display = 'flex'; }
+        function closeAdd(){ addModal.style.display = 'none'; addInstruction.value=''; addInput.value=''; addOutput.value=''; }
+        function submitAdd(){
+            const payload = {
+                instruction: addInstruction.value.trim(),
+                input: addInput.value.trim(),
+                output: addOutput.value.trim()
+            };
+            if(!payload.instruction && !payload.input && !payload.output){
+                alert('请至少填写一个字段');
+                return;
+            }
+            fetch(addApi, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r=>{ if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+            .then(j=>{
+                if(!j.success) throw new Error(j.error||'添加失败');
+                // 追加到本地并刷新
+                rawData.push(j.item);
+                closeAdd();
+                applyFilter();
+                stat.textContent = `已加载 ${rawData.length} 条`;
+            })
+            .catch(e=>{ alert('添加失败：' + e.message); });
+        }
+
+        addBtn.addEventListener('click', openAdd);
+        addCancel.addEventListener('click', closeAdd);
+        addSubmit.addEventListener('click', submitAdd);
+        addModal.addEventListener('click', function(e){ if(e.target===addModal) closeAdd(); });
+
+        // 事件委托：监听删除按钮
+        list.addEventListener('click', function(e){
+            const t = e.target;
+            if(t && t.dataset && t.dataset.action === 'del'){
+                const id = t.dataset.id;
+                deleteItem(id);
+            }
+        });
+
+        kw.addEventListener('input', applyFilter);
+        reloadBtn.addEventListener('click', load);
+        load();
+    </script>
+</body>
+</html>

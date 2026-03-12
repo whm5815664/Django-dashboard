@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/index.css' %}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ province_name }}</title>
+</head>
+<body>
+    <div id="china-map" style="width: 100%; height: 600px;"></div>
+
+    <!-- 引入 JS 文件 -->
+    <script src="{% static 'js/flexible.js' %}"></script>
+    <script src="{% static 'js/echarts.min.js' %}"></script>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/china.js' %}"></script>
+    {% for js_file in js_files %}
+        <script src="{% static 'js/province/' %}{{ js_file }}"></script>
+    {% endfor %}
+
+    <script>
+        // 地图
+        (function () {
+            var myChart = echarts.init(document.getElementById('china-map'));
+
+            var mydata = [
+
+            ];
+
+            var series = [
+                {
+                    name: '{{ province_name }}省产量',
+                    type: 'map',
+                    map: '{{ province_name }}',
+                    roam: true,
+                    zoom: 1.5,
+                    label: {
+                        show: true,
+                        color: '#fff',
+                        fontSize: 12,
+                        emphasis: {
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            fontSize: 12,
+                        }
+                    },
+                    itemStyle: {
+                        normal: {
+                            areaColor: 'rgba(34, 70, 168, 0.7)',
+                            borderColor: '#0692a4',
+                            borderWidth: 1
+                        },
+                        emphasis: {
+                            areaColor: '#fff'
+                        }
+                    },
+                    data: mydata
+                }
+            ];
+
+            var option = {
+                tooltip: {
+                    trigger: 'item',
+                },
+                title: {
+                    text: '全国各地区柑橘产量',
+                    subtext: '数据来源：国家统计局',
+                    x: 'center',
+                    textStyle: {
+                        color: '#fff',
+                        fontSize: 18
+                    },
+                    subtextStyle: {
+                        color: '#fff',
+                        fontSize: 14
+                    }
+                },
+                visualMap: {
+                    show: true,
+                    x: 'left',
+                    y: 'bottom',
+                    splitList: [
+                        { start: 600, end: 1500 },
+                        { start: 400, end: 600 },
+                        { start: 200, end: 400 },
+                        { start: 0, end: 200 },
+                        { start: 0, end: 0 }
+                    ],
+                    color: ['#003366', '#004080', '#00509e', '#0066cc', '#0077b3'],
+                    textStyle: {
+                        color: '#fff',
+                        fontSize: 14
+                    }
+                },
+                series: series
+            };
+
+            myChart.setOption(option);
+
+            myChart.on('click', function (params) {
+                var cityName = params.name;
+                console.log(params.properties)
+
+            });
+
+
+            window.addEventListener('resize', function () {
+                myChart.resize();
+            });
+        })();
+    </script>
+</body>
+</html>

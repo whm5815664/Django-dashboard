@@ -1,0 +1,616 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农业文本知识图谱抽取</title>
+    <style>
+        /* ========== 全局样式重置 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* ========== 基础样式 ========== */
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* ========== 背景动画效果 ========== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            animation: backgroundShift 20s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes backgroundShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* ========== 主容器样式 ========== */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* ========== 顶部导航栏 ========== */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* ========== LOGO容器 ========== */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* ========== LOGO样式 ========== */
+        .logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(120, 219, 255, 0.5));
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo:hover {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 0 30px rgba(120, 219, 255, 0.8));
+        }
+        
+        /* ========== 系统标题 ========== */
+        .system-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #78dfff, #ff77c6, #7877c6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(120, 219, 255, 0.5);
+        }
+        
+        /* ========== 状态指示器 ========== */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* ========== 主内容容器样式 ========== */
+        .content-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .content-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(120, 219, 255, 0.5), transparent);
+        }
+        
+        /* ========== 卡片样式 ========== */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* ========== 标题样式 ========== */
+        h1 {
+            font-size: 1.8em;
+            margin: 0 0 20px;
+            color: #ffffff;
+            font-weight: 700;
+            background: linear-gradient(135deg, #78dfff, #ff77c6, #7877c6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h3 {
+            font-size: 1.2em;
+            margin: 0 0 15px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        /* ========== 文本区域样式 ========== */
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            outline: none;
+            resize: vertical;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus {
+            border-color: rgba(120, 219, 255, 0.6);
+            box-shadow: 0 0 20px rgba(120, 219, 255, 0.3);
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* ========== 按钮样式 ========== */
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000000;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 255, 136, 0.4);
+        }
+        
+        button:disabled {
+            background: linear-gradient(135deg, #666666, #444444);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* ========== 网格布局 ========== */
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        /* ========== 表格样式 ========== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+            text-align: left;
+        }
+        
+        th {
+            background: rgba(120, 219, 255, 0.1);
+            color: #78dfff;
+            font-weight: 600;
+        }
+        
+        td {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        /* ========== 错误信息样式 ========== */
+        .error {
+            color: #ff4757;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* ========== iframe样式 ========== */
+        iframe {
+            width: 100%;
+            height: 680px;
+            border: 0;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* ========== 间距工具类 ========== */
+        .mt8 { margin-top: 8px; }
+        .mt12 { margin-top: 12px; }
+        .mt16 { margin-top: 16px; }
+        .mt20 { margin-top: 20px; }
+        
+        /* ========== 静音文本样式 ========== */
+        .muted {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+        }
+        
+        /* ========== 标签样式 ========== */
+        .pill {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(120, 219, 255, 0.1);
+            border: 1px solid rgba(120, 219, 255, 0.3);
+            color: #78dfff;
+            font-size: 12px;
+            margin-right: 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .pill:hover {
+            background: rgba(120, 219, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(120, 219, 255, 0.3);
+        }
+        
+        /* ========== 弹性布局 ========== */
+        .flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        
+        /* ========== 返回按钮样式 ========== */
+        .back-button {
+            position: relative;
+            z-index: 1000;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            color: #78dfff;
+        }
+        
+        .back-link i {
+            font-size: 16px;
+        }
+        
+        /* ========== 科技感装饰元素 ========== */
+        .tech-decoration {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(120, 219, 255, 0.3);
+            border-radius: 50%;
+            animation: rotate 20s linear infinite;
+        }
+        
+        .tech-decoration:nth-child(1) {
+            top: 10%;
+            right: 10%;
+            animation-delay: 0s;
+        }
+        
+        .tech-decoration:nth-child(2) {
+            bottom: 20%;
+            left: 5%;
+            animation-delay: -10s;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ========== 响应式设计 ========== */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 10px;
+            }
+            
+            .top-nav {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .system-title {
+                font-size: 1.4em;
+            }
+            
+            .content-container {
+                padding: 20px;
+                border-radius: 20px;
+            }
+            
+            .row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .back-button {
+                top: 10px;
+                left: 10px;
+            }
+            
+            .back-link {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/font-awesome-4.7.0/css/font-awesome.min.css' %}" media="all">
+</head>
+<body>
+    <!-- 科技感装饰元素 -->
+    <div class="tech-decoration"></div>
+    <div class="tech-decoration"></div>
+    
+    <!-- ========== 主容器 ========== -->
+    <div class="main-container">
+        <!-- ========== 顶部导航栏 ========== -->
+        <div class="top-nav">
+            <!-- LOGO和标题容器 -->
+            <div class="logo-container">
+                <!-- AIoT实验室LOGO -->
+                <img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT实验室" class="logo">
+                <!-- 系统标题 -->
+                <div class="system-title">农业文本知识图谱抽取</div>
+            </div>
+            
+            <!-- 返回按钮 -->
+            <div class="back-button">
+                <a href="javascript:history.back()" class="back-link">
+                    <i class="fa fa-arrow-left"></i> 返回
+                </a>
+            </div>
+        </div>
+
+        <!-- ========== 主内容容器 ========== -->
+        <div class="content-container">
+            <form method="post" class="card" action="">
+                {% csrf_token %}
+                <label for="text" class="muted">输入一段与农业相关的文字（病害、作物等）：</label>
+                <textarea id="text" name="text" placeholder="例如：华南柑橘区炭疽病进入高发期，持续阴雨天气加速病原传播...">{{ input_text }}</textarea>
+                <div class="mt12">
+                    <button id="submitBtn" type="submit">抽取并生成关系图</button>
+                </div>
+                {% if error %}
+                <div class="error">{{ error }}</div>
+                {% endif %}
+            </form>
+
+            <!-- 始终渲染表格区域，便于JS更新 -->
+            <div class="row">
+                <div class="card">
+                    <h3>实体</h3>
+                    <table>
+                        <thead>
+                            <tr><th>名称</th><th>类型</th></tr>
+                        </thead>
+                        <tbody id="entitiesBody">
+                            {% if entities %}
+                            {% for e in entities %}
+                            <tr>
+                                <td>{{ e.name }}</td>
+                                <td>{{ e.type }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="2" class="muted">无</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h3>关系列表（感染/被感染）</h3>
+                    <table>
+                        <thead>
+                            <tr><th>源</th><th>关系</th><th>目标</th></tr>
+                        </thead>
+                        <tbody id="edgesBody">
+                            {% if edges %}
+                            {% for r in edges %}
+                            <tr>
+                                <td>{{ r.source }}</td>
+                                <td>{{ r.relation }}</td>
+                                <td>{{ r.target }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr><td colspan="3" class="muted">无</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 始终渲染关系图区域，JS设置srcdoc -->
+            <div class="card mt16">
+                <h3>关系图</h3>
+                <iframe id="graphFrame" srcdoc="{{ graph_html|default:''|escape }}"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        function getCookie(name){
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if(parts.length === 2) return parts.pop().split(';').shift();
+        }
+        const form = document.querySelector('form');
+        const btn = document.getElementById('submitBtn');
+        const textarea = document.getElementById('text');
+        const errBox = document.querySelector('.error');
+        const entitiesBody = document.getElementById('entitiesBody');
+        const edgesBody = document.getElementById('edgesBody');
+        const iframe = document.getElementById('graphFrame');
+
+        function renderEntities(entities){
+            if(!entities || !entities.length){
+                entitiesBody.innerHTML = '<tr><td colspan="2" class="muted">无</td></tr>';
+                return;
+            }
+            entitiesBody.innerHTML = entities.map(e => `\n<tr>\n  <td>${e.name}</td>\n  <td>${e.type}</td>\n</tr>`).join('');
+        }
+        function renderEdges(edges){
+            if(!edges || !edges.length){
+                edgesBody.innerHTML = '<tr><td colspan="3" class="muted">无</td></tr>';
+                return;
+            }
+            edgesBody.innerHTML = edges.map(r => `\n<tr>\n  <td>${r.source}</td>\n  <td>${r.relation}</td>\n  <td>${r.target}</td>\n</tr>`).join('');
+        }
+        function setLoading(loading){
+            if(loading){ btn.setAttribute('disabled', 'disabled'); }
+            else { btn.removeAttribute('disabled'); }
+        }
+
+        form.addEventListener('submit', async function(e){
+            e.preventDefault();
+            const text = (textarea.value || '').trim();
+            if(errBox){ errBox.textContent = ''; }
+            if(!text){
+                if(errBox){ errBox.textContent = '请输入文本后再提交。'; }
+                return;
+            }
+            setLoading(true);
+            try{
+                const resp = await fetch('{% url "graph_extract" %}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || (document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '')
+                    },
+                    body: JSON.stringify({ text })
+                });
+                const data = await resp.json();
+                if(!resp.ok){
+                    throw new Error(data && data.error ? data.error : ('请求失败 ' + resp.status));
+                }
+                renderEntities(data.entities);
+                renderEdges(data.edges);
+                if(iframe){ iframe.setAttribute('srcdoc', data.graph_html || ''); }
+            }catch(err){
+                if(errBox){ errBox.textContent = err.message || String(err); }
+            }finally{
+                setLoading(false);
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,2999 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据可视化</title>
+    <style>
+      /* === 覆盖 index.css：地图做全屏背景，面板悬浮在上层 === */
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        /* 最底层背景图（bg.jpg） */
+        background: url("{% static 'images/bg.jpg' %}") no-repeat top center !important;
+        background-size: cover !important;
+      }
+
+      /* 顶部标题固定悬浮 */
+      header {
+        /* 保持原 index.css 的头部背景与占位，不再覆盖地图 */
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        column-gap: 12px;
+      }
+      .logo { justify-self: start; margin-left: 4ch; }
+      .logo img { height: 42px; display: block; }
+      header h1 { margin: 0; justify-self: center; }
+      .show-time { justify-self: end; }
+
+      /* 地图全屏铺底 */
+      .map-bg {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 1.25rem; /* 让地图从头部下方开始 */
+        z-index: 1; /* 地图层高于 bg.jpg */
+      }
+      #GaodeMap {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* 面板层 */
+      .overlay {
+        position: fixed;
+        top: 1.25rem; /* 对齐头部高度，避免覆盖头部 */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10; /* 面板层高于地图 */
+        pointer-events: none; /* 默认不吃事件，面板自身再开启 */
+      }
+
+      .overlay .side {
+        position: absolute;
+        top: 0.2rem;
+        bottom: 0.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.18rem;
+        pointer-events: auto;
+      }
+      /* 按屏幕比例：左 1/6，右 2/6，中间留给地图 */
+      .overlay .side.left { left: 0.2rem; width: 20vw; }
+      .overlay .side.right { right: 0.2rem; width: 20vw; }
+
+      /* 复用 index.css 的 panel 外观，但让其更“玻璃感” */
+      .overlay .panel {
+        margin-bottom: 0 !important;
+        height: auto !important;
+        background: rgba(0, 0, 0, 0.25) !important;
+        backdrop-filter: blur(6px);
+      }
+      .overlay .panel .chart { height: 3.05rem; }
+
+      /* 左侧三块：各占 1/3 高度 */
+      .left .panel { flex: 1; min-height: 0; }
+      .left .panel .chart { height: calc(100% - 0.6rem - 0.5rem); } /* 减去 h2 + footer 预留 */
+
+      /* 左侧图表标题：居中、白色；图表区域贴底 */
+      .overlay .side.left .panel {
+        display: flex;
+        flex-direction: column;
+      }
+      .overlay .side.left .panel > h2 {
+        text-align: center;
+        color: #fff;
+        font-size: 0.26rem;
+        padding: 0.08rem 0 0;
+        box-sizing: border-box;
+      }
+      .overlay .side.left .panel .chart {
+        flex: 1;
+        min-height: 0;
+        /* 图表区域在面板中部显示（不再贴底） */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.12rem 0;
+      }
+
+      /* 右侧：顶部数字两块 + 底部监控 */
+      .right-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.18rem;
+      }
+      .stat-card {
+        position: relative;
+        border: 1px solid rgba(25, 186, 139, 0.17);
+        background: rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(6px);
+        padding: 0.12rem 0.12rem 0.18rem;
+        min-height: 1.45rem;
+      }
+      .stat-card .value {
+        font-family: electronicFont, monospace;
+        color: #ffeb7b;
+        font-size: 0.65rem;
+        line-height: 0.9rem;
+        text-align: center;
+        margin-top: 0.05rem;
+      }
+      .stat-card .label {
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 0.22rem;
+        text-align: center;
+        margin-top: 0.05rem;
+      }
+      .stat-card::before, .stat-card::after {
+        position: absolute;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        content: '';
+      }
+      .stat-card::before { left: 0; border-left: 2px solid #02a6b5; border-top: 2px solid #02a6b5; }
+      .stat-card::after { right: 0; border-right: 2px solid #02a6b5; border-top: 2px solid #02a6b5; }
+
+      /* 右侧基地详情面板 */
+      .baseinfo-panel {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        position: relative; /* 作为工具按钮定位的参照 */
+      }
+      /* 合并后的统一内容框 */
+      .baseinfo-unified {
+        flex: 1;
+        min-height: 0;
+        border: 1px solid rgba(25, 186, 139, 0.17);
+        background: rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(6px);
+        border-radius: 6px;
+        padding: 0.1rem 0.12rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+      }
+      .baseinfo-body {
+        flex: 1;
+        min-height: 0;
+        padding: 0.1rem 0.16rem 0.14rem;
+        overflow: auto;
+      }
+      /* 环境数据图表容器 */
+      #base-environment-chart {
+        flex: 2;
+        min-height: 0;
+        display: none;
+        padding: 0.1rem 0; /* 只保留上下padding，左右拉满 */
+        position: relative;
+      }
+      #base-environment-chart .chart {
+        height: 100%;
+        width: 100%;
+      }
+      /* device_id切换下拉列表容器 */
+      #base-environment-device-switch {
+        display: flex;
+        justify-content: center;
+        padding: 0.08rem 0.12rem;
+        margin-bottom: 0.05rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .device-switch-select {
+        padding: 0.06rem 0.2rem;
+        border: 1px solid rgba(25, 186, 139, 0.3);
+        background: rgba(0, 0, 0, 0.4);
+        color: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        font-size: 0.18rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        outline: none;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .device-switch-select:hover {
+        border-color: rgba(25, 186, 139, 0.5);
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .device-switch-select:focus {
+        border-color: rgba(25, 186, 139, 0.8);
+        background: rgba(0, 0, 0, 0.6);
+      }
+      .device-switch-select option {
+        background: rgba(15, 23, 42, 0.95);
+        color: rgba(255, 255, 255, 0.9);
+        padding: 0.08rem;
+      }
+      /* 基地图片容器 */
+      .baseinfo-image-container {
+        flex: 2;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.1rem 0;
+        overflow: hidden;
+        position: relative;
+        z-index: 1; /* 确保在工具栏下方（工具栏z-index是20） */
+      }
+      .baseinfo-empty {
+        color: rgba(255,255,255,0.75);
+        font-size: 0.22rem;
+        line-height: 0.36rem;
+        padding-top: 0.08rem;
+        text-align: center;
+      }
+      .baseinfo-image-container img {
+        width: 100%;
+        max-height: 100%;
+        border-radius: 6px;
+        object-fit: cover;
+      }
+      .baseinfo-image-empty {
+        color: rgba(255,255,255,0.6);
+        font-size: 0.2rem;
+        text-align: center;
+      }
+      .baseinfo-kv {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.08rem;
+      }
+      .baseinfo-row {
+        display: grid;
+        grid-template-columns: 0.6rem 1fr;
+        gap: 0.12rem;
+        align-items: start;
+      }
+      .baseinfo-row-inline {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.2rem;
+        align-items: start;
+      }
+      .baseinfo-row-inline-item {
+        display: grid;
+        grid-template-columns: 0.6rem 1fr;
+        gap: 0.12rem;
+        align-items: start;
+      }
+      .baseinfo-key {
+        color: rgba(255,255,255,0.65);
+        font-size: 0.22rem;
+        text-align: left;
+        white-space: nowrap;
+      }
+      .baseinfo-key.no-padding {
+        padding-left: 0;
+      }
+      .baseinfo-val {
+        color: rgba(255,255,255,0.92);
+        font-size: 0.22rem;
+        word-break: break-word;
+      }
+      /* 顶部中央搜索栏 */
+      .top-search {
+        position: absolute;
+        top: 0.2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 0.12rem;
+        padding: 0.08rem 0.16rem;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.45);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+        backdrop-filter: blur(8px);
+        pointer-events: auto;
+      }
+      .top-search-inner {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.12rem;
+      }
+      .top-search input {
+        width: 3.8rem;
+        border: none;
+        outline: none;
+        padding: 0.08rem 0.16rem;
+        border-radius: 999px;
+        font-size: 0.22rem;
+        background: rgba(255,255,255,0.96);
+        color: #333;
+      }
+      .top-search button {
+        border: none;
+        outline: none;
+        padding: 0.08rem 0.26rem;
+        border-radius: 999px;
+        font-size: 0.22rem;
+        cursor: pointer;
+        color: #fff;
+        background: linear-gradient(135deg,#02a6b5,#1890ff);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+        white-space: nowrap;
+      }
+      .top-search button:hover {
+        background: linear-gradient(135deg,#12c2e9,#1890ff);
+      }
+      .top-search-suggest {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 6px);
+        max-height: 3.2rem;
+        overflow: auto;
+        padding: 6px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.98);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+        display: none;
+        z-index: 30;
+      }
+      .top-search-suggest .item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #333;
+        font-size: 14px;
+      }
+      .top-search-suggest .item:hover {
+        background: #e6f7ff;
+      }
+      .top-search-suggest .name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .top-search-suggest .meta {
+        color: #666;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .top-search-suggest .empty {
+        padding: 10px;
+        color: #888;
+        text-align: center;
+        font-size: 13px;
+      }
+      /* 工具箱按钮与弹窗 */
+      .toolbox-button {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+        border: none;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 30% 30%, #34d399, #059669);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+        cursor: pointer;
+        font-size: 0.3rem;
+      }
+      .toolbox-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+      }
+      .toolbox-rail {
+        position: absolute;
+        left: 0.08rem;
+        bottom: 0.12rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        z-index: 20;
+      }
+      .toolbox-button-agent {
+        background: radial-gradient(circle at 30% 30%, #38bdf8, #0ea5e9);
+      }
+      .toolbox-modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 40;
+      }
+      .toolbox-modal {
+        width: 5.2rem;
+        max-width: 90vw;
+        background: rgba(15,23,42,0.96);
+        border-radius: 12px;
+        box-shadow: 0 18px 45px rgba(0,0,0,0.65);
+        border: 1px solid rgba(148,163,184,0.4);
+        padding: 0.24rem 0.28rem 0.3rem;
+        color: #e5e7eb;
+      }
+      .toolbox-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.18rem;
+      }
+      .toolbox-modal-header h2 {
+        font-size: 0.26rem;
+        margin: 0;
+      }
+      .toolbox-modal-header button {
+        border: none;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 0.26rem;
+        cursor: pointer;
+      }
+      .toolbox-modal-header button:hover {
+        color: #e5e7eb;
+      }
+      .toolbox-modal-desc {
+        font-size: 0.2rem;
+        color: #9ca3af;
+        margin-bottom: 0.18rem;
+      }
+      .toolbox-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.18rem;
+      }
+      .toolbox-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.08rem;
+        border-radius: 10px;
+        padding: 0.14rem 0.14rem 0.12rem;
+        background: radial-gradient(circle at 0 0, rgba(52,211,153,0.12), rgba(15,23,42,0.9));
+        border: 1px solid rgba(55,65,81,0.8);
+        text-decoration: none;
+        color: #e5e7eb;
+      }
+      .toolbox-item:hover {
+        border-color: #34d399;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      }
+      .toolbox-item-title {
+        display: flex;
+        align-items: center;
+        gap: 0.1rem;
+        font-size: 0.22rem;
+        font-weight: 600;
+      }
+      .toolbox-item-title i {
+        font-size: 0.26rem;
+      }
+      .toolbox-item-text {
+        font-size: 0.18rem;
+        color: #9ca3af;
+      }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/layui/css/layui.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome-4.7.0/css/font-awesome.min.css' %}" media="all">
+    <link rel="stylesheet" href="{% static 'css/index.css' %}" />
+    <script src="{% static 'css/echarts/echarts.min.js' %}"></script>
+  </head>
+
+  <body>
+    <!-- 头部 -->
+    <header>
+      <div class="logo"><img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT Logo"></div>
+      <h1>AIoT农业多模态数据可视化平台</h1>
+      <div class="show-time"></div>
+      <script>
+        var t = null;
+        t = setTimeout(time, 1000); //开始运行
+        function time() {
+          clearTimeout(t); //清除定时器
+          dt = new Date();
+          var y = dt.getFullYear();
+          var mt = dt.getMonth() + 1;
+          var day = dt.getDate();
+          var h = dt.getHours(); //获取时
+          var m = dt.getMinutes(); //获取分
+          var s = dt.getSeconds(); //获取秒
+          document.querySelector(".show-time").innerHTML =
+            "当前时间：" + y + "年" + mt + "月" + day + "日-" + h + "时" + m + "分" + s + "秒";
+          t = setTimeout(time, 1000); //设定定时器，循环运行
+        }
+      </script>
+    </header>
+
+    <!-- 地图背景（铺底） -->
+    <div class="map-bg">
+      <div id="GaodeMap"></div>
+    </div>
+
+    <!-- 悬浮面板层 -->
+    <div class="overlay">
+      <!-- 顶部中央搜索栏：按基地编号或名称定位 -->
+      <div class="top-search">
+        <div class="top-search-inner">
+          <input
+            id="base-search-input"
+            type="text"
+            placeholder="输入基地编号或名称"
+            autocomplete="off"
+            onkeydown="if (event.key === 'Enter') { handleBaseSearch(); }"
+            oninput="handleBaseSuggest()"
+            onfocus="handleBaseSuggest()"
+          />
+          <div id="base-search-suggest" class="top-search-suggest"></div>
+        </div>
+        <button type="button" onclick="handleBaseSearch()">搜索</button>
+      </div>
+      <!-- 左侧：3个窗格（当日温湿度、湖北柑橘总产量、湖北不同品种产量） -->
+      <div class="side left">
+        <div class="panel bar2">
+          <h2>当日温湿度（数据来源：湖北气象局）</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+
+        <div class="panel line2">
+          <h2>湖北柑橘总产量</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+
+        <div class="panel pie2">
+          <h2>湖北不同品种产量（按月）</h2>
+          <div id="pie2-months" style="padding:6px 10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center;"></div>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+      </div>
+
+      <!-- 右侧：顶部2个数字小窗格 + 右下角监控 -->
+      <div class="side right">
+        <div class="right-top">
+          <div class="stat-card">
+            <div class="value" id="stat-total-production">588.7</div>
+            <div class="label">柑橘总产量（万吨）</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="stat-base-count">3</div>
+            <div class="label">示范基地数（个）</div>
+          </div>
+        </div>
+
+        <div class="panel baseinfo-panel">
+          <h2>基地信息</h2>
+          <!-- 合并后的统一内容框 -->
+          <div class="baseinfo-unified">
+            <!-- 文字基地信息 -->
+            <div class="baseinfo-body" id="base-info">
+              <div class="baseinfo-empty">点击地图钉查看基地详情</div>
+            </div>
+            <!-- 环境数据图表 -->
+            <div id="base-environment-device-switch" style="display: none;"></div>
+            <div id="base-environment-chart" style="display: none;">
+              <div class="chart"></div>
+            </div>
+            <!-- 基地图片 -->
+            <div class="baseinfo-image-container" id="base-image-container">
+              <div class="baseinfo-image-empty" style="display: none;">暂无基地图片</div>
+            </div>
+          </div>
+          <!-- 工具箱与智能体按钮：位于基地信息框左下角，竖直排列 -->
+          <div class="toolbox-rail">
+            <a href="{% url 'baseIndex'%}" class="toolbox-button" title="进入基地列表">
+              <i class="fa fa-plus"></i>
+            </a>
+            <button type="button" class="toolbox-button" onclick="openToolboxModal()" title="深度学习工具箱">
+              <i class="fa fa-wrench"></i>
+            </button>
+            <button type="button" class="toolbox-button toolbox-button-agent" onclick="openAgentModal()" title="智能体助手">
+              <i class="fa fa-android"></i>
+            </button>
+          </div>
+          <div class="panel-footer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 深度学习工具箱弹窗 -->
+    <div id="toolbox-modal-mask" class="toolbox-modal-mask" onclick="if (event.target.id === 'toolbox-modal-mask') closeToolboxModal();">
+      <div class="toolbox-modal">
+        <div class="toolbox-modal-header">
+          <h2>深度学习工具箱</h2>
+          <button type="button" onclick="closeToolboxModal()">&times;</button>
+        </div>
+        <div class="toolbox-modal-desc">
+          选择下列工具进入对应的深度学习功能模块。
+        </div>
+        <div class="toolbox-grid">
+          <a href="{% url 'upload' %}" class="toolbox-item">
+            <div class="toolbox-item-title">
+              <i class="fa fa-search"></i>
+              <span>疾病识别</span>
+            </div>
+            <div class="toolbox-item-text">上传作物图像，进行病虫害智能识别。</div>
+          </a>
+          <a href="{% url 'chat' %}" class="toolbox-item">
+            <div class="toolbox-item-title">
+              <i class="fa fa-comments"></i>
+              <span>智能问答</span>
+            </div>
+            <div class="toolbox-item-text">面向农业领域的对话与知识问答。</div>
+          </a>
+          <a href="" class="toolbox-item">
+            <div class="toolbox-item-title">
+              <i class="fa fa-video-camera"></i>
+              <span>实时监控</span>
+            </div>
+            <div class="toolbox-item-text">接入监控视频流，查看基地实时画面。</div>
+          </a>
+          <a href="{% url 'graph' %}" class="toolbox-item">
+            <div class="toolbox-item-title">
+              <i class="fa fa-bar-chart"></i>
+              <span>数据分析</span>
+            </div>
+            <div class="toolbox-item-text">基于多模态数据的可视化分析与挖掘。</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 智能体助手弹窗（小窗贴近按钮） -->
+    <iframe
+      id="agent-iframe"
+      src="/aiModels/agent"
+      style="
+        display: none;
+        position: fixed;
+        width: 320px;
+        height: 420px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 14px 40px rgba(0,0,0,0.2);
+        z-index: 4000;
+        background: #fff;
+        pointer-events: auto;
+      "
+      allow="clipboard-write *"
+      scrolling="no"
+    ></iframe>
+    <!-- 拖拽手柄：放在 iframe 顶部（父页面实现拖拽，避免 iframe 吞事件） -->
+    <div
+      id="agent-drag-handle"
+      style="
+        display:none;
+        position: fixed;
+        width: 320px;
+        height: 38px;
+        z-index: 4001;
+        cursor: move;
+        border-radius: 12px 12px 0 0;
+        background: rgba(255,255,255,0.01);
+        user-select: none;
+      "
+      title="按住拖动"
+    ></div>
+
+    <script src="{% static 'js/flexible.js' %}"></script>
+    <script src="{% static 'js/echarts.min.js' %}"></script>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script>
+      function openToolboxModal() {
+        var mask = document.getElementById('toolbox-modal-mask');
+        if (mask) {
+          mask.style.display = 'flex';
+        }
+      }
+      function closeToolboxModal() {
+        var mask = document.getElementById('toolbox-modal-mask');
+        if (mask) {
+          mask.style.display = 'none';
+        }
+      }
+
+      // --- 智能体小窗：定位/拖拽 ---
+      function _syncAgentDragHandle() {
+        var iframe = document.getElementById('agent-iframe');
+        var handle = document.getElementById('agent-drag-handle');
+        if (!iframe || !handle) return;
+        if (iframe.style.display === 'none') {
+          handle.style.display = 'none';
+          return;
+        }
+        handle.style.display = 'block';
+        handle.style.left = iframe.style.left;
+        handle.style.top = iframe.style.top;
+        handle.style.width = iframe.style.width;
+      }
+
+      function _setAgentPos(left, top) {
+        var iframe = document.getElementById('agent-iframe');
+        if (!iframe) return;
+        iframe.style.left = left + 'px';
+        iframe.style.top = top + 'px';
+        _syncAgentDragHandle();
+      }
+
+      function _clampAgentPos(left, top) {
+        var w = 320, h = 420;
+        var pad = 12;
+        var maxLeft = Math.max(pad, window.innerWidth - w - pad);
+        var maxTop = Math.max(pad, window.innerHeight - h - pad);
+        var cl = Math.min(Math.max(left, pad), maxLeft);
+        var ct = Math.min(Math.max(top, pad), maxTop);
+        return { left: cl, top: ct };
+      }
+
+      function openAgentModal() {
+        var iframe = document.getElementById('agent-iframe');
+        if (!iframe) return;
+        // 计算小窗位置：尽量贴近按钮，默认放在按钮右侧
+        var btn = document.querySelector('.toolbox-button-agent');
+        var rect = btn ? btn.getBoundingClientRect() : null;
+        var w = 320, h = 420, gap = 10;
+        var left = 16, top = 16;
+        if (rect) {
+          // ✅ 默认放在按钮左侧
+          left = rect.left - gap - w;
+          top = rect.top + rect.height - h;
+          // 边界修正
+          if (left < 12) {
+            // 左侧放不下则退化到右侧
+            left = rect.right + gap;
+          }
+          if (left + w > window.innerWidth - 12) left = window.innerWidth - w - 12;
+          if (top < 12) top = rect.bottom + gap;
+          if (top + h > window.innerHeight - 12) top = window.innerHeight - h - 12;
+        }
+        var clamped = _clampAgentPos(left, top);
+        iframe.style.left = clamped.left + 'px';
+        iframe.style.top = clamped.top + 'px';
+        iframe.style.display = 'block';
+        _syncAgentDragHandle();
+
+        // 尝试直接调用（如果已加载）
+        try {
+          if (iframe.contentWindow && iframe.contentWindow.openAgentModal) {
+            iframe.contentWindow.openAgentModal();
+            return;
+          }
+        } catch (e) {
+          console.warn('无法访问 iframe contentWindow:', e);
+        }
+        
+        // 如果无法直接调用，等待 iframe 加载完成
+        iframe.onload = function() {
+          try {
+            iframe.style.display = 'block';
+            if (iframe.contentWindow && iframe.contentWindow.openAgentModal) {
+              iframe.contentWindow.openAgentModal();
+            }
+          } catch (e) {
+            console.error('调用 iframe openAgentModal 失败:', e);
+          }
+        };
+        
+        // 如果 iframe 还未开始加载，触发加载
+        if (!iframe.src || iframe.src === 'about:blank') {
+          iframe.src = '/aiModels/agent';
+        }
+      }
+
+      // 监听子页面关闭指令，隐藏 iframe
+      window.addEventListener('message', function (event) {
+        if (!event || !event.data) return;
+        if (event.data.type === 'agent-close') {
+          var iframe = document.getElementById('agent-iframe');
+          if (iframe) iframe.style.display = 'none';
+          var handle = document.getElementById('agent-drag-handle');
+          if (handle) handle.style.display = 'none';
+        }
+      });
+
+      // 拖拽逻辑（鼠标）
+      (function initAgentDrag() {
+        var handle = document.getElementById('agent-drag-handle');
+        if (!handle) return;
+        var dragging = false;
+        var offsetX = 0;
+        var offsetY = 0;
+
+        function onDown(e) {
+          var iframe = document.getElementById('agent-iframe');
+          if (!iframe || iframe.style.display === 'none') return;
+          dragging = true;
+          // 当前 iframe 左上角
+          var left = parseFloat(iframe.style.left || '0');
+          var top = parseFloat(iframe.style.top || '0');
+          offsetX = e.clientX - left;
+          offsetY = e.clientY - top;
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp, { once: true });
+          e.preventDefault();
+        }
+
+        function onMove(e) {
+          if (!dragging) return;
+          var newLeft = e.clientX - offsetX;
+          var newTop = e.clientY - offsetY;
+          var clamped = _clampAgentPos(newLeft, newTop);
+          _setAgentPos(clamped.left, clamped.top);
+          e.preventDefault();
+        }
+
+        function onUp() {
+          dragging = false;
+          document.removeEventListener('mousemove', onMove);
+        }
+
+        handle.addEventListener('mousedown', onDown);
+        window.addEventListener('resize', function () {
+          // resize 后保持在可视范围内
+          var iframe = document.getElementById('agent-iframe');
+          if (!iframe || iframe.style.display === 'none') return;
+          var left = parseFloat(iframe.style.left || '0');
+          var top = parseFloat(iframe.style.top || '0');
+          var clamped = _clampAgentPos(left, top);
+          _setAgentPos(clamped.left, clamped.top);
+        });
+      })();
+    </script>
+    <!-- 引入china.js 完成地图模块 -->
+    <script src="{% static 'js/china.js' %}"></script>
+
+    <!-- layui表格样式 -->
+    <script src="{% static 'css/layui/layui.js' %}"></script>
+    <script>
+    layui.use('element', function(){
+      var element = layui.element;
+    });
+    </script>
+  </body>
+</html>
+
+
+
+<script>
+// 图标可视化（立即执行函数，防止变量污染 (function() {})();）
+// 省份温度折线图模块 - 样式与.line2 .chart保持一致
+(function () {
+  var myChart = echarts.init(document.querySelector(".bar2 .chart"));
+  var temperatureData = []; // 存储温度历史数据
+  var humidityData = []; // 存储湿度历史数据
+  var timeLabels = []; // 存储时间标签
+  var maxDataPoints = 8; // 最多显示8个数据点
+  var provinceName = "{{ province_name }}"; // 获取省份名称
+  var updateInterval; // 存储定时器引用
+
+  // 温度图表配置 - 与.line2 .chart样式完全一致
+  var option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        var result = params[0].axisValue + '<br/>';
+        params.forEach(function(item) {
+          if (item.seriesName.includes('温度')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '°C<br/>';
+          } else if (item.seriesName.includes('湿度')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '%<br/>';
+          }
+        });
+        return result;
+      }
+    },
+    legend: {
+      top: "0%",
+      textStyle: {
+        color: "rgba(255,255,255,.5)",
+        fontSize: "12"
+      }
+    },
+    grid: {
+      top: '30',
+      left: '10',
+      right: '30',
+      bottom: '10',
+      containLabel: true
+    },
+    xAxis: [{
+      type: 'category',
+      boundaryGap: false,
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.2)"
+        }
+      },
+      data: timeLabels
+    }],
+    yAxis: [{
+      type: 'value',
+      name: '温度(°C)',
+      nameTextStyle: {
+        color: "rgba(255,255,255,.6)",
+        fontSize: 12
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      },
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      }
+    }, {
+      type: 'value',
+      name: '湿度(%)',
+      nameTextStyle: {
+        color: "rgba(255,255,255,.6)",
+        fontSize: 12
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      },
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      splitLine: {
+        show: false
+      }
+    }],
+    series: [{
+        name: '温度',
+        type: 'line',
+        yAxisIndex: 0,
+        smooth: true,
+        lineStyle: {
+          color: "#ff6b6b",
+          width: 2
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0, 0, 0, 1,
+            [{ offset: 0, color: "rgba(255, 107, 107, 0.4)" },
+             { offset: 0.8, color: "rgba(255, 107, 107, 0.1)" }],
+            false
+          ),
+          shadowColor: "rgba(0, 0, 0, 0.1)"
+        },
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        itemStyle: {
+          color: "#ff6b6b",
+          borderColor: "rgba(221, 220, 107, .1)",
+          borderWidth: 12
+        },
+        data: temperatureData
+      }, {
+        name: '湿度',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        lineStyle: {
+          color: "#4ecdc4",
+          width: 2
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0, 0, 0, 1,
+            [{ offset: 0, color: "rgba(78, 205, 196, 0.4)" },
+             { offset: 0.8, color: "rgba(78, 205, 196, 0.1)" }],
+            false
+          ),
+          shadowColor: "rgba(0, 0, 0, 0.1)"
+        },
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        itemStyle: {
+          color: "#4ecdc4",
+          borderColor: "rgba(78, 205, 196, .1)",
+          borderWidth: 12
+        },
+        data: humidityData
+      }]
+  };
+
+  // 获取省份温度数据
+  function getProvinceTemperatureData() {
+    $.ajax({
+      url: "{% url 'get_province_temperature' %}",
+      type: "GET",
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          var data = response.data;
+          var history = data.history || [];
+          
+          // 清空现有数据
+          temperatureData = [];
+          humidityData = [];
+          timeLabels = [];
+          
+          // 获取最近8条数据
+          var recentData = history.slice(-maxDataPoints);
+          
+          recentData.forEach(function(item) {
+            temperatureData.push(item.temperature);
+            humidityData.push(item.humidity);
+            timeLabels.push(item.time);
+          });
+          
+          // 更新图表
+          myChart.setOption({
+            xAxis: { data: timeLabels },
+            series: [
+              { data: temperatureData },
+              { data: humidityData }
+            ]
+          });
+          
+          console.log(provinceName + '温度湿度数据更新:', recentData);
+        } else {
+          console.error('获取' + provinceName + '温度数据失败:', response.error);
+        }
+      },
+      error: function(xhr) {
+        console.error(provinceName + '温度数据请求失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 启动省份温度监控
+  function startProvinceMonitoring() {
+    // 启动省份温度监控
+    $.ajax({
+      url: "{% url 'start_province_monitoring' %}",
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({
+        "province": provinceName
+      }),
+      success: function(response) {
+        if (response.success) {
+          console.log(provinceName + '温度监控已启动:', response.message);
+          // 立即获取一次数据
+          getProvinceTemperatureData();
+          
+          // 每1分钟获取一次数据（5000毫秒）
+          updateInterval = setInterval(getProvinceTemperatureData, 5000);
+        } else {
+          console.error('启动' + provinceName + '温度监控失败:', response.error);
+        }
+      },
+      error: function(xhr) {
+        console.error('启动' + provinceName + '温度监控请求失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 停止省份温度监控
+  function stopProvinceMonitoring() {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
+    }
+  }
+
+  // 初始化图表
+  myChart.setOption(option);
+  
+  // 页面加载完成后立即启动省份温度监控
+  $(document).ready(function() {
+    startProvinceMonitoring();
+  });
+
+  // 响应式调整
+  window.addEventListener('resize', function () {
+    myChart.resize();
+  });
+
+  // 页面卸载时清理定时器
+  window.addEventListener('beforeunload', function() {
+    stopProvinceMonitoring();
+  });
+})();
+
+
+//---------------------------------------------------
+// 湖北柑橘总产量(折线图模块2) - 动态循环显示
+(function () {
+  var myChart = echarts.init(document.querySelector('.line2 .chart'));
+  var provinceName = "{{ province_name }}"; // 获取省份名称
+  var allData = []; // 存储所有数据
+  var currentIndex = 0; // 当前显示的数据起始索引
+  var displayCount = 5; // 每次显示5条数据
+  var maxDataPoints = 15; // 最多保留15条数据用于循环
+  var updateInterval; // 存储定时器引用
+
+  var option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        var result = params[0].axisValue + '<br/>';
+        params.forEach(function(item) {
+          if (item.seriesName.includes('产量')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '万吨<br/>';
+          } else if (item.seriesName.includes('变化量')) {
+            result += item.marker + item.seriesName + ': ' + item.value + '万吨<br/>';
+          }
+        });
+        return result;
+      }
+    },
+    legend: {
+      top: "0%",
+      textStyle: {
+        color: "rgba(255,255,255,.5)",
+        fontSize: "12"
+      }
+    },
+    grid: {
+      top: '30',
+      left: '10',
+      right: '30',
+      bottom: '10',
+      containLabel: true
+    },
+    xAxis: [{
+      type: 'category',
+      boundaryGap: false,
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        },
+        interval: 0, // 显示所有标签
+        rotate: 0 // 不旋转标签
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.2)"
+        }
+      },
+      data: []
+    }],
+    yAxis: [{
+      type: 'value',
+      name: '万吨',
+      nameTextStyle: {
+        color: "rgba(255,255,255,.6)",
+        fontSize: 12
+      },
+      axisTick: {
+        show: false
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      },
+      axisLabel: {
+        textStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: "rgba(255,255,255,.1)"
+        }
+      }
+    }],
+    series: [{
+      name: '柑橘产量',
+      type: 'line',
+      yAxisIndex: 0,
+      smooth: true,
+      lineStyle: {
+        color: "#0184d5",
+        width: 2
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(
+          0, 0, 0, 1,
+          [{
+              offset: 0,
+              color: "rgba(1, 132, 213, 0.4)"
+            },
+            {
+              offset: 0.8,
+              color: "rgba(1, 132, 213, 0.1)"
+            }
+          ],
+          false
+        ),
+        shadowColor: "rgba(0, 0, 0, 0.1)"
+      },
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: false,
+      itemStyle: {
+        color: "#0184d5",
+        borderColor: "rgba(221, 220, 107, .1)",
+        borderWidth: 12
+      },
+      data: []
+    }, {
+      name: '变化量',
+      type: 'line',
+      yAxisIndex: 0,
+      smooth: true,
+      lineStyle: {
+        color: "#4ecdc4",
+        width: 2
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(
+          0, 0, 0, 1,
+          [{
+              offset: 0,
+              color: "rgba(78, 205, 196, 0.4)"
+            },
+            {
+              offset: 0.8,
+              color: "rgba(78, 205, 196, 0.1)"
+            }
+          ],
+          false
+        ),
+        shadowColor: "rgba(0, 0, 0, 0.1)"
+      },
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: false,
+      itemStyle: {
+        color: "#4ecdc4",
+        borderColor: "rgba(78, 205, 196, .1)",
+        borderWidth: 12
+      },
+      data: []
+    }]
+  };
+
+  // 获取省份柑橘产量数据
+  function loadProvinceCitrusData() {
+    $.ajax({
+      url: "{% url 'get_citrus_production_by_province' %}",
+      type: "GET",
+      data: {
+        province_name: provinceName
+      },
+      dataType: 'json',
+      success: function(response) {
+        if (response && response.length > 0) {
+          // 处理数据，按日期排序
+          allData = response.sort(function(a, b) {
+            return new Date(a.date) - new Date(b.date);
+          });
+          
+          // 如果数据超过15条，只保留最近的15条
+          if (allData.length > maxDataPoints) {
+            allData = allData.slice(-maxDataPoints);
+          }
+          
+          // 获取最新日期的年份
+          var latestDate = new Date(allData[allData.length - 1].date);
+          var latestYear = latestDate.getFullYear();
+          
+          // 更新图表标题
+          updateChartTitle(latestYear);
+          
+          console.log(provinceName + '柑橘产量数据加载成功:', allData);
+          console.log('最新数据年份:', latestYear);
+          
+          // 开始动态显示
+          startDynamicDisplay();
+        } else {
+          console.warn('没有找到' + provinceName + '的柑橘产量数据');
+        }
+      },
+      error: function(xhr) {
+        console.error('获取' + provinceName + '柑橘产量数据失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 更新图表标题
+  function updateChartTitle(year) {
+    var newTitle = provinceName + '柑橘总产量';
+    // 更新HTML中的标题
+    var titleElement = document.querySelector('.line2 h2');
+    if (titleElement) {
+      titleElement.textContent = newTitle;
+    }
+    console.log('图表标题已更新为:', newTitle);
+  }
+
+  // 计算单日变化量
+  function calculateDailyChanges(data) {
+    var changes = [];
+    for (var i = 0; i < data.length; i++) {
+      if (i === 0) {
+        // 第一天没有前一天数据，设为0
+        changes.push(0);
+      } else {
+        // 当日产量减去上一日产量
+        var change = data[i].production_volume - data[i-1].production_volume;
+        changes.push(change);
+      }
+    }
+    return changes;
+  }
+
+  // 更新图表显示
+  function updateChart() {
+    if (allData.length === 0) return;
+    
+    // 计算当前要显示的数据范围
+    var endIndex = Math.min(currentIndex + displayCount, allData.length);
+    var currentData = allData.slice(currentIndex, endIndex);
+    
+    // 提取日期并仅显示年份
+    var dates = currentData.map(function(item) {
+      var date = new Date(item.date);
+      return String(date.getFullYear());
+    });
+    
+    var productionData = currentData.map(function(item) {
+      return item.production_volume;
+    });
+    
+    // 计算单日变化量
+    var changeData = calculateDailyChanges(currentData);
+    
+    // 更新图表
+    myChart.setOption({
+      xAxis: { data: dates },
+      series: [
+        { data: productionData },
+        { data: changeData }
+      ]
+    });
+    
+    console.log('更新图表显示:', currentIndex, '到', endIndex - 1, '数据:', currentData);
+    console.log('单日变化量:', changeData);
+    
+    // 更新索引，实现循环
+    currentIndex = (currentIndex + 1) % Math.max(1, allData.length - displayCount + 1);
+  }
+
+  // 开始动态显示
+  function startDynamicDisplay() {
+    if (allData.length === 0) return;
+    
+    // 重置索引
+    currentIndex = 0;
+    
+    // 立即显示一次
+    updateChart();
+    
+    // 每3秒更新一次
+    updateInterval = setInterval(updateChart, 3000);
+    
+    console.log('开始动态显示' + provinceName + '柑橘产量数据');
+  }
+
+  // 停止动态显示
+  function stopDynamicDisplay() {
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
+    }
+  }
+
+  // 初始化图表
+  myChart.setOption(option);
+  
+  // 页面加载完成后立即加载数据
+  $(document).ready(function() {
+    loadProvinceCitrusData();
+  });
+
+  // 响应式调整
+  window.addEventListener('resize', function () {
+    myChart.resize();
+  });
+
+  // 页面卸载时清理定时器
+  window.addEventListener('beforeunload', function() {
+    stopDynamicDisplay();
+    stopBaseEnvironmentDisplay();
+  });
+})();
+
+
+//---------------------------------------------------
+// 饼形图2：{YYYY-MM} 不同品种产量饼图（最近最多3个月，支持点击切换与自动轮播）
+(function () {
+  var myChart = echarts.init(document.querySelector('.pie2 .chart'));
+  var provinceName = "{{ province_name }}";
+  var months = [];        // ["YYYY-MM", ...] 升序，最多3个
+  var monthToSeries = {}; // { "YYYY-MM": [{name, value}, ...] }
+  var activeIndex = 0;
+  var autoplayTimer = null;
+
+  function setTitleByMonth(monthKey) {
+    var title = provinceName + '不同品种产量（' + monthKey + '）';
+    var h2 = document.querySelector('.pie2 h2');
+    if (h2) h2.textContent = title;
+  }
+
+  function renderMonthButtons() {
+    var box = document.getElementById('pie2-months');
+    if (!box) return;
+    box.innerHTML = '';
+    months.forEach(function(m, idx) {
+      var btn = document.createElement('button');
+      btn.textContent = m;
+      btn.style.cssText = 'padding:2px 8px;border:none;border-radius:4px;cursor:pointer;font-size:12px; line-height:16px;';
+      if (idx === activeIndex) {
+        btn.style.background = '#1890ff';
+        btn.style.color = 'white';
+      } else {
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#333';
+      }
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchToIndex(idx, true);
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  function updateButtonsActive() {
+    var box = document.getElementById('pie2-months');
+    if (!box) return;
+    var buttons = box.querySelectorAll('button');
+    buttons.forEach(function(btn, idx) {
+      if (idx === activeIndex) {
+        btn.style.background = '#1890ff';
+        btn.style.color = 'white';
+      } else {
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#333';
+      }
+    });
+  }
+
+  function switchToIndex(idx, stopAutoplay) {
+    if (months.length === 0) return;
+    activeIndex = ((idx % months.length) + months.length) % months.length;
+    var key = months[activeIndex];
+    var seriesData = monthToSeries[key] || [];
+    setTitleByMonth(key);
+    updateButtonsActive();
+    myChart.setOption({
+      series: [{ data: seriesData }]
+    });
+    if (stopAutoplay) {
+      stopAutoPlay();
+    }
+  }
+
+  function startAutoPlay() {
+    stopAutoPlay();
+    autoplayTimer = setInterval(function() {
+      switchToIndex(activeIndex + 1, false);
+    }, 4000);
+  }
+
+  function stopAutoPlay() {
+    if (autoplayTimer) {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+    }
+  }
+
+  function loadData() {
+    $.ajax({
+      url: "{% url 'get_variety_production_last_months' %}",
+      type: "GET",
+      data: { province_name: provinceName, months: 3 },
+      success: function(resp) {
+        if (!resp || !resp.success) {
+          console.warn('未获取到品种产量数据');
+          return;
+        }
+        months = resp.months || [];
+        monthToSeries = resp.data || {};
+        // 初始化按钮与默认月份
+        renderMonthButtons();
+        if (months.length > 0) {
+          activeIndex = months.length - 1; // 默认展示最新月份
+          switchToIndex(activeIndex, false);
+          startAutoPlay();
+        }
+      },
+      error: function(xhr) {
+        console.error('数据加载失败:', xhr.statusText);
+      }
+    });
+  }
+
+  var option = {
+    color: ['#60cda0', '#ed8884', '#ff9f7f', '#0096ff', '#9fe6b8', '#32c5e9', '#1d9dff'],
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b} : {c} ({d}%)'
+    },
+    legend: {
+      bottom: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: {
+        color: "rgba(255,255,255,.5)",
+        fontSize: 10
+      }
+    },
+    series: [{
+      name: '品种分布',
+      type: 'pie',
+      radius: ["10%", "60%"],
+      center: ['50%', '40%'],
+      roseType: 'radius',
+      label: { fontsize: 10 },
+      labelLine: { length: 6, length2: 8 },
+      data: []
+    }]
+  };
+
+  myChart.setOption(option);
+  loadData();
+  window.addEventListener('resize', function () {
+    myChart.resize();
+  });
+
+  // 页面卸载时清理定时器
+  window.addEventListener('beforeunload', function() {
+    stopAutoPlay();
+  });
+})();
+
+</script>
+
+
+
+
+
+
+<script type="text/javascript">
+  //--------------------地图----------------------------
+  window._AMapSecurityConfig = {
+    securityJsCode: "3411731d2cf8f23b624a8182a47626cd",
+  };
+</script>
+<script src="https://webapi.amap.com/loader.js"></script>
+
+<script type="text/javascript">
+  // 地图实例和图层变量
+  let map;
+  let currentLayerType = 'satellite'; // 当前图层类型
+  let satelliteLayer, roadLayer, buildingLayer; // 图层实例
+  let markers = []; // 存储所有标记，用于重新添加
+  let infoWindow = null; // 地图钉信息窗
+  let _baseSuggestHideTimer = null;
+
+  // 公共：根据基地数据和坐标，在地图上展示信息窗并更新右侧详情
+  function showBaseDetail(markerData, lnglat) {
+    if (!markerData) return;
+
+    // 1) 弹出信息窗（基地编号 + 名称 + 预览图），固定在地图钉正上方
+    try {
+      if (!infoWindow) {
+        infoWindow = new AMap.InfoWindow({
+          isCustom: false,
+          // 锚点在底部中间，向上偏移更多像素，确保不覆盖地图钉图标
+          anchor: 'bottom-center',
+          offset: new AMap.Pixel(0, -40)
+        });
+      }
+      const picName = markerData.base_pic || '';
+      const picUrl = picName ? (`{% static 'base_pic/' %}${picName}`) : '';
+      const safeBaseId = (markerData.base_id ?? '').toString();
+      const safeBaseName = (markerData.base_name ?? '').toString();
+      const detailUrl = safeBaseId
+        ? `/storage/dashboard/?base_id=${encodeURIComponent(safeBaseId)}`
+        : `/storage/dashboard/`;
+
+      const content =
+        `<div style="max-width:260px;">
+          <div style="font-weight:600;margin-bottom:6px;">基地编号：${safeBaseId}</div>
+          <div style="margin-bottom:8px;">基地名称：${safeBaseName}</div>
+          ${picUrl ? `<div style="width:180px;height:110px;margin:0 auto;overflow:hidden;border-radius:6px;">
+                        <img src="${picUrl}" alt="基地预览图"
+                             style="width:100%;height:100%;object-fit:cover;display:block;" />
+                      </div>`
+                    : `<div style="color:#888;">暂无预览图</div>`}
+          <div style="margin-top:10px;text-align:right;">
+            <a href="${detailUrl}"
+               style="display:inline-block;padding:4px 10px;border-radius:999px;
+                      background:#2563eb;color:#fff;font-size:12px;
+                      text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,0.35);">
+              进入平台
+            </a>
+          </div>
+        </div>`;
+
+      infoWindow.setContent(content);
+      if (lnglat && map) {
+        infoWindow.open(map, lnglat);
+      }
+    } catch (err) {
+      console.warn('打开信息窗失败:', err);
+    }
+
+    // 2) 更新右侧"基地信息"面板
+    const box = document.getElementById('base-info');
+    if (!box) return;
+
+    const used = new Set();
+    let html = '<div class="baseinfo-kv">';
+
+    // 第一行：基地编号和基地名称并排
+    const baseId = markerData.base_id;
+    const baseName = markerData.base_name;
+    if (baseId !== undefined && baseId !== null && String(baseId).trim() !== '' || 
+        baseName !== undefined && baseName !== null && String(baseName).trim() !== '') {
+      used.add('base_id');
+      used.add('base_name');
+      html += `
+        <div class="baseinfo-row-inline">
+          ${baseId !== undefined && baseId !== null && String(baseId).trim() !== '' ? `
+            <div class="baseinfo-row-inline-item">
+              <div class="baseinfo-key" style="text-align: left; padding-left: 0;">编号</div>
+              <div class="baseinfo-val">${String(baseId)}</div>
+            </div>
+          ` : ''}
+          ${baseName !== undefined && baseName !== null && String(baseName).trim() !== '' ? `
+            <div class="baseinfo-row-inline-item">
+              <div class="baseinfo-key">名称</div>
+              <div class="baseinfo-val">${String(baseName)}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // 第二行：省份和城市并排
+    const provinceName = markerData.province_name;
+    const cityName = markerData.city_name;
+    if (provinceName !== undefined && provinceName !== null && String(provinceName).trim() !== '' || 
+        cityName !== undefined && cityName !== null && String(cityName).trim() !== '') {
+      used.add('province_name');
+      used.add('city_name');
+      html += `
+        <div class="baseinfo-row-inline">
+          ${provinceName !== undefined && provinceName !== null && String(provinceName).trim() !== '' ? `
+            <div class="baseinfo-row-inline-item">
+              <div class="baseinfo-key" style="text-align: left; padding-left: 0;">省份</div>
+              <div class="baseinfo-val">${String(provinceName)}</div>
+            </div>
+          ` : ''}
+          ${cityName !== undefined && cityName !== null && String(cityName).trim() !== '' ? `
+            <div class="baseinfo-row-inline-item">
+              <div class="baseinfo-key">城市</div>
+              <div class="baseinfo-val">${String(cityName)}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // 第三行：经度和纬度并排（保留3位小数）
+    const longitude = markerData.longitude;
+    const latitude = markerData.latitude;
+    if (longitude !== undefined && longitude !== null && String(longitude).trim() !== '' || 
+        latitude !== undefined && latitude !== null && String(latitude).trim() !== '') {
+      used.add('longitude');
+      used.add('latitude');
+      // 格式化经度和纬度为3位小数
+      const formatCoord = (val) => {
+        if (val === undefined || val === null) return '';
+        const num = parseFloat(val);
+        if (isNaN(num)) return String(val);
+        return num.toFixed(3);
+      };
+      html += `
+        <div class="baseinfo-row-inline">
+          ${longitude !== undefined && longitude !== null && String(longitude).trim() !== '' ? `
+            <div class="baseinfo-row-inline-item">
+              <div class="baseinfo-key" style="text-align: left; padding-left: 0;">经度</div>
+              <div class="baseinfo-val">${formatCoord(longitude)}</div>
+            </div>
+          ` : ''}
+          ${latitude !== undefined && latitude !== null && String(latitude).trim() !== '' ? `
+            <div class="baseinfo-row-inline-item">
+              <div class="baseinfo-key">纬度</div>
+              <div class="baseinfo-val">${formatCoord(latitude)}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // 其他字段：描述等单独显示
+    const otherKeys = [
+      ['base_description', '描述']
+    ];
+
+    otherKeys.forEach(([k, label]) => {
+      if (markerData[k] !== undefined && markerData[k] !== null && String(markerData[k]).trim() !== '') {
+        used.add(k);
+        html += `
+          <div class="baseinfo-row">
+            <div class="baseinfo-key">${label}</div>
+            <div class="baseinfo-val">${String(markerData[k])}</div>
+          </div>
+        `;
+      }
+    });
+
+    // 追加"其它字段"（排除 base_pic，因为它已经在图片容器中显示）
+    used.add('base_pic'); // 确保 base_pic 不会在文字部分显示
+    Object.keys(markerData).forEach((k) => {
+      if (used.has(k)) return;
+      const v = markerData[k];
+      if (v === undefined || v === null) return;
+      const s = String(v);
+      if (!s.trim()) return;
+      html += `
+        <div class="baseinfo-row">
+          <div class="baseinfo-key">${k}</div>
+          <div class="baseinfo-val">${s}</div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+    box.innerHTML = html;
+
+    // 3) 加载并显示环境数据图表（使用之前已声明的 baseId）
+    if (baseId) {
+      loadBaseEnvironmentData(baseId);
+    } else {
+      // 如果没有基地ID，停止刷新并隐藏图表
+      stopBaseEnvironmentDisplay();
+      stopBaseEnvironmentRefresh();
+      const chartContainer = document.getElementById('base-environment-chart');
+      const switchContainer = document.getElementById('base-environment-device-switch');
+      if (chartContainer) chartContainer.style.display = 'none';
+      if (switchContainer) switchContainer.style.display = 'none';
+    }
+  }
+
+  // 搜索建议：渲染下拉列表
+  function renderBaseSuggestList(items, keyword) {
+    const box = document.getElementById('base-search-suggest');
+    if (!box) return;
+
+    if (!keyword || !keyword.trim()) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    if (!items || items.length === 0) {
+      box.innerHTML = `<div class="empty">未找到匹配结果</div>`;
+      box.style.display = 'block';
+      return;
+    }
+
+    // 最多显示 10 条
+    const limited = items.slice(0, 10);
+    box.innerHTML = limited.map((it, idx) => {
+      const name = (it.base_name ?? '').toString();
+      const id = (it.base_id ?? '').toString();
+      return `
+        <div class="item" data-idx="${idx}">
+          <div class="name">${name || '(未命名基地)'}</div>
+          <div class="meta">ID: ${id || '-'}</div>
+        </div>
+      `;
+    }).join('');
+    box.style.display = 'block';
+
+    // 绑定点击事件
+    const nodes = box.querySelectorAll('.item');
+    nodes.forEach((node) => {
+      node.addEventListener('mousedown', function(e) {
+        // 用 mousedown 避免 input blur 先触发导致列表被隐藏
+        e.preventDefault();
+        const i = Number(this.dataset.idx);
+        const chosen = limited[i];
+        if (chosen) {
+          selectBaseFromSuggest(chosen);
+        }
+      });
+    });
+  }
+
+  function hideBaseSuggestSoon() {
+    const box = document.getElementById('base-search-suggest');
+    if (!box) return;
+    if (_baseSuggestHideTimer) clearTimeout(_baseSuggestHideTimer);
+    _baseSuggestHideTimer = setTimeout(() => {
+      box.style.display = 'none';
+    }, 120);
+  }
+
+  function selectBaseFromSuggest(baseData) {
+    const input = document.getElementById('base-search-input');
+    if (input) {
+      input.value = (baseData.base_name ?? baseData.base_id ?? '').toString();
+    }
+    const box = document.getElementById('base-search-suggest');
+    if (box) box.style.display = 'none';
+
+    // 在 markers 中找到对应 marker（优先 base_id 精确匹配）
+    const target = findMarkerByBaseData(baseData);
+    if (!target) {
+      alert('未找到匹配的基地');
+      return;
+    }
+    focusMarker(target);
+  }
+
+  function focusMarker(marker) {
+    const pos = marker.getPosition && marker.getPosition();
+    if (map && pos) {
+      const currentZoom = map.getZoom ? map.getZoom() : 15;
+      map.setZoom(Math.max(currentZoom, 15));
+      map.setCenter(pos);
+    }
+    const data = marker.getExtData ? (marker.getExtData() || {}) : {};
+    const lnglat = pos ? pos : null;
+    showBaseDetail(data, lnglat);
+  }
+
+  function findMarkerByBaseData(baseData) {
+    const idStr = baseData && baseData.base_id != null ? String(baseData.base_id) : '';
+    // 先按 base_id 精确找
+    if (idStr) {
+      for (const marker of markers) {
+        const data = marker.getExtData() || {};
+        if (data.base_id != null && String(data.base_id) === idStr) {
+          return marker;
+        }
+      }
+    }
+    // 再按 base_name 精确找
+    const nameStr = baseData && baseData.base_name != null ? String(baseData.base_name) : '';
+    if (nameStr) {
+      for (const marker of markers) {
+        const data = marker.getExtData() || {};
+        if (data.base_name != null && String(data.base_name) === nameStr) {
+          return marker;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 输入提示：根据输入关键字进行模糊匹配
+  function handleBaseSuggest() {
+    const input = document.getElementById('base-search-input');
+    if (!input) return;
+    const keyword = (input.value || '').trim();
+    if (!keyword) {
+      renderBaseSuggestList([], '');
+      return;
+    }
+    const lower = keyword.toLowerCase();
+
+    // 从 markers 中抽取 base 数据做匹配（名称包含 / id 包含）
+    const matched = [];
+    for (const marker of markers) {
+      const data = marker.getExtData() || {};
+      const idStr = data.base_id != null ? String(data.base_id) : '';
+      const nameStr = data.base_name != null ? String(data.base_name) : '';
+      if (
+        (nameStr && nameStr.toLowerCase().includes(lower)) ||
+        (idStr && idStr.toLowerCase().includes(lower))
+      ) {
+        matched.push(data);
+      }
+    }
+
+    // 简单排序：名称前缀命中优先，其次 id 前缀命中，再其次包含
+    matched.sort((a, b) => {
+      const an = (a.base_name ?? '').toString().toLowerCase();
+      const bn = (b.base_name ?? '').toString().toLowerCase();
+      const ai = (a.base_id ?? '').toString().toLowerCase();
+      const bi = (b.base_id ?? '').toString().toLowerCase();
+      const aScore = (an.startsWith(lower) ? 0 : 2) + (ai.startsWith(lower) ? 0 : 1);
+      const bScore = (bn.startsWith(lower) ? 0 : 2) + (bi.startsWith(lower) ? 0 : 1);
+      if (aScore !== bScore) return aScore - bScore;
+      return an.localeCompare(bn);
+    });
+
+    renderBaseSuggestList(matched, keyword);
+  }
+
+  // 获取数据功能（需要AMap.Marker插件）
+  function loadMapData()
+  {
+    // 获取数据
+    const provinceName = encodeURIComponent("{{ province_name }}");
+    $.ajax
+    ({
+      url: `{% url 'get_base_by_province' %}?province_name=${provinceName}`,      //通过url：citrus_data执行数据库操作
+      type: "GET",
+      success: function(response)
+      {
+          console.log(response)
+          // 清除之前的标记
+          markers.forEach(marker => {
+            map.remove(marker);
+          });
+          markers = [];
+          
+          for (const item of response)
+          {
+            console.log('当前数据:', item);
+            // 单条数据信息
+            const longitude = parseFloat(item.longitude);
+            const latitude = parseFloat(item.latitude);
+            // 与 models.py 的 Base 字段命名保持一致
+            const base_id = item.base_id;
+            const base_name = item.base_name;
+            const province_name = item.province_name;
+            const city_name = item.city_name;
+            const base_description = item.base_description;
+            const base_pic = item.base_pic; // 预览图文件名（存放于 screen/static/base_pic）
+
+            // 加入地图钉标记
+            const marker = new AMap.Marker({
+               position: [longitude, latitude],
+               map: map,
+               title: base_name,
+               // 点击后需要展示“基地全部信息”，直接把接口返回的一整条记录挂到 extData 上
+               extData: item,
+            });
+
+            // 存储标记引用
+            markers.push(marker);
+
+            // 加入标记点击事件
+            marker.on('click', function(e) {
+              const markerData = e.target.getExtData() || {};
+              console.log('点击的基地信息:', markerData);
+              showBaseDetail(markerData, e.lnglat);
+            });
+
+          }
+
+      },
+      error: function(xhr)
+      {
+         console.error('数据加载失败:', xhr.statusText);
+      }
+    });
+  }
+
+  // 定位当前位置（需要插件AMap.Geolocation）
+  function getLocation()
+  {
+    // 初始化地理定位插件
+    const geolocation = new AMap.Geolocation({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      showMarker: true,
+      showButton: false
+    });
+
+    // 执行定位
+    geolocation.getCurrentPosition((status, result) => {
+      if (status === 'complete') {
+        const lnglat = [result.position.lng, result.position.lat];
+        map.setCenter(lnglat);
+
+        new AMap.Marker({
+          position: lnglat,
+          map: map,
+          title: "当前位置"
+        });
+        console.log('定位成功:', lnglat);
+      } else {
+        console.warn('定位失败:', result.message);
+        //！！定位失败时设置默认位置
+        const defaultLnglat = [114.360622, 30.473526];
+        map.setCenter(defaultLnglat);
+        
+        new AMap.Marker({
+          position: defaultLnglat,
+          map: map,
+          title: "默认位置"
+        });
+        console.log('使用默认位置:', defaultLnglat);
+      }
+    });
+  }
+
+  // 搜索：根据输入的基地编号或名称在现有 markers 中定位
+  function handleBaseSearch() {
+    const input = document.getElementById('base-search-input');
+    if (!input) return;
+    const raw = input.value || '';
+    const keyword = raw.trim();
+    if (!keyword) {
+      return;
+    }
+
+    const lower = keyword.toLowerCase();
+    let targetMarker = null;
+
+    for (const marker of markers) {
+      const data = marker.getExtData() || {};
+      const idStr = data.base_id != null ? String(data.base_id) : '';
+      const nameStr = data.base_name != null ? String(data.base_name) : '';
+
+      // 模糊匹配编号/名称（包含即可）；若输入就是编号，优先命中
+      if (idStr === keyword || idStr.toLowerCase() === lower) {
+        targetMarker = marker;
+        break;
+      }
+      if (nameStr.toLowerCase().includes(lower) || idStr.toLowerCase().includes(lower)) {
+        targetMarker = marker;
+      }
+    }
+
+    if (!targetMarker) {
+      alert('未找到匹配的基地');
+      return;
+    }
+
+    // 隐藏建议列表
+    const suggest = document.getElementById('base-search-suggest');
+    if (suggest) suggest.style.display = 'none';
+
+    focusMarker(targetMarker);
+  }
+
+  // 绑定：点击页面空白处关闭下拉
+  document.addEventListener('click', function(e) {
+    const input = document.getElementById('base-search-input');
+    const suggest = document.getElementById('base-search-suggest');
+    if (!suggest || !input) return;
+    const wrap = suggest.parentElement; // .top-search-inner
+    if (wrap && !wrap.contains(e.target)) {
+      suggest.style.display = 'none';
+    }
+  });
+
+  // 绑定：输入框失焦稍后关闭（留给点击候选项）
+  document.addEventListener('focusout', function(e) {
+    if (e.target && e.target.id === 'base-search-input') {
+      hideBaseSuggestSoon();
+    }
+  });
+
+  // 创建图层切换控件
+  function createLayerControl() {
+    // 检查是否已经存在控件，避免重复创建
+    const existingControl = document.getElementById('layer-control');
+    if (existingControl) {
+      existingControl.remove();
+    }
+
+    // 创建图层切换按钮容器
+    const layerControlDiv = document.createElement('div');
+    layerControlDiv.id = 'layer-control';
+    layerControlDiv.style.cssText = `
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      min-width: 0;
+      justify-content: center;
+      align-items: center;
+    `;
+
+    // 图层选项配置
+    const layerOptions = [
+      { type: 'satellite', name: '卫星图'},
+      { type: 'road', name: '路网图'},
+      { type: 'building', name: '3D图'}
+    ];
+
+    // 创建按钮
+    layerOptions.forEach(option => {
+      const button = document.createElement('button');
+      button.textContent = option.name;
+      button.dataset.type = option.type;
+      button.style.cssText = `
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        background: ${currentLayerType === option.type ? '#1890ff' : '#f5f5f5'};
+        color: ${currentLayerType === option.type ? 'white' : '#333'};
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s ease;
+        min-width: 80px;
+        outline: none;
+      `;
+
+      // 添加悬停效果
+      button.addEventListener('mouseenter', function() {
+        if (currentLayerType !== option.type) {
+          this.style.background = '#e6f7ff';
+        }
+      });
+
+      button.addEventListener('mouseleave', function() {
+        if (currentLayerType !== option.type) {
+          this.style.background = '#f5f5f5';
+        }
+      });
+
+      // 添加点击事件
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('点击图层按钮:', option.type);
+        switchLayer(option.type);
+        updateButtonStyles(option.type);
+      });
+
+      layerControlDiv.appendChild(button);
+    });
+
+    // 将控件添加到地图容器
+    const mapContainer = document.getElementById('GaodeMap');
+    if (mapContainer) {
+      mapContainer.appendChild(layerControlDiv);
+      console.log('图层控件已添加到地图容器');
+    } else {
+      console.error('找不到地图容器 GaodeMap');
+    }
+  }
+
+  // 更新按钮样式
+  function updateButtonStyles(activeType) {
+    const buttons = document.querySelectorAll('#layer-control button');
+    buttons.forEach(button => {
+      const buttonType = button.dataset.type;
+      
+      if (buttonType === activeType) {
+        button.style.background = '#1890ff';
+        button.style.color = 'white';
+      } else {
+        button.style.background = '#f5f5f5';
+        button.style.color = '#333';
+      }
+    });
+  }
+
+  // 通用：根据图层类型销毁并重建地图
+  function recreateMapWithType(layerType) {
+    try {
+      const currentCenter = map ? map.getCenter() : null;
+      const currentZoom = map ? map.getZoom() : 15;
+      const centerLngLat = currentCenter ? [currentCenter.lng, currentCenter.lat] : undefined;
+
+      // 销毁旧实例
+      if (map && typeof map.destroy === 'function') {
+        map.destroy();
+      }
+
+      // 构造不同图层类型下的地图配置
+      let options = {
+        center: centerLngLat,
+        zoom: currentZoom,
+        layers: []
+      };
+
+      if (layerType === 'building') {
+        options = {
+          center: centerLngLat,
+          viewMode: '3D',
+          pitch: 60,
+          rotation: -35,
+          features: ['bg', 'road', 'point'],
+          mapStyle: 'amap://styles/light',
+          layers: [
+            new AMap.TileLayer.Satellite(),
+            new AMap.TileLayer.RoadNet(),
+            new AMap.Buildings({
+              zooms: [16, 18],
+              zIndex: 10,
+              heightFactor: 2
+            })
+          ],
+          zoom: Math.max(16, currentZoom || 16)
+        };
+      } else if (layerType === 'satellite') {
+        options.features = ['bg', 'road', 'point'];
+        options.layers = [
+          new AMap.TileLayer(),
+          new AMap.TileLayer.Satellite(),
+          new AMap.TileLayer.RoadNet()
+        ];
+      } else if (layerType === 'road') {
+        options.features = ['bg'];
+        options.layers = [
+          new AMap.TileLayer(),
+          new AMap.TileLayer.RoadNet()
+        ];
+      } else {
+        // 默认标准图
+        options.layers = [new AMap.TileLayer()];
+      }
+
+      // 重建地图实例
+      map = new AMap.Map('GaodeMap', options);
+
+      // 重新绑定事件
+      map.on('click', function(e) {
+        console.log('点击位置的经纬度:', e.lnglat);
+      });
+
+      // 重建图层切换控件与UI状态
+      createLayerControl();
+      currentLayerType = layerType;
+      updateButtonStyles(layerType);
+
+      // 重新定位与加载数据、标记
+      getLocation();
+      loadMapData();
+
+      console.log('已重建地图，当前类型:', currentLayerType);
+    } catch (err) {
+      console.error('重建地图失败:', err);
+    }
+  }
+
+  // 切换图层
+  function switchLayer(layerType) {
+    if (currentLayerType === layerType) {
+      console.log('图层类型相同，无需切换');
+      return;
+    }
+
+    console.log('切换图层至', layerType, '：销毁并重建地图');
+    recreateMapWithType(layerType);
+  }
+
+  // 初始化地图(地图主函数)
+  function initMap()
+  {
+    AMapLoader.load({
+      key: "9969ad3b8112bd56b65dc90191ab4753",
+      version: "2.0",
+      plugins: ["AMap.Geolocation", "AMap.Marker", "AMap.Buildings"] // 添加楼块图层插件
+    })
+    .then((AMap) =>
+    {
+      console.log('高德地图API加载成功');
+      
+      // 初始化地图实例
+      map = new AMap.Map("GaodeMap", {
+        zoom: 15,
+        layers: [] // 先不添加任何图层，稍后通过控件添加
+      });
+
+      console.log('地图实例创建成功');
+
+      // 创建图层实例
+      satelliteLayer = new AMap.TileLayer.Satellite();
+      roadLayer = new AMap.TileLayer.RoadNet();
+      buildingLayer = new AMap.Buildings({
+        zooms: [16, 18],
+        zIndex: 10,
+        heightFactor: 2
+      });
+
+      console.log('图层实例创建成功');
+
+      // 默认添加标准图层和卫星图层
+      const standardLayer = new AMap.TileLayer();
+      map.add(standardLayer);
+      map.add(satelliteLayer);
+      console.log('默认图层添加成功');
+
+      // 地图加载完成后创建图层切换控件
+      map.on('complete', function() {
+        console.log('地图加载完成，创建图层控件');
+        createLayerControl();
+      });
+
+      // 点击地图事件
+      map.on('click', function(e) {
+        console.log('点击位置的经纬度:', e.lnglat);
+      });
+
+      // 执行定位
+      getLocation()
+
+      // 地图加载完成后获取数据加入地图钉
+      loadMapData();
+
+    })
+    .catch((e) => {
+      console.error('地图加载失败:', e);
+      alert('地图加载失败，请检查网络连接');
+    });
+  }
+
+  // 页面加载完成后初始化地图
+  $(document).ready(function() {
+    console.log('页面加载完成，开始初始化地图');
+    initMap();
+  });
+
+  // 基地环境数据图表（样式与柑橘总产量表一致，动态循环显示）
+  var baseEnvironmentChart = null;
+  var baseEnvironmentAllData = []; // 存储所有环境数据（按device_id分组）
+  var baseEnvironmentDataByDevice = {}; // 按device_id分组的数据 {device_id: [data1, data2, ...]}
+  var baseEnvironmentCurrentDeviceId = null; // 当前选中的device_id
+  var baseEnvironmentCurrentIndex = 0; // 当前显示的数据起始索引
+  var baseEnvironmentDisplayCount = 5; // 每次显示5条数据
+  var baseEnvironmentMaxDataPoints = 8; // 最多保留5条数据
+  var baseEnvironmentUpdateInterval = null; // 存储定时器引用（用于图表动态更新）
+  var baseEnvironmentRefreshInterval = null; // 存储定时器引用（用于每5分钟刷新数据）
+  var baseEnvironmentCurrentBaseId = null; // 当前基地ID
+
+  function loadBaseEnvironmentData(baseId) {
+    if (!baseId) {
+      return;
+    }
+
+    // 如果切换了基地，停止之前的定时器并重置
+    if (baseEnvironmentCurrentBaseId && baseEnvironmentCurrentBaseId !== baseId) {
+      stopBaseEnvironmentDisplay();
+      stopBaseEnvironmentRefresh(); // 停止数据刷新定时器
+      baseEnvironmentAllData = [];
+      baseEnvironmentDataByDevice = {};
+      baseEnvironmentCurrentDeviceId = null;
+      baseEnvironmentCurrentIndex = 0;
+    }
+    baseEnvironmentCurrentBaseId = baseId;
+
+    // 获取图表容器和设备切换按钮容器
+    const chartContainer = document.getElementById('base-environment-chart');
+    const switchContainer = document.getElementById('base-environment-device-switch');
+    if (!chartContainer) return;
+    
+    // 显示图表容器和设备切换按钮
+    if (switchContainer) switchContainer.style.display = 'flex';
+    chartContainer.style.display = 'block';
+
+    // 初始化图表（如果还未初始化）
+    const chartElement = chartContainer.querySelector('.chart');
+    if (!chartElement) return;
+
+    if (!baseEnvironmentChart) {
+      baseEnvironmentChart = echarts.init(chartElement);
+    }
+
+    // 获取环境数据
+    $.ajax({
+      url: "{% url 'get_environment_data' %}",
+      type: "GET",
+      data: {
+        base_id: baseId
+      },
+      dataType: 'json',
+      success: function(response) {
+        if (!response || response.length === 0) {
+          console.warn('未获取到基地环境数据');
+          if (switchContainer) switchContainer.style.display = 'none';
+          chartContainer.style.display = 'none';
+          stopBaseEnvironmentDisplay();
+          stopBaseEnvironmentRefresh(); // 没有数据时停止刷新
+          if (baseEnvironmentChart) {
+            baseEnvironmentChart.setOption({
+              xAxis: { data: [] },
+              series: [
+                { data: [] },
+                { data: [] }
+              ]
+            });
+          }
+          return;
+        }
+        
+        // 有数据时显示图表和设备切换按钮
+        if (switchContainer) switchContainer.style.display = 'flex';
+        chartContainer.style.display = 'block';
+
+        // 保存当前选中的设备ID（用于刷新后恢复）
+        const previousDeviceId = baseEnvironmentCurrentDeviceId;
+
+        // 按device_id分组数据
+        baseEnvironmentDataByDevice = {};
+        response.forEach(function(item) {
+          const deviceId = item.device_id || 'unknown';
+          if (!baseEnvironmentDataByDevice[deviceId]) {
+            baseEnvironmentDataByDevice[deviceId] = [];
+          }
+          baseEnvironmentDataByDevice[deviceId].push(item);
+        });
+
+        // 对每个device_id的数据进行处理：只保留前5条，按时间降序（最新的在前）
+        Object.keys(baseEnvironmentDataByDevice).forEach(function(deviceId) {
+          var deviceData = baseEnvironmentDataByDevice[deviceId];
+          // 只保留前5条（后端已按降序返回，最新的在前）
+          deviceData = deviceData.slice(0, baseEnvironmentMaxDataPoints);
+          // 反转数据顺序，使时间从左到右递增（旧到新）
+          deviceData.reverse();
+          baseEnvironmentDataByDevice[deviceId] = deviceData;
+        });
+
+        console.log('基地环境数据加载成功，按device_id分组:', baseEnvironmentDataByDevice);
+
+        // 渲染device_id切换下拉列表
+        renderDeviceSwitchButtons();
+
+        // 选择设备：如果之前有选中的设备且该设备仍有数据，则恢复选择；否则选择数据最多的设备
+        var deviceIds = Object.keys(baseEnvironmentDataByDevice);
+        if (deviceIds.length > 0) {
+          var targetDeviceId = null;
+          if (previousDeviceId && baseEnvironmentDataByDevice[previousDeviceId] && baseEnvironmentDataByDevice[previousDeviceId].length > 0) {
+            // 恢复之前选中的设备
+            targetDeviceId = previousDeviceId;
+          } else {
+            // 选择数据最多的device_id
+            targetDeviceId = deviceIds.reduce(function(max, id) {
+              return baseEnvironmentDataByDevice[id].length > baseEnvironmentDataByDevice[max].length ? id : max;
+            }, deviceIds[0]);
+          }
+          switchToDevice(targetDeviceId);
+        }
+
+        // 只有在成功加载数据且基地ID有效时才启动刷新定时器
+        if (baseEnvironmentCurrentBaseId) {
+          startBaseEnvironmentRefresh();
+        }
+      },
+      error: function(xhr) {
+        console.error('获取基地环境数据失败:', xhr.statusText);
+        const switchContainer = document.getElementById('base-environment-device-switch');
+        if (switchContainer) switchContainer.style.display = 'none';
+        chartContainer.style.display = 'none';
+        stopBaseEnvironmentDisplay();
+        stopBaseEnvironmentRefresh(); // 停止数据刷新定时器
+      }
+    });
+
+    // 响应式调整
+    window.addEventListener('resize', function () {
+      if (baseEnvironmentChart) {
+        baseEnvironmentChart.resize();
+      }
+    });
+  }
+
+  // 渲染device_id切换下拉列表
+  function renderDeviceSwitchButtons() {
+    const switchContainer = document.getElementById('base-environment-device-switch');
+    if (!switchContainer) return;
+
+    const deviceIds = Object.keys(baseEnvironmentDataByDevice).sort(function(a, b) {
+      // 尝试按数字排序，如果失败则按字符串排序
+      const aNum = parseInt(a);
+      const bNum = parseInt(b);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return aNum - bNum;
+      }
+      return a.localeCompare(b);
+    });
+
+    if (deviceIds.length === 0) {
+      switchContainer.innerHTML = '';
+      switchContainer.style.display = 'none';
+      return;
+    }
+    
+    // 有设备时显示下拉列表容器
+    switchContainer.style.display = 'flex';
+
+    var html = '<select class="device-switch-select" id="device-switch-select">';
+    deviceIds.forEach(function(deviceId) {
+      const isSelected = String(baseEnvironmentCurrentDeviceId) === String(deviceId) ? 'selected' : '';
+      html += `<option value="${deviceId}" ${isSelected}>设备 ${deviceId}</option>`;
+    });
+    html += '</select>';
+    switchContainer.innerHTML = html;
+
+    // 绑定change事件
+    const selectElement = document.getElementById('device-switch-select');
+    if (selectElement) {
+      selectElement.addEventListener('change', function(e) {
+        switchToDevice(e.target.value);
+      });
+    }
+  }
+
+  // 切换到指定的device_id
+  function switchToDevice(deviceId) {
+    // 确保deviceId是字符串类型，用于匹配
+    deviceId = String(deviceId);
+    
+    if (!baseEnvironmentDataByDevice[deviceId] || baseEnvironmentDataByDevice[deviceId].length === 0) {
+      console.warn('设备ID ' + deviceId + ' 没有数据');
+      return;
+    }
+
+    // 停止之前的定时器
+    stopBaseEnvironmentDisplay();
+
+    // 更新当前device_id
+    baseEnvironmentCurrentDeviceId = deviceId;
+
+    // 更新当前数据
+    baseEnvironmentAllData = baseEnvironmentDataByDevice[deviceId];
+
+    // 更新下拉列表选中状态
+    const selectElement = document.getElementById('device-switch-select');
+    if (selectElement) {
+      selectElement.value = deviceId;
+    }
+
+    // 重置索引，从最新数据开始显示
+    baseEnvironmentCurrentIndex = Math.max(0, baseEnvironmentAllData.length - baseEnvironmentDisplayCount);
+
+    // 立即更新图表
+    updateBaseEnvironmentChart();
+
+    // 更新图片（显示当前选中设备的图片）
+    displayEnvironmentImage();
+
+    // 开始动态显示
+    startBaseEnvironmentDisplay();
+
+    console.log('切换到设备ID:', deviceId, '数据条数:', baseEnvironmentAllData.length);
+  }
+
+  // 更新环境数据图表显示
+  var baseEnvironmentCurrentData = []; // 存储当前显示的数据，用于点击事件
+
+  function updateBaseEnvironmentChart() {
+    if (!baseEnvironmentCurrentDeviceId || !baseEnvironmentDataByDevice[baseEnvironmentCurrentDeviceId]) {
+      return;
+    }
+
+    baseEnvironmentAllData = baseEnvironmentDataByDevice[baseEnvironmentCurrentDeviceId];
+    
+    if (baseEnvironmentAllData.length === 0 || !baseEnvironmentChart) return;
+    
+    // 计算当前要显示的数据范围
+    const endIndex = Math.min(baseEnvironmentCurrentIndex + baseEnvironmentDisplayCount, baseEnvironmentAllData.length);
+    const currentData = baseEnvironmentAllData.slice(baseEnvironmentCurrentIndex, endIndex);
+    
+    // 保存当前显示的数据，供点击事件使用
+    baseEnvironmentCurrentData = currentData;
+    
+    // 处理数据：提取时间、温度、湿度、CO2、VOC、H2（保留原始数据用于tooltip）
+    const timeLabels = [];
+    const temperatureData = [];
+    const humidityData = [];
+    const co2Data = [];
+    const vocData = [];
+    const h2Data = [];
+    const rawDataForTooltip = []; // 存储原始数据，用于tooltip显示
+
+    currentData.forEach(function(item) {
+      // 直接使用原始时间字符串，不进行时区转换
+      let timeStr = item.collected_time || '';
+      let hours = '';
+      let minutes = '';
+      let fullTimeStr = '';
+      
+      if (timeStr) {
+        // 解析时间字符串，直接提取原始时间部分
+        // 支持格式：2026-03-01T11:08:04Z 或 2026-03-01 11:08:04
+        const timeMatch = timeStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+        if (timeMatch) {
+          const year = timeMatch[1];
+          const month = timeMatch[2];
+          const day = timeMatch[3];
+          hours = timeMatch[4];
+          minutes = timeMatch[5];
+          const seconds = timeMatch[6];
+          
+          // 时间轴只显示时:分（例如 "11:08"）
+          timeLabels.push(hours + ':' + minutes);
+          
+          // 完整时间字符串用于tooltip
+          fullTimeStr = year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+        } else {
+          timeLabels.push('');
+        }
+      } else {
+        timeLabels.push('');
+      }
+      
+      temperatureData.push(item.temperature || 0);
+      humidityData.push(item.humidity || 0);
+      co2Data.push(item.CO2 || 0);
+      vocData.push(item.VOC || 0);
+      h2Data.push(item.H2 || 0);
+      // 保存原始数据用于tooltip（包括完整时间和图片）
+      rawDataForTooltip.push({
+        fullTime: fullTimeStr,
+        temperature: item.temperature || 0,
+        humidity: item.humidity || 0,
+        CO2: item.CO2 || 0,
+        C2H4: item.C2H4 || 0,
+        C2H5OH: item.C2H5OH || 0,
+        VOC: item.VOC || 0,
+        H2: item.H2 || 0,
+        image: item.image || '' // 保存图片字段，用于点击时显示
+      });
+    });
+
+    // 图表配置（样式与 .line2 .chart 一致）
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        formatter: function(params) {
+          // params[0] 包含当前数据点的索引信息
+          var dataIndex = params[0].dataIndex;
+          var result = '';
+          
+          // 从原始数据中获取完整时间和所有环境数据
+          if (rawDataForTooltip[dataIndex]) {
+            var rawData = rawDataForTooltip[dataIndex];
+            // 显示完整时间（包括日期）
+            result += rawData.fullTime || params[0].axisValue;
+            result += '<br/>';
+            // 图表中显示的系列：温度和湿度（使用图表系列的marker）
+            result += params[0].marker + '温度: ' + rawData.temperature + '°C<br/>';
+            result += params[1].marker + '湿度: ' + rawData.humidity + '%<br/>';
+            // 其他数据：直接从rawData获取，使用自定义颜色标记
+            result += '<span style="display:inline-block;margin-right:4px;border-radius:2px;width:10px;height:10px;background-color:#0184d5;"></span>CO2: ' + rawData.CO2 + ' ppm<br/>';
+            result += '<span style="display:inline-block;margin-right:4px;border-radius:2px;width:10px;height:10px;background-color:#4ecdc4;"></span>C2H4: ' + rawData.C2H4 + ' ppm<br/>';
+            result += '<span style="display:inline-block;margin-right:4px;border-radius:2px;width:10px;height:10px;background-color:#ff9f7f;"></span>C2H5OH: ' + rawData.C2H5OH + ' ppm<br/>';
+            result += '<span style="display:inline-block;margin-right:4px;border-radius:2px;width:10px;height:10px;background-color:#9fe6b8;"></span>VOC: ' + rawData.VOC + ' ppm<br/>';
+            result += '<span style="display:inline-block;margin-right:4px;border-radius:2px;width:10px;height:10px;background-color:#32c5e9;"></span>H2: ' + rawData.H2 + ' ppm<br/>';
+          } else {
+            result = params[0].axisValue + '<br/>';
+          }
+          return result;
+        }
+      },
+      legend: {
+        top: "0%",
+        textStyle: {
+          color: "rgba(255,255,255,.5)",
+          fontSize: "12"
+        }
+      },
+      grid: {
+        top: '30', // 恢复正常top值，按钮已移到图表外部
+        left: '10',
+        right: '30',
+        bottom: '10',
+        containLabel: true
+      },
+      xAxis: [{
+        type: 'category',
+        boundaryGap: false,
+        axisLabel: {
+          textStyle: {
+            color: "rgba(255,255,255,.6)",
+            fontSize: 12
+          },
+          interval: 0, // 显示所有标签
+          rotate: 0 // 不旋转标签
+        },
+        axisLine: {
+          lineStyle: {
+            color: "rgba(255,255,255,.2)"
+          }
+        },
+        data: timeLabels
+      }],
+      yAxis: [{
+        type: 'value',
+        name: '温度(°C)',
+        nameTextStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        },
+        axisTick: {
+          show: false
+        },
+        axisLine: {
+          lineStyle: {
+            color: "rgba(255,255,255,.1)"
+          }
+        },
+        axisLabel: {
+          textStyle: {
+            color: "rgba(255,255,255,.6)",
+            fontSize: 12
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            color: "rgba(255,255,255,.1)"
+          }
+        }
+      }, {
+        type: 'value',
+        name: '湿度(%)',
+        nameTextStyle: {
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12
+        },
+        axisTick: {
+          show: false
+        },
+        axisLine: {
+          lineStyle: {
+            color: "rgba(255,255,255,.1)"
+          }
+        },
+        axisLabel: {
+          textStyle: {
+            color: "rgba(255,255,255,.6)",
+            fontSize: 12
+          }
+        },
+        splitLine: {
+          show: false
+        }
+      }],
+      series: [{
+        name: '温度',
+        type: 'line',
+        yAxisIndex: 0,
+        smooth: true,
+        lineStyle: {
+          color: "#ff6b6b",
+          width: 2
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0, 0, 0, 1,
+            [{ offset: 0, color: "rgba(255, 107, 107, 0.4)" },
+             { offset: 0.8, color: "rgba(255, 107, 107, 0.1)" }],
+            false
+          ),
+          shadowColor: "rgba(0, 0, 0, 0.1)"
+        },
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        itemStyle: {
+          color: "#ff6b6b",
+          borderColor: "rgba(221, 220, 107, .1)",
+          borderWidth: 12
+        },
+        data: temperatureData
+      }, {
+        name: '湿度',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        lineStyle: {
+          color: "#4ecdc4",
+          width: 2
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0, 0, 0, 1,
+            [{ offset: 0, color: "rgba(78, 205, 196, 0.4)" },
+             { offset: 0.8, color: "rgba(78, 205, 196, 0.1)" }],
+            false
+          ),
+          shadowColor: "rgba(0, 0, 0, 0.1)"
+        },
+        symbol: 'circle',
+        symbolSize: 5,
+        showSymbol: false,
+        itemStyle: {
+          color: "#4ecdc4",
+          borderColor: "rgba(78, 205, 196, .1)",
+          borderWidth: 12
+        },
+        data: humidityData
+      }]
+    };
+
+    baseEnvironmentChart.setOption(option, true);
+    
+    // 添加图表点击事件：点击时间点时更新底部图片
+    baseEnvironmentChart.off('click'); // 先移除之前的事件监听，避免重复绑定
+    baseEnvironmentChart.on('click', function(params) {
+      // params 包含点击的数据点信息
+      if (params && params.dataIndex !== undefined) {
+        const clickedDataIndex = params.dataIndex;
+        // 从 baseEnvironmentCurrentData 中获取完整的原始数据（包含 image 字段）
+        if (baseEnvironmentCurrentData && baseEnvironmentCurrentData[clickedDataIndex]) {
+          const clickedItem = baseEnvironmentCurrentData[clickedDataIndex];
+          // 显示点击时间点对应的图片
+          displayEnvironmentImageByData(clickedItem);
+          console.log('点击时间点，更新图片，数据索引:', clickedDataIndex);
+        }
+      }
+    });
+    
+    // 更新索引，实现循环
+    baseEnvironmentCurrentIndex = (baseEnvironmentCurrentIndex + 1) % Math.max(1, baseEnvironmentAllData.length - baseEnvironmentDisplayCount + 1);
+  }
+
+  // 开始动态显示环境数据
+  function startBaseEnvironmentDisplay() {
+    if (!baseEnvironmentCurrentDeviceId || !baseEnvironmentDataByDevice[baseEnvironmentCurrentDeviceId]) {
+      return;
+    }
+
+    baseEnvironmentAllData = baseEnvironmentDataByDevice[baseEnvironmentCurrentDeviceId];
+    
+    if (baseEnvironmentAllData.length === 0) return;
+    
+    // 重置索引：从数组末尾开始，显示最新的数据
+    // 反转后，数组末尾是最新的数据，所以从 length - displayCount 开始
+    baseEnvironmentCurrentIndex = Math.max(0, baseEnvironmentAllData.length - baseEnvironmentDisplayCount);
+    
+    // 立即显示一次
+    updateBaseEnvironmentChart();
+    
+    // 每30秒滚动一次
+    baseEnvironmentUpdateInterval = setInterval(updateBaseEnvironmentChart, 30000);
+    
+    console.log('开始动态显示基地环境数据，设备ID:', baseEnvironmentCurrentDeviceId);
+  }
+
+  // 停止动态显示环境数据
+  function stopBaseEnvironmentDisplay() {
+    if (baseEnvironmentUpdateInterval) {
+      clearInterval(baseEnvironmentUpdateInterval);
+      baseEnvironmentUpdateInterval = null;
+    }
+  }
+
+  // 启动每5分钟自动刷新环境数据（仅刷新当前选中基地的数据）
+  function startBaseEnvironmentRefresh() {
+    // 先清除之前的刷新定时器，避免重复启动
+    stopBaseEnvironmentRefresh();
+
+    // 只有在有选中基地时才启动刷新
+    if (!baseEnvironmentCurrentBaseId) {
+      console.log('没有选中基地，不启动自动刷新');
+      return;
+    }
+
+    // 每5分钟（300000毫秒）重新获取并刷新当前选中基地的环境数据
+    baseEnvironmentRefreshInterval = setInterval(function() {
+      // 再次检查是否有选中的基地，避免无效请求
+      if (baseEnvironmentCurrentBaseId) {
+        console.log('自动刷新基地环境数据，基地ID:', baseEnvironmentCurrentBaseId);
+        // 只刷新当前选中基地的数据，节约数据请求量
+        loadBaseEnvironmentData(baseEnvironmentCurrentBaseId);
+      } else {
+        // 如果没有选中基地，停止刷新
+        console.log('没有选中基地，停止自动刷新');
+        stopBaseEnvironmentRefresh();
+      }
+    }, 300000); // 5分钟 = 300000毫秒
+
+    console.log('已启动每5分钟自动刷新环境数据，基地ID:', baseEnvironmentCurrentBaseId);
+  }
+
+  // 停止自动刷新环境数据
+  function stopBaseEnvironmentRefresh() {
+    if (baseEnvironmentRefreshInterval) {
+      clearInterval(baseEnvironmentRefreshInterval);
+      baseEnvironmentRefreshInterval = null;
+      console.log('已停止自动刷新环境数据');
+    }
+  }
+
+  // 显示环境数据中的图片（显示当前选中设备的图片）
+  function displayEnvironmentImage() {
+    // 如果当前没有选中的设备，不显示图片
+    if (!baseEnvironmentCurrentDeviceId || !baseEnvironmentDataByDevice[baseEnvironmentCurrentDeviceId]) {
+      const imageContainer = document.getElementById('base-image-container');
+      if (!imageContainer) return;
+      const emptyDiv = imageContainer.querySelector('.baseinfo-image-empty');
+      if (emptyDiv) {
+        emptyDiv.style.display = 'block';
+        emptyDiv.textContent = '暂无环境监测图片';
+      } else {
+        imageContainer.innerHTML = '<div class="baseinfo-image-empty">暂无环境监测图片</div>';
+      }
+      return;
+    }
+
+    // 获取当前选中设备的数据
+    const deviceData = baseEnvironmentDataByDevice[baseEnvironmentCurrentDeviceId];
+    let latestData = null;
+
+    if (deviceData && deviceData.length > 0) {
+      // 反转后，最后一条是最新的
+      latestData = deviceData[deviceData.length - 1];
+    }
+
+    // 显示最新数据的图片
+    displayEnvironmentImageByData(latestData);
+  }
+
+  // 根据指定的数据项显示图片
+  function displayEnvironmentImageByData(dataItem) {
+    const imageContainer = document.getElementById('base-image-container');
+    if (!imageContainer) return;
+
+    let imageUrl = '';
+    let imagePath = '';
+
+    if (dataItem && dataItem.image) {
+      imagePath = dataItem.image;
+    }
+
+    if (imagePath && imagePath.trim() !== '') {
+      // 构建图片URL：http://47.99.61.189:8175/media/ + image字段内容
+      imageUrl = 'http://47.99.61.189:8175/media/' + imagePath;
+    }
+
+    // 显示图片或空状态
+    const emptyDiv = imageContainer.querySelector('.baseinfo-image-empty');
+    if (imageUrl) {
+      if (emptyDiv) emptyDiv.style.display = 'none';
+      imageContainer.innerHTML = `<img src="${imageUrl}" alt="环境监测图片" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'baseinfo-image-empty\\'>图片加载失败</div>';" />`;
+    } else {
+      if (emptyDiv) {
+        emptyDiv.style.display = 'block';
+        emptyDiv.textContent = '暂无环境监测图片';
+      } else {
+        imageContainer.innerHTML = '<div class="baseinfo-image-empty">暂无环境监测图片</div>';
+      }
+    }
+  }
+
+</script>
+

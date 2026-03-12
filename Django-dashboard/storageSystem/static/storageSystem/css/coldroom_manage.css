@@ -1,0 +1,78 @@
+:root{
+  --bg: #f6f8fb;
+  --card-radius: 16px;
+  --shadow: 0 6px 18px rgba(15, 23, 42, .08);
+  --nav-h: 64px;
+}
+html{ font-size:18px; }
+body{ background: var(--bg); }
+
+.nav-fixed{ height: var(--nav-h); }
+.main{ padding: calc(var(--nav-h) + 16px) 18px 28px; }
+
+.page-title{
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+.muted{ color: rgba(2,6,23,.55); }
+.small-muted{ font-size: .9rem; }
+
+.cardx{
+  background:#fff;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(15,23,42,.06);
+}
+.cardx .cardx-hd{
+  padding: 14px 16px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  color:#0f172a;
+  font-weight: 700;
+}
+.cardx .cardx-bd{ padding: 12px 16px 16px; }
+
+/* KPI */
+.kpi{ cursor: pointer; transition: transform .12s ease; }
+.kpi:hover{ transform: translateY(-2px); }
+.kpi .icon{
+  width: 44px; height: 44px; border-radius: 14px;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(2,6,23,.04);
+  color: rgba(2,6,23,.75);
+}
+.kpi .value{ font-size: 1.35rem; font-weight: 900; color:#0f172a; line-height: 1; }
+.kpi .label{ font-weight: 700; color:#0f172a; }
+
+/* chips */
+.chip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: .85rem;
+  border: 1px solid rgba(2,6,23,.10);
+  background: rgba(2,6,23,.02);
+  white-space: nowrap;
+  user-select: none;
+}
+.chip .dot{ width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; }
+.chip.normal .dot{ background: #22c55e; }
+.chip.alarm .dot{ background: #f59e0b; }
+.chip.offline .dot{ background: #ef4444; }
+
+.badge-soft{
+  border-radius: 999px;
+  border: 1px solid rgba(2,6,23,.10);
+  background: rgba(2,6,23,.02);
+  padding: 6px 10px;
+  font-size: .85rem;
+}
+
+.table thead th{ font-weight: 800; color:#0f172a; }
+.table td, .table th{ vertical-align: middle; }
+.op-btn{ border-radius: 10px; padding: 6px 10px; }
+
+.modal-round{ border-radius: 18px; overflow: hidden; }
