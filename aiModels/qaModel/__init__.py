@@ -1,2 +1,0 @@
-# qaModel package
-
