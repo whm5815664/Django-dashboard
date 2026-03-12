@@ -19,19 +19,8 @@ class Dataset(models.Model):
         return self.name
 
 
-# 2. Tag
 class Tag(models.Model):
-    name = models.CharField(max_length=64, unique=True, db_index=True)
+    name = models.CharField(max_length=64, unique=True, db_index=True)  # 唯一约束
 
     def __str__(self) -> str:
-        return self.name
-
-# 每次都要migrate！！！
-class FileNode(models.Model):
-    dataset = models.ForeignKey(Dataset, related_name='file_structure', on_delete=cascade)
-    name = models.CharField(max_length=255)
-    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE)
-    is_folder = models.BooleanField(default=False)
-
-    def __str__(self):
         return self.name

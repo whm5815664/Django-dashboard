@@ -12,16 +12,22 @@ const routes = [
     path: "/detail",
     name: "DatasetDetail",
     component: DatasetDetail,
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     // component: () =>
     //   import(/* webpackChunkName: "about" */ "../views/About.vue"),
   },
+
+  // 详情页:路由跳转
+  {
+    path: "/detail/:id",
+    name: "DatasetDetail",
+    component: DatasetDetail,
+    props: true // 将params.id作为props传入
+  }
 ];
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  // history: createWebHistory(process.env.BASE_URL),  // publicBase; vue config为了走静态资源多了static,所以路由要调整base
+  history: createWebHistory("/labDataset/"),
   routes,
 });
 

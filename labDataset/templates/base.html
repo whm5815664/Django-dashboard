@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}实验室数据{% endblock %}</title>
+
+    <!-- 公共 CSS  -->
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <!-- 公共导航 -->
+    <!-- <header>
+        <h1>实验室数据管理平台</h1>
+    </header> -->
+
+    <!-- 页面主要内容 -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 公共 JS -->
+    
+    {% block extra_script %}{% endblock %}
+</body>
+</html>

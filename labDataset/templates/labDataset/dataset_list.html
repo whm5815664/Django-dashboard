@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}{% block title %}实验室数据集总览{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'labDataset/css/dataset_list.css' %}">
+{% endblock %}
+{% block extra_script %}
+<script src="{% static 'labDataset/js/dataset_list.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 标题和上传按钮 -->
+    <div class="title">
+        <div class="title-left">
+            <div class="title-dataset">实验室数据集</div>
+            <div class="title-desc">查询、使用和上传数据集</div>
+            <div>
+                <button id="openCreateDialog">
+                    + 上传数据
+                </button>
+            </div>
+        </div>
+        <div class="title-right">
+            <img class="title-img" src="{% static 'labDataset/img/spectra-cover.png' %}" />
+        </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="search-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search">
+    </div>
+
+    <!-- 标签 -->
+    <div class="tag-row"></div>
+    <!-- <div class="tag-row">
+        {% for t in tags %}
+            <button class="tag-btn {% if activeTag == t.value %}active{% endif %}" data-tag="{{ t.value }}">
+                {{ t.label }}
+            </button>
+        {% endfor %}
+    </div> -->
+
+    <!-- 数据集列表 -->
+    <div class="list-wrap">
+        <div class="list-head">
+            <div class="count">共有 {{ datasets|length }} 个数据集</div>
+        </div>
+
+        {% for ds in datasets %}
+        <div class="list-card" data-id="{{ ds.id }}">
+            <div class="card-left">
+                <img src="{% static 'labDataset/img/spectra-cover.png' %}"/>
+            </div>
+
+            <div class="card-mid">
+                <div class="ds-title-row">
+                    <div class="ds-title" title="{{ ds.name }}">{{ ds.name }}</div>
+                </div>
+                <div class="ds-meta" title="{{ ds.creator }} · {{ ds.created_at }}">
+                    {{ ds.creator }} · {{ ds.created_at }}
+                </div>
+                <!-- 渲染隐藏字段存储标签，用逗号分隔 -->
+                <div class="ds-tags" style="display:none;">
+                    {{ ds.data_format }}
+                </div>
+                <div class="ds-status">
+                    {{ ds.file_count }} File (CSV)
+                </div>
+            </div>
+
+            <div class="list-right">
+                <button class="detail-btn" data-url="{% url 'DatasetDetail' ds.id %}">查看详情</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 上传弹窗 -->
+    <div id="uploadDialog" class="upload-container" style="display:none;">
+        <form id="uploadForm" class="dataset-form">
+            <label>名称: <input type="text" name="name"></label>
+            <label>创建者: <input type="text" name="creator"></label>
+            <label>描述: <textarea name="description" rows="3"></textarea></label>
+            <label>地址: <input type="text" name="storage_url"></label>
+            <label>标签:
+                <select name="tags" multiple>
+                    {% for t in tagOptions %}
+                        <option value="{{ t.name }}">{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <input type="file" name="file" id="fileInput" webkitdirectory directory multiple>
+            <button type="submit">上传</button>
+            <button type="button" id="closeDialog">取消</button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

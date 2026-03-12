@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
 
     "storageSystem",
-    # "screen",  # screen
-    "labDataset",
+    "screen",  # screen
+    "labDataset",   
 ]
 
 MIDDLEWARE = [
@@ -85,30 +85,30 @@ WSGI_APPLICATION = "config.wsgi.application"
 # =========================
 # Database
 # =========================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
-        'NAME': 'web_database', # 数据库名称
-        'HOST': '127.0.0.1', # 数据库地址，本机 ip 地址 127.0.0.1
-        'PORT': 3306, # 端口
-        'USER': 'root',  # 数据库用户名
-        'PASSWORD': '', # 数据库密码
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
+#         'NAME': 'web_database', # 数据库名称
+#         'HOST': '127.0.0.1', # 数据库地址，本机 ip 地址 127.0.0.1
+#         'PORT': 3306, # 端口
+#         'USER': 'root',  # 数据库用户名
+#         'PASSWORD': '', # 数据库密码
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         },
+#     }
+# }
 
-# storageSystem/views/api_dashboard.py 使用此配置连接数据库
-# 复用 DATABASES['default'] 的配置
-REMOTE_MYSQL = {
-    "HOST": DATABASES['default']['HOST'],
-    "PORT": int(DATABASES['default']['PORT']),
-    "USER": DATABASES['default']['USER'],
-    "PASSWORD": DATABASES['default']['PASSWORD'],
-    "NAME": DATABASES['default']['NAME'],
-    "CHARSET": DATABASES['default'].get('OPTIONS', {}).get('charset', 'utf8mb4'),
-}
+# # storageSystem/views/api_dashboard.py 使用此配置连接数据库
+# # 复用 DATABASES['default'] 的配置
+# REMOTE_MYSQL = {
+#     "HOST": DATABASES['default']['HOST'],
+#     "PORT": int(DATABASES['default']['PORT']),
+#     "USER": DATABASES['default']['USER'],
+#     "PASSWORD": DATABASES['default']['PASSWORD'],
+#     "NAME": DATABASES['default']['NAME'],
+#     "CHARSET": DATABASES['default'].get('OPTIONS', {}).get('charset', 'utf8mb4'),
+# }
 
 # 开发时使用：环境变量控制数据库连接(优先用系统/.env的配置,否则使用下列默认值)
 DATABASES = {
@@ -152,6 +152,7 @@ USE_TZ = True
 # ✅ 静态资源（只保留一个，避免你之前重复定义导致路径混乱）
 STATIC_URL = "/static/"
 
+
 # Media files (Uploaded files)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -178,3 +179,19 @@ REST_FRAMEWORK = {
     ),
 }
 
+
+# =========================
+# Dev 开发阶段（仅用于本地开发）
+#
+# 由于前后端端口不同，浏览器会携带 Origin: http://localhost:8081
+# Django 默认会进行 CSRF Origin 校验，若未显式信任该来源，POST/PUT 等请求将被拒绝
+#
+# 在部署阶段（npm run build + Django/NGINX 同源托管前端）时，
+# 前后端将处于同一 origin，此配置不再需要
+# =========================
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+]
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]

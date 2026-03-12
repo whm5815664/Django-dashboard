@@ -1,10 +1,33 @@
 <template>
-  <div id="nav">
-    <router-link to="/">DatasetList</router-link> |
-    <router-link to="/detail">DatasetDetail</router-link>
+  <div>
+    <div id="nav">
+      <router-link to="/">DatasetList</router-link> |
+      <router-link to="/detail">DatasetDetail</router-link>
+    </div>
+    <router-view />
   </div>
-  <router-view />
+
 </template>
+
+<script>
+
+
+export default {
+  mounted(){
+    this.getToken();
+  },
+  methods: {
+    async getToken(){
+      try{
+        await this.$api.get("csrf/");
+      }catch(error){
+        console.log("获取CSRF token失败", error);
+      }  
+    }
+  }
+}
+</script>
+
 
 <style lang="scss">
 #app {

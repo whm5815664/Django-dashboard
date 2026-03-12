@@ -19,13 +19,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
 
 urlpatterns = [
+    path("", lambda request: redirect("/labDataset/")), # 暂时配置根路径
     path("admin/", admin.site.urls),
     path('screen/', include('screen.urls')),
     path('aiModels/', include('aiModels.urls')),
     path("storage/", include("storageSystem.urls")),
-    path("labdataset/", include("labDataset.urls")),
+    path("labDataset/", include("labDataset.urls")),
 ]
 
 # 添加媒体文件的URL路由（仅在开发环境中）

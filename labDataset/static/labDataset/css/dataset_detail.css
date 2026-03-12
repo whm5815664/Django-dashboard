@@ -1,0 +1,215 @@
+.container {
+    padding:0 32px;  /* 左右边缘留白 */
+    /* 控制子元素的间距，但是这样也算写死*/
+    /* display: flex;
+    flex-direction: column;
+    gap: 20px; */
+  }
+  
+  /* Header描述 */
+  .header {
+    display: flex;
+    align-items: baseline;  /* left和right对齐，center是居中对齐！ */
+    margin-bottom: 20px;
+  }
+  .header-left {
+    display: flex;
+    flex:1;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-left p{
+    font-size:14px;
+    color:#555;
+    margin:0;
+    line-height: 1;
+  }
+  .header-right{
+    display:flex;
+    align-items: center;
+  }
+  .btn-dark {
+    background:#111;
+    border-color:#111;
+    padding: 10px 16px;  
+    margin-top:16px;
+    color: white;
+    border-radius: 999px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.3s ease;
+  }
+  .btn-dark:hover {
+    background-color: #333;
+  }
+  .btn-text {
+    margin-left: 2px;
+  }
+  /* 让图标看起来更粗 SVG矢量图形，不是字体图标，所以font-weight属性对SVG无效*/
+  .btn-dark :deep(.el-icon) svg {
+    filter: 
+      drop-shadow(0.5px 0 0 currentColor)   /* 右左下上延伸0.5px阴影=视觉上变粗1px */
+      drop-shadow(-0.5px 0 0 currentColor)
+      drop-shadow(0 0.5px 0 currentColor) 
+      drop-shadow(0 -0.5px 0 currentColor);
+  }
+  
+  
+  /* Title描述 */
+  .title {
+    border:1px solid #eee;
+    border-radius:18px;
+    padding:24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    background:#fff;
+    margin-bottom:18px;  
+    flex-wrap: nowrap; /** 小屏不换行 */
+  }
+  /* 避免left和right的width之和溢出容器：确保右侧可以缩+左侧可以换行 */
+  .title-left {
+    flex:1 1 auto; /* 可以缩*/
+    min-width: 0; 
+  }
+  .title-dataset{ 
+    display: flex;
+    font-size:34px;
+    font-weight:700;
+    margin-bottom:15px; 
+  }
+  .title-desc{
+    display: flex;
+    color:#555;
+    line-height:1.5;
+    margin-bottom:25px;   
+  }
+  .title-right{
+    flex: 0 1 auto;
+    min-width: 0;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .title-img{
+    width: clamp(140px, 22vw, 300px); /* 最小140，随屏幕变化，最大300 */
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  
+  .divider {
+    border: none;
+    height: 1.2px;
+    background-color: #eee;
+    margin: 20px 0; /* 控制上下间距 */
+  }
+  
+  
+  
+   /* 详细说明 */
+  .usage {
+    display:flex;
+    justify-content:space-between;
+  }
+  /* 左侧 */
+  .usage-left {
+    flex:0.78;
+    padding-left: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+  }
+  .usage-left h2{
+    text-align: left;
+    margin-bottom: 12px;
+  }
+  .usage-content p {
+    text-align: left;
+    font-size: 16px;
+    color: #333;
+  }
+  /* 右侧：基本信息和标签 */
+  .usage-right {
+    flex: 0.2;  /* 占比*/
+    padding-left: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+  }
+  .usage-title {
+    margin-bottom: 12px;
+  }
+  .usage-title h3 {
+    text-align: left;
+    margin-bottom: 12px;
+  }
+  .usage-title p {
+    text-align: left;
+    font-size: 16px;
+    color: #555;
+  }
+  .tag-row {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .tag-btn{
+    padding: 7px 12px;
+    border:1px solid #ddd;
+    border-radius:999px;
+    background:#fff;
+    cursor:pointer;
+    font-size:13px;
+  }
+  
+  
+  /* 数据样例和数据集文件夹 */
+  .sample {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  .sample-left {
+    flex: 0.78;
+    padding-left: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+  }
+  .sample-left h3 {
+    text-align: left;
+  }
+  .sample-content p {
+    text-align: left;
+    font-size:  16px;
+    color: #333
+  }
+  
+  .sample-right {
+    flex: 0.2;
+    padding-left: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    overflow: hidden; /* 隐藏溢出的部分,否则滑动的时候div就左加 */
+  }
+  .sample-right h3 {
+    text-align: left;
+  }
+  .sample-right-tree {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-width: 400px;
+  }
+  .sample-right :deep(.el-tree) {
+    background-color: #f9f9f9;
+    border-radius: 8px;   
+  }
+  ::v-deep .el-tree > .el-tree-node {
+    min-width:100%;
+    display:inline-block;
+  }
+  ::v-deep .el-tree-node__content {
+    padding-right: 16px; /* 增加节点内容右侧的内边距 */
+  }
+  
+  /* to do:文件夹前面应该有图标，文件用csv或img*/
+  </style>
