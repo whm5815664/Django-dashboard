@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ dataset.name }} - 数据集详情{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'labDataset/css/dataset_detail.css' %}">
+{% endblock %}
+{% block extra_script %}
+<script src="{% static 'labDataset/js/dataset_detail.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- 日期+下载按钮 -->
+    <div class="header">
+      <div class="header-left">
+        <p>{{ dataset.creator }}</p>
+        <p>{{ dataset.created_at|date:"Y-m-d H:i" }}</p>
+      </div>
+      <div class="header-right">
+        <button type="button" class="btn-dark" id="downloadDataset">
+          <span class="btn-text">下载(ZIP)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 数据集标题 -->
+    <div class="title">
+      <div class="title-left">
+        <div class="title-dataset">{{ dataset.name }}</div>
+        <div class="title-desc">该数据集包含 {{ dataset.size }} 数据</div>
+      </div>
+      <div class="title-right">
+        <img class="title-img" src="{% static 'labdatasets/img/spectra-cover.png' %}" />
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- 数据集信息 -->
+    <div class="usage">
+      <!-- 左侧: 使用说明 -->
+      <div class="usage-left">
+        <h2>使用说明</h2>
+        <div class="usage-content">
+          <p><strong>关于数据集</strong></p>
+          <p>{{ dataset.description }}</p>
+        </div>
+      </div>
+
+      <!-- 右侧: 基本信息+标签 -->
+      <div class="usage-right">
+        <div class="usage-title">
+          <h3>基本信息</h3>
+          <p>创建者：{{ dataset.creator }}</p>
+          <p>数据类别：{{ dataset.data_format }}</p>
+        </div>
+
+        <div class="usage-title">
+          <h3>标签</h3>
+          <div class="tag-row">
+            {% for t in dataset_tags %}
+            <button class="tag-btn" data-tag="{{ t.value }}">
+                {{ t.label }}
+            </button>
+            {% empty %}
+            <div class="empty-tip">暂无标签</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据样例和文件夹 -->
+    <div id="datasetSampleContainer">
+        <!-- 可以后续用 JS 渲染 DatasetSample -->
+    </div>
+
+</div>
+{% endblock %}

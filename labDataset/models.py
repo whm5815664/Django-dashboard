@@ -14,33 +14,13 @@ class Dataset(models.Model):
     file_count = models.IntegerField(default=0) # 文件数量 
     created_at = models.DateTimeField(auto_now_add=True)    # 创建时间
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'labdataset_dataset'  # 远程库 中的表名
-        # managed = False  # 不由 Django 迁移管理
-
+    
     def __str__(self) -> str:
         return self.name
 
 
-# 2. Tag
 class Tag(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=64, unique=True, db_index=True)
-
-    class Meta:
-        db_table = 'labdataset_tag'  # 远程库 中的表名（避免与 Dataset 表重复）
-        # managed = False  # 不由 Django 迁移管理
+    name = models.CharField(max_length=64, unique=True, db_index=True)  # 唯一约束
 
     def __str__(self) -> str:
-        return self.name
-
-# 每次都要migrate！！！
-class FileNode(models.Model):
-    dataset = models.ForeignKey(Dataset, related_name='file_structure', on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
-    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE)
-    is_folder = models.BooleanField(default=False)
-
-    def __str__(self):
         return self.name

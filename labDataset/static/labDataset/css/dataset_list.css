@@ -1,0 +1,355 @@
+.container {
+    padding:0 32px;  /* 左右边缘留白 */
+}
+
+/* 标题描述 */
+.title {
+  border:1px solid #eee;
+  border-radius:18px;
+  padding:24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  background:#fff;
+  margin-bottom:18px;  
+  flex-wrap: nowrap; /** 小屏不换行 */
+}
+/* 避免left和right的width之和溢出容器：确保右侧可以缩+左侧可以换行 */
+.title-left {
+  flex:1 1 auto; /* 可以缩*/
+  min-width: 0; 
+}
+.title-dataset{ 
+  display: flex;
+  font-size:34px;
+  font-weight:700;
+  margin-bottom:15px; 
+}
+.title-desc{
+  display: flex;
+  color:#555;
+  line-height:1.5;
+  margin-bottom:25px;   
+}
+
+#openCreateDialog {
+  background-color: #111;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: 80px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+#openCreateDialog:hover {
+  background-color: #333;
+}
+
+.title-right {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;      /* 不让按钮被压缩 */
+  min-width: auto;      /* 父容器不限制最小宽度 */
+  gap: 12px;
+}
+.title-img{
+  width: clamp(140px, 22vw, 300px); /* 最小140，随屏幕变化，最大300 */
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+  
+
+/* 搜索框 */
+.search-bar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 1000px;
+  height: 50px;
+  padding: 0 16px 0 40px; /* 左边留图标位置 */
+  font-size: 16px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  outline: none;
+  box-sizing: border-box;
+  background: #fff url('/static/labDataset/img/search-icon.svg') no-repeat 12px center;
+  background-size: 18px 18px;
+}
+
+
+
+
+/* Tag */
+.tag-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:18px;
+}
+.tag-btn{
+  padding: 7px 12px;
+  border:1px solid #ddd;
+  border-radius:999px;
+  background:#fff;
+  cursor:pointer;
+  font-size:13px;
+}
+
+
+/* 数据集卡片 */
+.list-wrap{
+  margin-top: 8px;
+}
+.list-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.count {
+  color:#333;
+  font-weight:600;
+}
+/* 单条卡片：一行布局，不换行 */
+.list-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding: 14px 10px;
+  border-bottom: 1px solid #eee;
+}
+/* 左侧封面 */
+.card-left{
+  flex: 0 0 auto;
+  width: 96px;
+  height: 64px;
+  border-radius: 12px;
+  overflow:hidden;
+  background:#f6f6f6;
+}
+.card-left img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+}
+/* 中间信息：纵向排列 flex+左对齐 */
+.card-mid{
+  flex: 1 1 auto;
+  min-width: 0; 
+  display: flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+.ds-title-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom: 4px;
+}
+.ds-title{
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-meta{
+  color:#333;
+  font-size: 14px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-status{
+  color:#555;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 右侧固定区 */
+.ds-right{
+  flex: 0 0 auto;
+  display:flex;
+  align-items:flex-end;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+.detail-btn{
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+/* 窄屏适配：保持同一行，不让图片/右侧掉下去 */
+@media (max-width: 860px){
+  .ds-cover{ width: 84px; height: 56px; }
+  .ds-side{ min-width: 120px; }
+  .ds-title{ font-size: 16px; }
+}
+
+
+/* 上传弹窗 */
+/* 弹窗遮罩 */
+.upload-container {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5); /* 半透明遮罩 */
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* 弹窗内容框 */
+.upload-container form {
+  background: #fff;
+  padding: 30px 40px;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 90%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: "Microsoft YaHei", sans-serif;
+}
+
+/* 每一行表单 */
+.upload-container label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+}
+
+/* 输入框和textarea */
+.upload-container input[type="text"],
+/* 上传弹窗多选 */
+.upload-container select[multiple] {
+  font-family: "Microsoft YaHei", sans-serif; /* 中文字体 */
+  font-size: 14px;      /* 字体大小 */
+  color: #333;          /* 文字颜色 */
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 6px 8px;
+  width: 100%;
+  min-height: 60px;     /* 保证有足够高度显示文字 */
+  max-height: 150px;    /* 高度可滚动 */
+  overflow-y: auto;     /* 多选时显示滚动条 */
+  box-sizing: border-box;
+}
+
+/* option 样式 */
+.upload-container select[multiple] option {
+  font-size: 14px;
+  color: #333;
+  padding: 2px 4px;
+}
+
+/* 文件选择按钮 */
+.upload-container input[type="file"] {
+  margin-top: 4px;
+}
+
+/* 按钮组 */
+.upload-container button {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  margin-right: 10px;
+}
+
+/* 上传按钮 */
+.upload-container button[type="submit"] {
+  background-color: #111;
+  color: #fff;
+}
+.upload-container button[type="submit"]:hover {
+  background-color: #333;
+}
+
+/* 取消按钮 */
+.upload-container button[type="button"] {
+  background-color: #f5f5f5;
+  color: #333;
+}
+.upload-container button[type="button"]:hover {
+  background-color: #e0e0e0;
+}
+
+/* 弹窗标题 */
+.upload-container .form-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+/* textarea高度优化 */
+.upload-container textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* 标签下拉选择 */
+.upload-container select {
+  max-height: 120px;
+}
+
+
+
+
+/* 标题样式 */
+.dialog-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+.upload-description {
+  color: #666;
+  margin-bottom: 20px;
+}
+.upload-demo {
+  padding: 40px;
+  text-align: center;
+  border: 2px dashed #ddd;
+  background-color: #f9f9f9;
+
+}
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.dialog-footer :deep(.el-button) {
+  width: 100px;
+}

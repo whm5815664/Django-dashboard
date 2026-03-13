@@ -2,11 +2,11 @@
   <!-- 数据集详情页面 -->
   <div class="container">
 
-    <!-- 上传信息+下载按钮 -->
+    <!-- 日期+下载按钮 -->
     <div class="header">
       <div class="header-left">
-        <p>{{ dataset.uploader }}</p>
-        <p>{{ dataset.creationDate }}</p>
+        <p>{{ dataset.creator }}</p>
+        <p>{{ formatTime(dataset.created_at) }}</p>
       </div>
       <div class="header-right">
         <el-button type="primary" class="btn-dark" @click="downloadDataset">
@@ -37,9 +37,8 @@
         <h2>使用说明</h2>
         <div class="usage-content">
           <p><strong>关于数据集</strong></p>
-          <p>详细信息1</p>
-          <p>详细信息2</p>
           <!-- to do:这里的内容应该是自定义上传,考虑做一个markdown的上传 or 纯文本(定死格式 按json信息) + 加载更多button -->
+          <p>{{ dataset.description }}</p>
         </div>
       </div>
 
@@ -47,16 +46,22 @@
       <div class="usage-right">
         <div class="usage-title">
           <h3>基本信息</h3>
-          <p>{{ dataset.usage }}</p>
+          <p>创建者：{{ dataset.creator }}</p>
+          <p>数据类别：{{ dataset.data_format }}</p>
         </div>
 
         <div class="usage-title">
           <h3>标签</h3>
           <div class="tag-row">
-            <button v-for="t in dataset.tags" :key="t.value" class="tag-btn" :class="{active:activeTag === t.value}" @click="activeTag=t.value">
-            {{ t.label }}
+            <button v-for="t in datasetTags" 
+                    :key="t.value" 
+                    class="tag-btn" 
+                    :class="{active:activeTag === t.value}" 
+                    @click="goTag(t.value)">
+              {{ t.label }}
             </button>
           </div>
+          <div v-if="datasetTags.length === 0" class="empty-tip">暂无标签</div>
         </div>
       </div>
 
@@ -87,57 +92,62 @@
 <script>
 import {Download} from '@element-plus/icons-vue';
 import DatasetSample from '@/components/DatasetSample.vue';
+import { createDataset } from '../models/dataset';
+import { parseTags } from '../utils/tags';
+import { formatTime } from '../utils/time';
 
 export default {
 name: 'DatasetDetail',
 components:{ Download, DatasetSample},
 data() {
   return {
-    dataset: {
-      name: '柑橘近红外光谱数据',
-      uploader: 'Uploader',
-      creationDate: '2026-01-13',
-      updateDate: '2026-01-13', // 更新时间
-      coverImage: 'https://via.placeholder.com/300x200?text=Heart+Disease',
-      usage: 'This data is used for detecting citrus = using various features.',
-      description: 'This dataset contains various features related to citrus.',
-      size: '1.26GB',
-      format: 'CSV',
-      fileTreeData: [
-        { label: 'level one 1',
-          children: [
-            { label: 'level two 1-1',
-              children: [
-                { label: 'level three 1-1-1' },
-                { label: 'level three 1-1-2' }
-              ]
-            },
-            {
-              label: 'level two 1-2',
-              children: [
-                { label: 'level three 1-2-1' },
-                { label: 'level three 1-2-2' }
-              ]
-            },
-          ]
-        },
-        { label: 'level one 2',
-          children: [
-            { label: 'level two 2-1',
-              children: [
-                { label: 'level three 2-1-1' },
-                { label: 'level three 2-1-2' }
-              ]
-            },
-          ]
-        }
-      ],
-      tags: [
-        { label: '近红外光谱', value: 'nir' },
-        { label: '柑橘', value: 'citrus' },
-        { label: 'label', value: 'value'},
-      ],
-    },
+    dataset: createDataset(),
+    activeTag: "",
+    // dataset: {
+    //   name: '柑橘近红外光谱数据',
+    //   uploader: 'Uploader',
+    //   creationDate: '2026-01-13',
+    //   updateDate: '2026-01-13', // 更新时间
+    //   coverImage: 'https://via.placeholder.com/300x200?text=Heart+Disease',
+    //   usage: 'This data is used for detecting citrus = using various features.',
+    //   description: 'This dataset contains various features related to citrus.',
+    //   size: '1.26GB',
+    //   format: 'CSV',
+    //   fileTreeData: [
+    //     { label: 'level one 1',
+    //       children: [
+    //         { label: 'level two 1-1',
+    //           children: [
+    //             { label: 'level three 1-1-1' },
+    //             { label: 'level three 1-1-2' }
+    //           ]
+    //         },
+    //         {
+    //           label: 'level two 1-2',
+    //           children: [
+    //             { label: 'level three 1-2-1' },
+    //             { label: 'level three 1-2-2' }
+    //           ]
+    //         },
+    //       ]
+    //     },
+    //     { label: 'level one 2',
+    //       children: [
+    //         { label: 'level two 2-1',
+    //           children: [
+    //             { label: 'level three 2-1-1' },
+    //             { label: 'level three 2-1-2' }
+    //           ]
+    //         },
+    //       ]
+    //     }
+    //   ],
+    //   tags: [
+    //     { label: '近红外光谱', value: 'nir' },
+    //     { label: '柑橘', value: 'citrus' },
+    //     { label: 'label', value: 'value'},
+    //   ],
+    // },
     defaultCover: 'https://via.placeholder.com/300x200?text=Dataset+Image', // 默认图片 
     defaultProps: {
       children:'children',
@@ -145,15 +155,67 @@ data() {
     }  
   }
 },
+props:{
+  id: { type:[String, Number], required: true}
+},
+mounted(){
+  this.getDetail()
+},
 computed: {
-  // to do:这里要补充一个页面加载即有的逻辑 获取id返回这个dataset
+  datasetTags(){
+    return parseTags(this.dataset?.data_format);
+  }
 },
 methods: {
-  downloadDataset(){
-    alert('点击此处下载数据集')
-    // to do:补偿下载的逻辑
-  }
-}
+  // 格式化时间
+  formatTime,
+  // 获取当前数据集信息
+  async getDetail(){
+    try{
+      const res = await this.$api.get(`datasets/${this.id}/`);
+      this.dataset = {
+        ...createDataset(),
+        ...res.data.results
+      };
+      const tags = parseTags(this.dataset.data_format);
+      this.activeTag = tags[0]?.value || "";
+    }catch(error){
+      console.error("获取本数据集失败", error);
+    }
+  },
+  // 点击标签: 跳转list对应标签
+  goTag(tagValue){
+    this.$router.push({ name: "DatasetList", query: {tag: tagValue}})
+  },
+  // 下载指定id数据集
+  async downloadDataset(){
+    try{
+      // 请求并获取文件流
+      const response = await this.$api.get(`datasetFile/${this.dataset.id}/`,
+        {responseType: 'blob',} // 类型文件流
+      )
+
+      // 创建下载链接
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a'); 
+      link.href = url;
+      link.setAttribute('download', `dataset_${this.dataset.id}.zip`);  // 文件名
+
+      // 触发
+      document.body.appendChild(link);  // 报错:必须把link加入DOM!
+      link.click();
+
+      // 清理
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url); 
+    }catch(error){
+      console.error('下载文件失败', error);
+      alert('下载文件失败,请稍后再试');  // to do:模拟一个示例文件！
+    }
+  },
+  
+},
+
 }
 </script>
   
@@ -295,6 +357,9 @@ methods: {
   padding-left: 16px;
   background: #f9f9f9;
   border-radius: 8px;
+}
+.usage-title {
+  margin-bottom: 12px;
 }
 .usage-title h3 {
   text-align: left;
