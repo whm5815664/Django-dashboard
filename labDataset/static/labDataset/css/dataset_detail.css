@@ -12,6 +12,30 @@
     align-items: baseline;  /* left和right对齐，center是居中对齐！ */
     margin-bottom: 20px;
   }
+  /* 返回按钮 */
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;                   /* 图标和文字间距，如果后续加图标 */
+    padding: 6px 12px;          /* 内边距 */
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: 5px;
+  }
+
+  .btn-back:hover {
+    background-color: #e0e0e0;
+    border-color: #ccc;
+  }
+
+  
   .header-left {
     display: flex;
     flex:1;

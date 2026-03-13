@@ -137,6 +137,19 @@ def datasets(request):
             # 先保存ds对象确保id生成
             ds.save()
 
+            # to do:补齐封面图片上传功能
+            cover_file = request.FILES.get("cover_file")
+            if cover_file:
+                cover_filename = f"{ds.id}.jpg"
+                cover_path = os.path.join(settings.BASE_DIR, "static/labDataset/resource", cover_filename)
+                with open(cover_path, "wb+") as f:
+                    for chunk in cover_file.chunks():
+                        f.write(chunk)
+                ds.cover = cover_filename
+                ds.save()
+
+
+
             # to do:补齐文件夹上传功能
             if 'file' not in request.FILES:
                 return JsonResponse({ "msg":"No file upload","error_num":1 }, status=400)
@@ -157,7 +170,6 @@ def datasets(request):
                 with open(save_path, 'wb') as out_file:
                     for chunk in f.chunks():
                         out_file.write(chunk)
-
 
 
             return JsonResponse({
