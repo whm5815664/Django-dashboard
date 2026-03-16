@@ -165,8 +165,8 @@ class TimeStampedModel(models.Model):
 - View functions: `_create_session_view`, `_send_message_view`, `_delete_session_view`
 
 ### File Output Directories
-- **代码/脚本文件**（.py、.js等）：`Django-dashboard/aiModels/agent/temp`
-- **结果文件**（ppt、doc、pdf、xls等）：`Django-dashboard/aiModels/agent/output`
+- **代码/脚本文件**（.py等）：`./aiModels/agent/temp`
+- **结果文件**（ppt、doc、pdf、xls等）：`./aiModels/agent/output`
 
 ## Project Structure
 

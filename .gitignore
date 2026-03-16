@@ -8,5 +8,4 @@
 venv/
 db.sqlite3
 
-# Agent output directory
-aiModels/agent/output/
+

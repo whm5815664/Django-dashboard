@@ -242,6 +242,10 @@ def stream_output(
                 elif part_type == "step-finish":
                     finished = True
 
+            # 若 opencode 已标记本条消息结束（如 stop / tool-calls），也视为完成，避免仅因无 step-finish 而一直轮询且无最终回答
+            if not finished and assistant_msg.get("info", {}).get("finish"):
+                finished = True
+
             if finished:
                 print("\n--- 完成 ---", flush=True)
                 yield {"type": "finished", "content": ""}
@@ -313,6 +317,12 @@ def agent_send_message_view(request):
                     yield f"data: {json.dumps({'type': 'text', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
                 
                 elif chunk["type"] == "finished":
+                    # 若模型只做了推理/工具调用而无最终文字，给用户一个占位说明
+                    if not text_content.strip():
+                        if reasoning_content:
+                            text_content = "（本轮已完成推理与工具调用，未生成额外文字回复；详见上方推理过程。）"
+                        else:
+                            text_content = "（本轮仅执行了工具调用，无文字回复。）"
                     yield f"data: {json.dumps({'type': 'finished', 'reasoning': reasoning_content, 'text': text_content}, ensure_ascii=False)}\n\n"
                     break
                 
