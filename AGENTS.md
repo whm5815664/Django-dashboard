@@ -165,7 +165,7 @@ class TimeStampedModel(models.Model):
 - View functions: `_create_session_view`, `_send_message_view`, `_delete_session_view`
 
 ### File Output Directories
-- **代码/脚本文件**（.py等）：`./aiModels/agent/temp`
+- **代码/脚本文件**（py、js等）：`./aiModels/agent/temp`
 - **结果文件**（ppt、doc、pdf、xls等）：`./aiModels/agent/output`
 
 ## Project Structure
@@ -182,7 +182,9 @@ Django-dashboard/
 │   ├── urls.py          # App URLs
 │   ├── views.py         # Page render views
 │   ├── agent/           # Agent system
-│   │   └── brain_agent.py
+│   │   ├── brain_agent.py
+│   │   ├── temp/        # Code temp path (.py, .js等)
+│   │   └── output/      # File Output path (ppt, doc, pdf, xls等)
 │   ├── qaModel/        # Q&A + RAG
 │   │   ├── deepseek_r1_api.py
 │   │   ├── spark_api.py
@@ -195,6 +197,8 @@ Django-dashboard/
 │   └── models.py       # ORM models
 └── labDatasets/        # Dataset management
 ```
+
+**强制说明**：Agent系统生成的所有文件必须存放在上述指定目录中，禁止将临时脚本或结果文件存放在其他位置。
 
 ## Key Patterns
 
