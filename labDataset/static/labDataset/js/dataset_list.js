@@ -23,6 +23,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('fileInput');
 
     // ----------------------------
+    // 返回按钮
+    // ----------------------------
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            // 返回上一页 to do：合并后返回
+            window.history.back();
+        });
+    }
+
+    // ----------------------------
     // 弹窗事件
     // ----------------------------
     openDialogBtn.addEventListener('click', function() {

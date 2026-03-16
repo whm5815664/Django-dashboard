@@ -137,6 +137,19 @@ def datasets(request):
             # 先保存ds对象确保id生成
             ds.save()
 
+            # to do:补齐封面图片上传功能
+            cover_file = request.FILES.get("cover_file")
+            if cover_file:
+                cover_filename = f"{ds.id}.jpg"
+                cover_path = os.path.join(settings.BASE_DIR, "static/labDataset/resource", cover_filename)
+                with open(cover_path, "wb+") as f:
+                    for chunk in cover_file.chunks():
+                        f.write(chunk)
+                ds.cover = cover_filename
+                ds.save()
+
+
+
             # to do:补齐文件夹上传功能
             if 'file' not in request.FILES:
                 return JsonResponse({ "msg":"No file upload","error_num":1 }, status=400)
@@ -157,7 +170,6 @@ def datasets(request):
                 with open(save_path, 'wb') as out_file:
                     for chunk in f.chunks():
                         out_file.write(chunk)
-
 
 
             return JsonResponse({
@@ -268,6 +280,10 @@ def tags(request):
 # to do：目前暂时定为静态文件存储访问 media/datasets/id/xx + 打包为zip文件
 @require_http_methods(["GET"])
 def datasetFile(request, pk):    
+    import io
+    import tempfile
+    from urllib.parse import quote
+    
     try:
         # 获取数据集对象 
         ds = get_object_or_404(Dataset, pk=pk)
@@ -282,27 +298,52 @@ def datasetFile(request, pk):
                 "error_num": 1
             }, status=404)
         
-        # 获取文件
+        # 获取文件列表
         dataset_files = []
         for root, dirs, files in os.walk(dataset_folder):
             for file in files:
                 file_path = os.path.join(root, file)
-                dataset_files.append(file_path)
+                if os.path.isfile(file_path):  # 确保是文件
+                    dataset_files.append(file_path)
 
-        # 设置zip文件路径
+        if not dataset_files:
+            return JsonResponse({
+                "msg": f"Dataset folder for ID {pk} is empty",
+                "error_num": 1
+            }, status=404)
+
+        # 使用内存流创建zip文件，避免创建临时文件
+        zip_buffer = io.BytesIO()
+        
+        # 创建zip文件，使用DEFLATED压缩方式
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in dataset_files:
+                try:
+                    # 获取相对路径作为zip内的文件名
+                    arcname = os.path.relpath(file_path, dataset_folder)
+                    # 确保路径使用正斜杠（ZIP标准）
+                    arcname = arcname.replace('\\', '/')
+                    zipf.write(file_path, arcname)
+                except Exception as e:
+                    print(f"Warning: Failed to add {file_path} to zip: {e}")
+                    continue
+
+        # 准备响应
+        zip_buffer.seek(0)
         zip_filename = f"dataset_{pk}.zip"
-        zip_path = os.path.join(settings.MEDIA_ROOT, zip_filename)
-
-        # 创建zip文件(后面应该删掉media的zip文件)
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
-            for file in dataset_files:
-                zipf.write(file, os.path.relpath(file, dataset_folder))
-
-        # 返回zip文件
-        with open(zip_path, 'rb') as f:
-            response = HttpResponse(f.read(), content_type='application/zip')
-            response["Content-Disposition"] = f'attachment; filename={zip_filename}'    # 浏览器:可下载附件
-            return response
+        zip_data = zip_buffer.read()
+        zip_size = len(zip_data)
+        
+        # 创建响应
+        response = HttpResponse(zip_data, content_type='application/zip')
+        
+        # 设置文件名，处理中文文件名编码
+        # 使用UTF-8编码的filename*参数，同时保留filename以兼容旧浏览器
+        encoded_filename = quote(zip_filename.encode('utf-8'))
+        response["Content-Disposition"] = f'attachment; filename="{zip_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        response["Content-Length"] = str(zip_size)
+        
+        return response
     
     except Dataset.DoesNotExist:
         return JsonResponse({
@@ -311,6 +352,9 @@ def datasetFile(request, pk):
         }, status=404)
     
     except Exception as e:
+        print(f"Error in datasetFile: {repr(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             "msg": str(e),
             "error_num": 1

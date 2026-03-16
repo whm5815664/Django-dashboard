@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="title-right">
-            <img class="title-img" src="{% static 'labDataset/img/spectra-cover.png' %}" />
+            <img class="title-img" src="{% static 'labDataset/resource/cover.jpg' %}" />
         </div>
     </div>
 
@@ -49,7 +49,11 @@
         {% for ds in datasets %}
         <div class="list-card" data-id="{{ ds.id }}">
             <div class="card-left">
-                <img src="{% static 'labDataset/img/spectra-cover.png' %}"/>
+                {% if ds.cover %}
+                    <img src="{% static 'labDataset/resource/' %}{{ ds.cover }}" alt="{{ ds.name }}">
+                {% else %}
+                    <img src="{% static 'labDataset/resource/default.jpg' %}" alt="默认封面">
+                {% endif %}
             </div>
 
             <div class="card-mid">
@@ -77,11 +81,12 @@
 
     <!-- 上传弹窗 -->
     <div id="uploadDialog" class="upload-container" style="display:none;">
-        <form id="uploadForm" class="dataset-form">
+        <form id="uploadForm" class="dataset-form" enctype="multipart/form-data">
             <label>名称: <input type="text" name="name"></label>
             <label>创建者: <input type="text" name="creator"></label>
             <label>描述: <textarea name="description" rows="3"></textarea></label>
             <label>地址: <input type="text" name="storage_url"></label>
+            <label>封面图片: <input type="file" name="cover_file" accept="image/*"></label>
             <label>标签:
                 <select name="tags" multiple>
                     {% for t in tagOptions %}

@@ -499,7 +499,6 @@
                   <i class="fa-solid fa-trash-can me-1"></i>删除
                 </button>
               </div>
-              <div class="muted small mt-1">提示：也可以直接点击整行进入编辑</div>
             </td>
           </tr>
         `;

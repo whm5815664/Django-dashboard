@@ -10,28 +10,35 @@
 
 {% block content %}
 <div class="container">
-
-    <!-- 日期+下载按钮 -->
-    <div class="header">
-      <div class="header-left">
-        <p>{{ dataset.creator }}</p>
-        <p>{{ dataset.created_at|date:"Y-m-d H:i" }}</p>
-      </div>
-      <div class="header-right">
-        <button type="button" class="btn-dark" id="downloadDataset">
-          <span class="btn-text">下载(ZIP)</span>
-        </button>
-      </div>
-    </div>
-
     <!-- 数据集标题 -->
     <div class="title">
       <div class="title-left">
         <div class="title-dataset">{{ dataset.name }}</div>
         <div class="title-desc">该数据集包含 {{ dataset.size }} 数据</div>
+        {% if dataset.storage_url %}
+        <div class="title-storage-url">
+          <span class="muted">源数据备份位置：</span>
+          <span class="storage-url-text">{{ dataset.storage_url }}</span>
+        </div>
+        {% endif %}
       </div>
       <div class="title-right">
-        <img class="title-img" src="{% static 'labdatasets/img/spectra-cover.png' %}" />
+        <img class="title-img"
+            src="{% if dataset.cover %}{% static 'labDataset/resource/' %}{{ dataset.cover }}{% else %}{% static 'labDataset/resource/default.jpg' %}{% endif %}"
+            alt="{{ dataset.name }}">
+      </div>
+    </div>
+
+    <!-- 创建人、时间和下载按钮 - 标题下方 -->
+    <div class="meta-info-bar">
+      <div class="meta-info-left">  
+        <p>{{ dataset.creator }}</p>
+        <p>{{ dataset.created_at|date:"Y-m-d H:i" }}</p>
+      </div>
+      <div class="meta-info-right">
+        <button type="button" class="btn-dark" id="downloadDataset" data-id="{{ dataset.id }}">
+          <span class="btn-text">下载(ZIP)</span>
+        </button>
       </div>
     </div>
 
