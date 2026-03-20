@@ -52,5 +52,8 @@ urlpatterns = [
     # 图谱抽取页面
     path('tool/graph/', views.graph_view, name='graph'),
     path('tool/graph/extract/', graph.extract_api_view, name='graph_extract'),
+
+    # 模型库入口：选择并跳转到各模型页面
+    path('tool/model_library/', views.model_library_view, name='model_library'),
 ]
 

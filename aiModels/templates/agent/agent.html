@@ -96,6 +96,40 @@
             transform: rotate(90deg);
         }
 
+        /* ========== 刷新按钮 ========== */
+        .agent-modal-refresh {
+            padding: 7px 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            color: #111827;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .agent-modal-refresh:hover:not(:disabled) {
+            background: #e5e7eb;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+        }
+
+        .agent-modal-refresh:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .agent-modal-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         /* ========== 聊天容器 ========== */
         .agent-chat-container {
             flex: 1;
@@ -424,7 +458,12 @@
                     <span>🤖</span>
                     <span>智能体助手</span>
                 </div>
-                <button class="agent-modal-close" onclick="closeAgentModal()">×</button>
+                <div class="agent-modal-actions">
+                    <button class="agent-modal-refresh" id="agent-refresh-btn" type="button" onclick="refreshAgentSession()">
+                        <span>🔄</span> 刷新
+                    </button>
+                    <button class="agent-modal-close" onclick="closeAgentModal()">×</button>
+                </div>
             </div>
 
             <!-- 聊天容器 -->
@@ -466,6 +505,7 @@
         // ========== 全局变量 ==========
         let agentChatHistory = [];
         let isAgentProcessing = false;
+        let isAgentRefreshing = false;
         let currentAgentAbortController = null;
         /** 当前 opencode 会话 id，页面打开时创建，关闭时删除 */
         let agentSessionId = null;
@@ -563,6 +603,7 @@
 
             if (!question) return;
             if (isAgentProcessing) return;
+            if (isAgentRefreshing) return;
             if (!agentSessionId) {
                 addAgentMessage('bot', '❌ 会话未就绪，请刷新页面后重试。');
                 return;
@@ -689,8 +730,10 @@
             })
             .then(function() {
                 isAgentProcessing = false;
-                sendBtn.disabled = false;
-                if (stopBtn) stopBtn.style.display = 'none';
+                if (!isAgentRefreshing) {
+                    sendBtn.disabled = false;
+                    if (stopBtn) stopBtn.style.display = 'none';
+                }
             })
             .catch(function(error) {
                 if (error.name === 'AbortError') {
@@ -717,9 +760,70 @@
                     }
                 }
                 isAgentProcessing = false;
-                sendBtn.disabled = false;
-                if (stopBtn) stopBtn.style.display = 'none';
+                if (!isAgentRefreshing) {
+                    sendBtn.disabled = false;
+                    if (stopBtn) stopBtn.style.display = 'none';
+                }
             });
+        }
+
+        /**
+         * 刷新会话：删除当前会话 + 创建新会话 + 重置聊天UI
+         * 复用 brain_agent.py 提供的 agent/session/create & agent/session/delete 能力
+         */
+        function refreshAgentSession() {
+            if (isAgentRefreshing) return;
+
+            const refreshBtn = document.getElementById('agent-refresh-btn');
+            const sendBtn = document.getElementById('agent-send-btn');
+            const stopBtn = document.getElementById('agent-stop-btn');
+            const input = document.getElementById('agent-question-input');
+            const chatBox = document.getElementById('agent-chat-box');
+
+            isAgentRefreshing = true;
+
+            if (refreshBtn) refreshBtn.disabled = true;
+            if (sendBtn) sendBtn.disabled = true;
+            if (stopBtn) stopBtn.style.display = 'none';
+
+            // 中止当前请求（若有）
+            if (currentAgentAbortController) {
+                try { currentAgentAbortController.abort(); } catch (e) {}
+                currentAgentAbortController = null;
+            }
+
+            // 立即清空聊天，避免与旧会话输出混在一起
+            if (chatBox) {
+                chatBox.innerHTML = '';
+            }
+            agentChatHistory = [];
+
+            // 展示刷新中提示（会话创建成功后会被 resetAgentUIWithWelcome() 覆盖）
+            addAgentMessage('bot', '🔄 正在刷新会话...', null, false);
+
+            deleteAgentSession(false)
+                .then(() => createAgentSession())
+                .then((newSessionId) => {
+                    console.log('会话刷新成功:', newSessionId);
+                    resetAgentUIWithWelcome();
+                    if (sendBtn) sendBtn.disabled = false;
+                    if (stopBtn) stopBtn.style.display = 'none';
+                    if (input) input.focus();
+                })
+                .catch((e) => {
+                    console.warn('会话刷新失败:', e);
+                    // 刷新失败时给用户明确提示，并允许重试
+                    if (chatBox) {
+                        chatBox.innerHTML = '';
+                    }
+                    agentChatHistory = [];
+                    addAgentMessage('bot', '❌ 会话刷新失败，请稍后重试。');
+                    if (sendBtn) sendBtn.disabled = false;
+                })
+                .finally(() => {
+                    isAgentRefreshing = false;
+                    if (refreshBtn) refreshBtn.disabled = false;
+                });
         }
 
         /**

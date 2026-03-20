@@ -36,3 +36,8 @@ def agent_view(request):
 # 智能体助手单独页面
 def agent_view_page(request):
     return render(request, 'agent/agent_view.html')
+
+
+# 模型库入口页面：提供选择并跳转到各模型系统
+def model_library_view(request):
+    return render(request, 'model_library.html')

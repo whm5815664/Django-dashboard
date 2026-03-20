@@ -599,7 +599,7 @@
             <a href="{% url 'baseIndex'%}" class="toolbox-button" title="进入基地列表">
               <i class="fa fa-plus"></i>
             </a>
-            <button type="button" class="toolbox-button" onclick="openToolboxModal()" title="深度学习工具箱">
+            <button type="button" class="toolbox-button" onclick="openToolboxModal()" title="工具箱">
               <i class="fa fa-wrench"></i>
             </button>
             <button type="button" class="toolbox-button toolbox-button-agent" onclick="openAgentModal()" title="智能体助手">
@@ -622,33 +622,33 @@
           选择下列工具进入对应的深度学习功能模块。
         </div>
         <div class="toolbox-grid">
-          <a href="{% url 'upload' %}" class="toolbox-item">
+          <a href="/aiModels/agent/view" class="toolbox-item">
             <div class="toolbox-item-title">
-              <i class="fa fa-search"></i>
-              <span>疾病识别</span>
+              <i class="fa fa-android"></i>
+              <span>智能体</span>
             </div>
-            <div class="toolbox-item-text">上传作物图像，进行病虫害智能识别。</div>
+            <div class="toolbox-item-text">智能体</div>
           </a>
-          <a href="{% url 'chat' %}" class="toolbox-item">
+          <a href="/labdataset/" class="toolbox-item">
             <div class="toolbox-item-title">
-              <i class="fa fa-comments"></i>
-              <span>智能问答</span>
+              <i class="fa fa-database"></i>
+              <span>数据集</span>
             </div>
-            <div class="toolbox-item-text">面向农业领域的对话与知识问答。</div>
+            <div class="toolbox-item-text">数据集</div>
           </a>
-          <a href="" class="toolbox-item">
+          <a href="/aiModels/tool/knowledge" class="toolbox-item">
             <div class="toolbox-item-title">
-              <i class="fa fa-video-camera"></i>
-              <span>实时监控</span>
+              <i class="fa fa-book"></i>
+              <span>知识库</span>
             </div>
-            <div class="toolbox-item-text">接入监控视频流，查看基地实时画面。</div>
+            <div class="toolbox-item-text">知识库</div>
           </a>
-          <a href="{% url 'graph' %}" class="toolbox-item">
+          <a href="/aiModels/tool/model_library/" class="toolbox-item">
             <div class="toolbox-item-title">
-              <i class="fa fa-bar-chart"></i>
-              <span>数据分析</span>
+              <i class="fa fa-cubes"></i>
+              <span>模型库</span>
             </div>
-            <div class="toolbox-item-text">基于多模态数据的可视化分析与挖掘。</div>
+            <div class="toolbox-item-text">模型库</div>
           </a>
         </div>
       </div>
