@@ -16,24 +16,7 @@
   <!-- Page CSS -->
   <link rel="stylesheet" href="{% static 'storageSystem/css/dashboard.css' %}?v=20260206_orm01">
 
-  <style>
-    #amapContainer {
-      width: 100%;
-      height: 460px;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #f2f3f5;
-    }
-    .map-kv { font-size: 12px; }
-    .map-kv code { font-size: 12px; }
-  </style>
-
   <script>
-    window.__AMAP_KEY__ = "{{ AMAP_KEY|default:'YOUR_AMAP_KEY' }}";
-    window._AMapSecurityConfig = {
-      securityJsCode: "{{ AMAP_SECURITY_JS_CODE|default:'YOUR_SECURITY_JS_CODE' }}"
-    };
-
     // 来自上游页面的 device_code（例如 /storage/dashboard/?device_code=HB001）
     window.__FILTER_DEVICE_CODE__ = "{{ request.GET.device_code|default_if_none:''|escapejs }}";
 
@@ -41,8 +24,6 @@
     // base_id 对应 environment_data.pigsty_id，用于只展示该基地的数据
     window.__FILTER_BASE_ID__ = "{{ request.GET.base_id|default_if_none:''|escapejs }}";
   </script>
-
-  <script src="https://webapi.amap.com/loader.js"></script>
 </head>
 
 <body>
@@ -246,12 +227,12 @@
             <thead>
               <tr>
                 <th style="width:70px;">ID</th>
-                <th style="min-width:220px;">name</th>
-                <th style="width:180px;">device_code</th>
-                <th style="min-width:260px;">description</th>
-                <th style="width:170px;">collect_interval</th>
-                <th style="width:210px;">created_at</th>
-                <th style="width:210px;">updated_at（最后上报）</th>
+                <th style="min-width:160px;">name</th>
+                <th style="width:140px;">设备编号</th>
+                <th style="min-width:260px;">描述</th>
+                <th style="width:210px;">创建时间</th>
+                <th style="width:210px;">更新时间</th>
+                <th style="width:170px;">图像</th>
                 <th style="width:260px;">操作</th>
               </tr>
             </thead>
@@ -269,57 +250,6 @@
       </div>
     </div>
   </main>
-
-  <!-- 地图选点 Modal（如果你仍要用地图，就把经纬度/地址写入 description） -->
-  <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="fa-solid fa-location-dot me-2"></i>选择设备位置（写入 description）
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-
-        <div class="modal-body">
-          <input type="hidden" id="mapDeviceId" value="">
-          <input type="hidden" id="mapDeviceName" value="">
-
-          <div class="row g-2 align-items-end mb-2">
-            <div class="col-12 col-md-6">
-              <label class="form-label muted">搜索地址 / POI</label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-                <input id="mapSearchInput" class="form-control" placeholder="输入地址/地标，例如：上海虹桥火车站">
-                <button class="btn btn-outline-secondary" id="btnMapSearch" type="button">搜索</button>
-              </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <label class="form-label muted">已选坐标</label>
-              <div class="d-flex flex-wrap gap-2 map-kv">
-                <div class="px-2 py-1 bg-light rounded">经度：<code id="pickedLng">-</code></div>
-                <div class="px-2 py-1 bg-light rounded">纬度：<code id="pickedLat">-</code></div>
-                <div class="px-2 py-1 bg-light rounded flex-grow-1">地址：<code id="pickedAddr">-</code></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="amapContainer"></div>
-        </div>
-
-        <div class="modal-footer">
-          <div class="me-auto muted small">
-            保存后会写入 <code>devices.description</code>（建议格式：<code>lng,lat | addr</code>）
-          </div>
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-          <button type="button" class="btn btn-primary" id="btnSaveLocation">
-            <i class="fa-solid fa-floppy-disk me-1"></i>保存到数据库
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- 编辑 Modal（完全对齐 device 表字段） -->
   <div class="modal fade" id="editDeviceModal" tabindex="-1" aria-hidden="true">
@@ -419,6 +349,6 @@
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.21.0/dist/index.js"></script>
 
   <!-- ✅ 改版本号避免缓存旧 JS -->
-  <script src="{% static 'storageSystem/js/dashboard.js' %}?v=20260302_base01"></script>
+  <script src="{% static 'storageSystem/js/dashboard.js' %}?v=20260320_deleteconfirm01"></script>
 </body>
 </html>

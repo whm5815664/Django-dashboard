@@ -20,7 +20,7 @@
     c2h4: "C₂H₄",
   };
 
-  const AMAP_COORD_SYS = "gaode";
+  const MEDIA_BASE_URL = "http://47.99.61.189:8175/media/";
 
   const state = {
     range: "30d",
@@ -110,25 +110,6 @@
   function fmtTime(v) {
     if (!v || v === "-") return "-";
     return escapeHtml(String(v));
-  }
-
-  function parseLngLatFromDescription(desc) {
-    const s = String(desc || "").trim();
-    if (!s) return { lng: "", lat: "", addr: "" };
-
-    const parts = s.split(/[|｜]/).map((x) => x.trim()).filter(Boolean);
-    const left = parts[0] || s;
-    const addr = parts.slice(1).join(" | ").trim();
-
-    const m = left.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
-    if (m) {
-      return {
-        lng: m[1],
-        lat: m[2],
-        addr: addr || s.replace(m[0], "").trim(),
-      };
-    }
-    return { lng: "", lat: "", addr: addr || s };
   }
 
   // ---------- CSRF + fetch ----------
@@ -264,33 +245,6 @@
     setText("kpiTotal", String(lineCount));
     setText("kpiTotalSub", `折线数量：${lineCount}`);
     setText("lastUpdated", `最后更新：${formatNow()}`);
-  }
-
-  // ---------- map ----------
-  function buildAmapMarkerUrl(lng, lat, title = "设备位置", coord = AMAP_COORD_SYS) {
-    const ln = Number(lng);
-    const lt = Number(lat);
-    if (!Number.isFinite(ln) || !Number.isFinite(lt)) return "";
-    return (
-      `https://uri.amap.com/marker?position=${ln},${lt}` +
-      `&name=${encodeURIComponent(String(title || "设备位置"))}` +
-      `&coordinate=${encodeURIComponent(coord)}` +
-      `&callnative=0`
-    );
-  }
-
-  function openAmapByLngLat({ lng, lat, name, location }) {
-    const url = buildAmapMarkerUrl(lng, lat, name || "设备位置");
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-      return;
-    }
-    const q = String(location || name || "").trim();
-    if (q) {
-      window.open(`https://www.amap.com/search?query=${encodeURIComponent(q)}`, "_blank", "noopener,noreferrer");
-    } else {
-      alert("该设备没有有效经纬度，无法定位。");
-    }
   }
 
   // ---------- Modals ----------
@@ -458,13 +412,18 @@
         const descRaw = pick(it, ["description"], "-");
         const descShow = escapeHtml(String(descRaw));
 
-        const ciRaw = pick(it, ["collect_interval"], "-");
-        const ciShow = escapeHtml(String(ciRaw));
-
         const createdAt = fmtTime(pick(it, ["created_at"], "-"));
         const updatedAt = fmtTime(pick(it, ["updated_at"], "-"));
-
-        const parsed = parseLngLatFromDescription(descRaw);
+        const imagePathRaw = pick(it, ["image_path"], "");
+        const imagePathStr = String(imagePathRaw ?? "").trim();
+        const imageTd = imagePathStr
+          ? `<img
+              src="${MEDIA_BASE_URL}${escapeHtml(imagePathStr)}"
+              alt="device image"
+              style="width:90px;height:70px;object-fit:cover;border-radius:8px;"
+              onerror="this.style.display='none';"
+            />`
+          : "-";
 
         return `
           <tr class="js-row-edit" data-id="${escapeHtml(idKey)}">
@@ -472,23 +431,15 @@
             <td>${nameShow}</td>
             <td>${deviceCodeShow}</td>
             <td>${descShow}</td>
-            <td>${ciShow}</td>
             <td>${createdAt}</td>
             <td>${updatedAt}</td>
+            <td>${imageTd}</td>
             <td>
               <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-sm btn-outline-primary js-view-trend"
                         data-device-id="${escapeHtml(idKey)}"
                         data-device-name="${escapeHtml(String(nameRaw))}">
                   <i class="fa-solid fa-chart-line me-1"></i>趋势
-                </button>
-
-                <button class="btn btn-sm btn-outline-secondary js-open-map"
-                        data-name="${escapeHtml(String(nameRaw))}"
-                        data-lng="${escapeHtml(parsed.lng)}"
-                        data-lat="${escapeHtml(parsed.lat)}"
-                        data-location="${escapeHtml(parsed.addr)}">
-                  <i class="fa-solid fa-location-dot me-1"></i>地图
                 </button>
 
                 <button class="btn btn-sm btn-outline-success js-edit-device" data-id="${escapeHtml(idKey)}">
@@ -523,18 +474,6 @@
       });
     });
 
-    // 地图按钮
-    tbody.querySelectorAll(".js-open-map").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        openAmapByLngLat({
-          lng: btn.dataset.lng || "",
-          lat: btn.dataset.lat || "",
-          name: btn.dataset.name || "",
-          location: btn.dataset.location || "",
-        });
-      });
-    });
-
     // 编辑按钮
     tbody.querySelectorAll(".js-edit-device").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -551,6 +490,12 @@
         const id = btn.dataset.id || "";
         const item = getItemById(id);
         if (!item) return;
+
+        // 二次确认：避免误触导致频繁弹出删除弹窗
+        const name = pick(item, ["name"], "-");
+        const ok = window.confirm(`确定要删除设备：${String(name)} 吗？删除后无法恢复。`);
+        if (!ok) return;
+
         openDeleteModalByItem(item);
       });
     });

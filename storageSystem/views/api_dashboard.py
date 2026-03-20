@@ -200,7 +200,19 @@ def _annotate_device_last_seen_and_base(qs):
         .values("pigsty_id")[:1]
     )
 
-    return qs.annotate(last_seen_ts=Subquery(last_seen_sq), base_src_id=Subquery(base_sq))
+    # 最新一条记录的图片路径
+    image_sq = (
+        DeviceReading.objects.using(REMOTE_DB)
+        .filter(device_id=OuterRef("pk"))
+        .order_by(f"-{READ_TIME_F}")
+        .values("image_path")[:1]
+    )
+
+    return qs.annotate(
+        last_seen_ts=Subquery(last_seen_sq),
+        base_src_id=Subquery(base_sq),
+        last_image_path=Subquery(image_sq),
+    )
 
 
 def _serialize_device(obj: Device, base_name_map: Dict[str, str] | None = None) -> Dict[str, Any]:
@@ -214,6 +226,7 @@ def _serialize_device(obj: Device, base_name_map: Dict[str, str] | None = None) 
 
     last_seen = getattr(obj, "last_seen_ts", None)
     base_id = getattr(obj, "base_src_id", None)
+    last_image_path = getattr(obj, "last_image_path", None)
 
     report_ts = last_seen or updated_at
     base_id_str = None if base_id is None else str(base_id)
@@ -236,6 +249,7 @@ def _serialize_device(obj: Device, base_name_map: Dict[str, str] | None = None) 
         "last_seen": _format_dt(last_seen),
         "base_id": base_id_str,
         "base_name": base_name,
+        "image_path": last_image_path,
     }
 
 
@@ -396,6 +410,9 @@ def dashboard_devices(request):
 
                 # ✅ 让前端知道这是哪个基地过滤出来的
                 "base_id": None if getattr(obj, "base_src_id", None) is None else str(getattr(obj, "base_src_id")),
+
+                # ✅ 最新一条读数的图片路径（用于前端拼接 imageUrl）
+                "image_path": getattr(obj, "last_image_path", None),
             })
 
         return _json_ok({
