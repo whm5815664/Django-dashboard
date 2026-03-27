@@ -1613,6 +1613,7 @@
   let currentLayerType = 'satellite'; // 当前图层类型
   let satelliteLayer, roadLayer, buildingLayer; // 图层实例
   let markers = []; // 存储所有标记，用于重新添加
+  let currentLocationLnglat = null; // 当前定位坐标
   let infoWindow = null; // 地图钉信息窗
   let _baseSuggestHideTimer = null;
 
@@ -2013,42 +2014,36 @@
     });
   }
 
-  // 定位当前位置（需要插件AMap.Geolocation）
-  function getLocation()
-  {
-    // 初始化地理定位插件
-    const geolocation = new AMap.Geolocation({
-      enableHighAccuracy: true,
-      timeout: 10000,
-      showMarker: true,
-      showButton: false
+  // 定位当前位置（先拿坐标，再渲染地图）
+  function getLocation() {
+    const defaultLnglat = [114.360622, 30.473526];
+    return new Promise((resolve) => {
+      const geolocation = new AMap.Geolocation({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        showMarker: false,
+        showButton: false
+      });
+
+      geolocation.getCurrentPosition((status, result) => {
+        if (status === 'complete' && result && result.position) {
+          const lnglat = [result.position.lng, result.position.lat];
+          console.log('定位成功:', lnglat);
+          resolve(lnglat);
+          return;
+        }
+        console.warn('定位失败，使用默认位置:', result && result.message ? result.message : 'unknown');
+        resolve(defaultLnglat);
+      });
     });
+  }
 
-    // 执行定位
-    geolocation.getCurrentPosition((status, result) => {
-      if (status === 'complete') {
-        const lnglat = [result.position.lng, result.position.lat];
-        map.setCenter(lnglat);
-
-        new AMap.Marker({
-          position: lnglat,
-          map: map,
-          title: "当前位置"
-        });
-        console.log('定位成功:', lnglat);
-      } else {
-        console.warn('定位失败:', result.message);
-        //！！定位失败时设置默认位置
-        const defaultLnglat = [114.360622, 30.473526];
-        map.setCenter(defaultLnglat);
-        
-        new AMap.Marker({
-          position: defaultLnglat,
-          map: map,
-          title: "默认位置"
-        });
-        console.log('使用默认位置:', defaultLnglat);
-      }
+  function addCurrentLocationMarker(lnglat, titleText) {
+    if (!map || !lnglat) return;
+    new AMap.Marker({
+      position: lnglat,
+      map: map,
+      title: titleText || '当前位置'
     });
   }
 
@@ -2284,8 +2279,8 @@
       currentLayerType = layerType;
       updateButtonStyles(layerType);
 
-      // 重新定位与加载数据、标记
-      getLocation();
+      // 重新加载数据、标记
+      addCurrentLocationMarker(currentLocationLnglat, '当前位置');
       loadMapData();
 
       console.log('已重建地图，当前类型:', currentLayerType);
@@ -2306,24 +2301,24 @@
   }
 
   // 初始化地图(地图主函数)
-  function initMap()
-  {
-    AMapLoader.load({
-      key: "9969ad3b8112bd56b65dc90191ab4753",
-      version: "2.0",
-      plugins: ["AMap.Geolocation", "AMap.Marker", "AMap.Buildings"] // 添加楼块图层插件
-    })
-    .then((AMap) =>
-    {
-      console.log('高德地图API加载成功');
-      
-      // 初始化地图实例
-      map = new AMap.Map("GaodeMap", {
-        zoom: 8,
-        layers: [] // 先不添加任何图层，稍后通过控件添加
+  async function initMap() {
+    try {
+      const AMap = await AMapLoader.load({
+        key: "9969ad3b8112bd56b65dc90191ab4753",
+        version: "2.0",
+        plugins: ["AMap.Geolocation", "AMap.Marker", "AMap.Buildings"]
       });
+      console.log('高德地图API加载成功');
 
-      console.log('地图实例创建成功');
+      // 先获取坐标，再创建地图实例
+      currentLocationLnglat = await getLocation();
+
+      map = new AMap.Map("GaodeMap", {
+        center: currentLocationLnglat,
+        zoom: 15,
+        layers: []
+      });
+      console.log('地图实例创建成功，中心点:', currentLocationLnglat);
 
       // 创建图层实例
       satelliteLayer = new AMap.TileLayer.Satellite();
@@ -2334,12 +2329,11 @@
         heightFactor: 2
       });
 
-      console.log('图层实例创建成功');
-
       // 默认添加标准图层和卫星图层
       const standardLayer = new AMap.TileLayer();
       map.add(standardLayer);
       map.add(satelliteLayer);
+      addCurrentLocationMarker(currentLocationLnglat, '当前位置');
       console.log('默认图层添加成功');
 
       // 地图加载完成后创建图层切换控件
@@ -2353,17 +2347,12 @@
         console.log('点击位置的经纬度:', e.lnglat);
       });
 
-      // 执行定位
-      getLocation()
-
       // 地图加载完成后获取数据加入地图钉
       loadMapData();
-
-    })
-    .catch((e) => {
+    } catch (e) {
       console.error('地图加载失败:', e);
       alert('地图加载失败，请检查网络连接');
-    });
+    }
   }
 
   // 页面加载完成后初始化地图
