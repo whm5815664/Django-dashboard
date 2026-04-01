@@ -26,6 +26,7 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 
+
 # =========================
 # Application definition
 # =========================
@@ -45,6 +46,16 @@ INSTALLED_APPS = [
     "screen",  # screen
     "labDataset",  # 实验室数据集管理
 ]
+
+
+# 开发环境可选：django-sslserver（用于 runsslserver 快速 HTTPS）
+try:
+    import sslserver  # noqa: F401
+except Exception:
+    sslserver = None
+else:
+    INSTALLED_APPS.insert(-1, "sslserver")
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

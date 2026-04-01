@@ -20,6 +20,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.views.generic import RedirectView
 
 # 处理浏览器开发工具自动请求的路径（Chrome/Edge等）
 def chrome_devtools_handler(request):
@@ -27,6 +28,8 @@ def chrome_devtools_handler(request):
     return JsonResponse({})
 
 urlpatterns = [
+    path("", RedirectView.as_view(url="/screen/base_map/湖北省/"), name="home"),
+    
     path("admin/", admin.site.urls),
     path('screen/', include('screen.urls')),
     path('aiModels/', include('aiModels.urls')),
