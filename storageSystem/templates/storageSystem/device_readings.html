@@ -1,0 +1,274 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>读取传感器数据</title>
+
+  <meta name="csrf-token" content="{{ csrf_token }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'storageSystem/css/dashboard.css' %}?v=20260206_orm01">
+
+  <style>
+    .reading-img {
+      width: 92px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #f8f9fa;
+    }
+
+    .table th,
+    .table td {
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .cardx + .cardx {
+      margin-top: 1rem;
+    }
+
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sortable:hover {
+      background: #f8f9fa;
+    }
+
+    .sort-indicator {
+      display: inline-block;
+      min-width: 14px;
+      margin-left: 4px;
+      color: #6c757d;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top nav-fixed">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="/storage/dashboard/">
+        <i class="fa-solid fa-snowflake me-2"></i>冷库设备平台
+      </a>
+
+      <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-outline-light btn-sm" href="/storage/dashboard/">
+          <i class="fa-solid fa-arrow-left me-1"></i>返回总览
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <div>
+        <div class="page-title">读取传感器数据</div>
+        <div class="muted">
+          当前设备：
+          <span class="fw-semibold">{{ device.name|default:"-" }}</span>
+          <span class="ms-2">ID={{ device.id }}</span>
+          <span class="ms-2">device_code={{ device.device_code|default:"-" }}</span>
+        </div>
+      </div>
+      <div class="muted small" id="lastUpdated">最后更新：-</div>
+    </div>
+
+    <div class="cardx">
+      <div class="cardx-hd">
+        <span><i class="fa-solid fa-filter me-2"></i>筛选条件</span>
+      </div>
+      <div class="cardx-bd">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label muted">关键词</label>
+            <input class="form-control" id="keyword" placeholder="时间 / 数值 / 图片路径">
+          </div>
+
+          <div class="col-12 col-md-3">
+            <label class="form-label muted">开始日期</label>
+            <input class="form-control" type="date" id="dateFrom">
+          </div>
+
+          <div class="col-12 col-md-3">
+            <label class="form-label muted">结束日期</label>
+            <input class="form-control" type="date" id="dateTo">
+          </div>
+
+          <div class="col-12 col-md-2 d-flex gap-2">
+            <button class="btn btn-primary w-100" id="btnSearch" type="button">
+              <i class="fa-solid fa-magnifying-glass me-1"></i>查询
+            </button>
+            <button class="btn btn-outline-secondary w-100" id="btnReset" type="button">重置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cardx">
+      <div class="cardx-hd">
+        <span><i class="fa-solid fa-table me-2"></i>传感器数据表</span>
+      </div>
+
+      <div class="cardx-bd">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="id" style="width:70px;">id <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="CO2">CO2 <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="temperature">temperature <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="humidity">humidity <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="collected_time" style="min-width:180px;">collected_time <span class="sort-indicator"></span></th>
+                <th style="min-width:120px;">image</th>
+                <th class="sortable" data-sort="C2H4">C2H4 <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="C2H5OH">C2H5OH <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="CO">CO <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="H2">H2 <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="O2">O2 <span class="sort-indicator"></span></th>
+                <th class="sortable" data-sort="VOC">VOC <span class="sort-indicator"></span></th>
+                <th style="min-width:180px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="readingTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <div class="muted" id="pageInfo">-</div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btnPrev" type="button">上一页</button>
+            <button class="btn btn-outline-secondary btn-sm" id="btnNext" type="button">下一页</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 编辑 Modal -->
+  <div class="modal fade" id="editReadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fa-solid fa-pen-to-square me-2"></i>编辑传感器数据
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" id="editId" value="">
+
+          <div class="row g-3">
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">CO2</label>
+              <input class="form-control" id="editCO2">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">temperature</label>
+              <input class="form-control" id="editTemperature">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">humidity</label>
+              <input class="form-control" id="editHumidity">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">collected_time</label>
+              <input class="form-control" type="datetime-local" id="editCollectedTime">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">C2H4</label>
+              <input class="form-control" id="editC2H4">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">C2H5OH</label>
+              <input class="form-control" id="editC2H5OH">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">CO</label>
+              <input class="form-control" id="editCO">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">H2</label>
+              <input class="form-control" id="editH2">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">O2</label>
+              <input class="form-control" id="editO2">
+            </div>
+
+            <div class="col-12 col-md-3">
+              <label class="form-label muted">VOC</label>
+              <input class="form-control" id="editVOC">
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label muted">image</label>
+              <input class="form-control" id="editImage" placeholder="图片路径 / URL">
+            </div>
+          </div>
+
+          <div class="text-danger small mt-3 d-none" id="editErr">-</div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="btnSaveEdit">
+            <i class="fa-solid fa-floppy-disk me-1"></i>保存修改
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除 Modal -->
+  <div class="modal fade" id="deleteReadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fa-solid fa-triangle-exclamation me-2 text-danger"></i>确认删除
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" id="deleteId" value="">
+          <div>确定要删除这条传感器数据吗？</div>
+          <div class="muted small mt-2" id="deleteSummary">-</div>
+          <div class="text-danger small mt-3 d-none" id="deleteErr">-</div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+            <i class="fa-solid fa-trash-can me-1"></i>确认删除
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__DEVICE_ID__ = "{{ device.id|default:''|escapejs }}";
+    window.__BASE_ID__ = "{{ base_id|default:''|escapejs }}";
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'storageSystem/js/device_readings.js' %}?v=20260401_readings_sort01"></script>
+</body>
+</html>

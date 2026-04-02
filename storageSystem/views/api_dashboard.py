@@ -12,16 +12,15 @@ from django.core.paginator import Paginator
 from django.db import connections, models, transaction
 from django.db.models import Q, Count, Max, OuterRef, Subquery
 from django.http import JsonResponse
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from storageSystem.models import Base, Device, DeviceReading
 
-# 使用远程数据库（pig）连接
 REMOTE_DB = "pig"
+MEDIA_BASE_URL = "http://47.99.61.189:8175/media/"
 
-
-# ========= JSON 返回 =========
 
 def _json_ok(data: Dict[str, Any]) -> JsonResponse:
     payload = {"ok": True}
@@ -34,8 +33,6 @@ def _json_err(e: Exception, status: int = 500) -> JsonResponse:
     payload = {"ok": False, "error": repr(e)}
     return JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
 
-
-# ========= 基础工具 =========
 
 def _parse_date_ymd(s: str) -> Optional[date]:
     s = (s or "").strip()
@@ -100,11 +97,7 @@ def _pick_field(model_cls, *candidates: str) -> Optional[str]:
 
 
 def _get_existing_db_columns(model_cls) -> set[str]:
-    """
-    用 Django introspection 获取真实表结构列，避免"模型有字段但数据库无此列"导致 1054 报错。
-    """
     table = model_cls._meta.db_table
-    # 每次使用时从 connections 获取连接，避免线程安全问题
     connection = connections[REMOTE_DB]
     with connection.cursor() as cur:
         desc = connection.introspection.get_table_description(cur, table)
@@ -124,44 +117,153 @@ def _format_dt(v):
     if isinstance(v, datetime):
         return v.strftime("%Y-%m-%d %H:%M:%S")
     return v
+
+
 def _norm_base_id(v: str):
-    """
-    base_id 来自 URL（比如 'HB001' 或 '1'），数据库 pigsty_id 是 bigint。
-    如果输入是字符串格式（如 'HB001'），取后三位转为 int（'HB001' -> 1）。
-    如果输入是纯数字字符串（如 '1'），直接转为 int。
-    """
     s = (v or "").strip()
     if not s:
         return None
-    # 如果是纯数字字符串，直接转为 int
     if s.isdigit():
         return int(s)
-    # 如果是字符串格式（如 'HB001'），取后三位转为 int
     if len(s) >= 3:
         last_three = s[-3:]
         if last_three.isdigit():
             return int(last_three)
-    # 如果后三位不是数字，返回 None 或原值（根据业务需求）
-    # 这里返回 None 表示无效的 base_id
     return None
 
-# ========= 适配你当前 device 表字段 =========
 
 DEVICE_ID_F = "id"
 DEVICE_NAME_F = _pick_field(Device, "name", "device_name")
-# 你的 device 表字段是 device_code
 DEVICE_CODE_F = _pick_field(Device, "device_code", "code", "device_code")
 DEVICE_DESC_F = _pick_field(Device, "description")
 DEVICE_NOTES_F = _pick_field(Device, "notes")
-
-# 读数表时间字段：你 models 里把 collected_time 映射成 reported_at
 READ_TIME_F = _pick_field(DeviceReading, "reported_at", "collected_time", "collected_at", "created_at")
 
 
+def _pick_existing_field(model_cls, *candidates: str) -> Optional[str]:
+    existing_names = _get_existing_model_field_names(model_cls)
+    for name in candidates:
+        if name in existing_names:
+            return name
+    return None
+
+
+def _get_reading_field_map() -> Dict[str, Optional[str]]:
+    return {
+        "time": _pick_existing_field(DeviceReading, "reported_at", "collected_time", "collected_at", "created_at"),
+        "base_id": _pick_existing_field(DeviceReading, "pigsty_id", "base_id"),
+        "image": _pick_existing_field(DeviceReading, "image_path", "image", "image_url", "photo"),
+
+        "CO2": _pick_existing_field(DeviceReading, "co2", "CO2", "co2_ppm"),
+        "temperature": _pick_existing_field(DeviceReading, "temperature", "temp"),
+        "humidity": _pick_existing_field(DeviceReading, "humidity"),
+        "C2H4": _pick_existing_field(DeviceReading, "c2h4", "C2H4"),
+        "C2H5OH": _pick_existing_field(DeviceReading, "c2h5oh", "C2H5OH"),
+        "CO": _pick_existing_field(DeviceReading, "co", "CO", "co_ppm"),
+        "H2": _pick_existing_field(DeviceReading, "h2", "H2", "h2_ppm"),
+        "O2": _pick_existing_field(DeviceReading, "o2", "O2"),
+        "VOC": _pick_existing_field(DeviceReading, "voc", "VOC"),
+    }
+
+
+def _reading_get(obj: DeviceReading, field_name: Optional[str], default=None):
+    if not field_name:
+        return default
+    return getattr(obj, field_name, default)
+
+
+def _format_scalar(v):
+    if isinstance(v, datetime):
+        return v.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(v, date):
+        return v.strftime("%Y-%m-%d")
+    if v is None:
+        return None
+
+    try:
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, int):
+            return v
+        if isinstance(v, float):
+            return v
+        if hasattr(v, "as_tuple"):
+            return float(v)
+    except Exception:
+        pass
+
+    return v
+
+
+def _build_media_url(request, raw) -> Optional[str]:
+    if raw in (None, ""):
+        return None
+
+    if hasattr(raw, "url"):
+        try:
+            url = str(raw.url).strip()
+            if not url:
+                return None
+            if url.startswith("http://") or url.startswith("https://"):
+                return url
+            return MEDIA_BASE_URL + url.lstrip("/")
+        except Exception:
+            text = str(raw).strip()
+            if not text:
+                return None
+            if text.startswith("http://") or text.startswith("https://"):
+                return text
+            return MEDIA_BASE_URL + text.lstrip("/")
+
+    text = str(raw).strip()
+    if not text:
+        return None
+
+    if text.startswith("http://") or text.startswith("https://"):
+        return text
+
+    return MEDIA_BASE_URL + text.lstrip("/")
+
+
+def _serialize_reading(request, obj: DeviceReading, field_map: Optional[Dict[str, Optional[str]]] = None) -> Dict[str, Any]:
+    fm = field_map or _get_reading_field_map()
+
+    return {
+        "id": obj.pk,
+        "CO2": _format_scalar(_reading_get(obj, fm["CO2"])),
+        "temperature": _format_scalar(_reading_get(obj, fm["temperature"])),
+        "humidity": _format_scalar(_reading_get(obj, fm["humidity"])),
+        "collected_time": _format_scalar(_reading_get(obj, fm["time"])),
+        "image": _build_media_url(request, _reading_get(obj, fm["image"])),
+        "C2H4": _format_scalar(_reading_get(obj, fm["C2H4"])),
+        "C2H5OH": _format_scalar(_reading_get(obj, fm["C2H5OH"])),
+        "CO": _format_scalar(_reading_get(obj, fm["CO"])),
+        "H2": _format_scalar(_reading_get(obj, fm["H2"])),
+        "O2": _format_scalar(_reading_get(obj, fm["O2"])),
+        "VOC": _format_scalar(_reading_get(obj, fm["VOC"])),
+    }
+
+
+def _parse_datetime_or_none(v):
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+
+    dt = parse_datetime(s)
+    if dt is not None:
+        return dt
+
+    try:
+        if len(s) == 16 and "T" in s:
+            return datetime.fromisoformat(s + ":00")
+        return datetime.fromisoformat(s)
+    except Exception:
+        raise ValueError(f"collected_time 格式无效：{s}")
+
+
 def _build_device_q(dev_id, dev_name: str, dev_code: str) -> Optional[Q]:
-    """
-    定位优先级：id > name > device_code
-    """
     if dev_id not in (None, "", 0):
         try:
             return Q(pk=int(dev_id))
@@ -175,13 +277,7 @@ def _build_device_q(dev_id, dev_name: str, dev_code: str) -> Optional[Q]:
 
 
 def _annotate_device_last_seen_and_base(qs):
-    """
-    给 Device queryset 增加两个注解：
-    - last_seen_ts：environment_data 最新采集时间
-    - base_src_id：environment_data 最新 pigsty_id（库房来源）
-    """
     if not READ_TIME_F:
-        # 没有时间字段就不注解
         return qs
 
     last_seen_sq = (
@@ -192,7 +288,6 @@ def _annotate_device_last_seen_and_base(qs):
         .values("mx")[:1]
     )
 
-    # 最新一条记录的 pigsty_id
     base_sq = (
         DeviceReading.objects.using(REMOTE_DB)
         .filter(device_id=OuterRef("pk"))
@@ -200,7 +295,6 @@ def _annotate_device_last_seen_and_base(qs):
         .values("pigsty_id")[:1]
     )
 
-    # 最新一条记录的图片路径
     image_sq = (
         DeviceReading.objects.using(REMOTE_DB)
         .filter(device_id=OuterRef("pk"))
@@ -233,7 +327,6 @@ def _serialize_device(obj: Device, base_name_map: Dict[str, str] | None = None) 
     base_name = base_name_map.get(base_id_str) if (base_name_map and base_id_str) else None
 
     return {
-        # ✅ 新字段（你现在页面表格要用的）
         "id": obj.pk,
         "name": name,
         "device_code": code,
@@ -243,7 +336,6 @@ def _serialize_device(obj: Device, base_name_map: Dict[str, str] | None = None) 
         "updated_at": _format_dt(report_ts),
         "device_updated_at": _format_dt(updated_at),
 
-        # ✅ 旧字段兼容
         "device_name": name,
         "code": code,
         "last_seen": _format_dt(last_seen),
@@ -253,22 +345,13 @@ def _serialize_device(obj: Device, base_name_map: Dict[str, str] | None = None) 
     }
 
 
-# ========= API =========
-
 @require_GET
 def device_names(request):
-    """
-    GET /storage/api/device-names/?base_id=1
-    返回：
-      devices=[{id,name,device_code},...]
-      device_names=[name...](旧兼容)
-    """
     try:
         base_id = _norm_base_id(request.GET.get("base_id") or "")
 
         qs = Device.objects.using(REMOTE_DB).all()
 
-        # ✅ 如果传了 base_id：只要这个设备在 environment_data 出现过 pigsty_id=base_id 就保留
         if base_id is not None:
             dev_ids = (
                 DeviceReading.objects.using(REMOTE_DB)
@@ -295,12 +378,6 @@ def device_names(request):
 
 @require_GET
 def stats(request):
-    """
-    KPI：在新结构里没有 status 字段，因此 online/offline 用“最后上报时间”推断：
-    - last_seen >= now - online_minutes => online
-    - 否则 offline
-    GET /storage/api/dashboard/stats/?online_minutes=10
-    """
     try:
         try:
             online_minutes = int(request.GET.get("online_minutes") or 10)
@@ -332,7 +409,6 @@ def stats(request):
 @require_GET
 def dashboard_devices(request):
     try:
-        # 分页
         try:
             page = max(int(request.GET.get("page", "1")), 1)
             page_size = min(max(int(request.GET.get("page_size", "10")), 1), 100)
@@ -343,8 +419,6 @@ def dashboard_devices(request):
         keyword = (request.GET.get("keyword") or "").strip()
         date_from = _parse_date_ymd(request.GET.get("date_from") or "")
         date_to = _parse_date_ymd(request.GET.get("date_to") or "")
-
-        # ✅ 新增：base_id（= environment_data.pigsty_id）
         base_id = _norm_base_id(request.GET.get("base_id") or "")
 
         qs = Device.objects.using(REMOTE_DB).all().only(
@@ -364,14 +438,11 @@ def dashboard_devices(request):
                 q_kw |= Q(**{f"{DEVICE_DESC_F}__icontains": keyword})
             qs = qs.filter(q_kw)
 
-        # 注解 last_seen_ts（来自 environment_data 最新采集时间）和 base_src_id（最新 pigsty_id）
         qs = _annotate_device_last_seen_and_base(qs)
 
-        # ✅ base_id 过滤：按“最新一条读数的 pigsty_id”判断设备当前属于哪个基地
         if base_id is not None:
             qs = qs.filter(base_src_id=base_id)
 
-        # 日期过滤：按“最后上报时间”
         if date_from:
             qs = qs.filter(
                 Q(last_seen_ts__date__gte=date_from) |
@@ -403,15 +474,10 @@ def dashboard_devices(request):
                 "created_at": _format_dt(getattr(obj, "created_at", None)),
                 "updated_at": _format_dt(report_ts),
 
-                # 兼容字段
                 "device_name": getattr(obj, "name", None),
                 "code": getattr(obj, "device_code", None),
                 "last_seen": _format_dt(last_seen),
-
-                # ✅ 让前端知道这是哪个基地过滤出来的
                 "base_id": None if getattr(obj, "base_src_id", None) is None else str(getattr(obj, "base_src_id")),
-
-                # ✅ 最新一条读数的图片路径（用于前端拼接 imageUrl）
                 "image_path": getattr(obj, "last_image_path", None),
             })
 
@@ -426,18 +492,9 @@ def dashboard_devices(request):
 
 @require_GET
 def trend(request):
-    """
-    GET /storage/api/dashboard/trend/?device_id=3&base_id=1&range=30d&limit=500
-    - 数据来自 environment_data
-    - 先按 device_id 过滤
-    - 如果传 base_id：再按 pigsty_id 过滤
-    - 窗口用“过滤后的数据”的 max(time) 往前 days 天
-    """
     device_id_raw = (request.GET.get("device_id") or request.GET.get("id") or "").strip()
     device_name = (request.GET.get("device_name") or request.GET.get("name") or "").strip()
     device_code = (request.GET.get("device_code") or request.GET.get("code") or "").strip()
-
-    # ✅ 新增：base_id（= pigsty_id）
     base_id = _norm_base_id(request.GET.get("base_id") or "")
 
     range_ = (request.GET.get("range") or "7d").strip().lower()
@@ -476,7 +533,6 @@ def trend(request):
         if not series_cols:
             return _json_ok({"x": [], "series": [], "note": "没有可绘制数值列"})
 
-        # 解析 device_id
         resolved_id: Optional[int] = None
 
         if device_id_raw:
@@ -498,14 +554,11 @@ def trend(request):
         if resolved_id is None:
             return _json_ok({"x": [], "series": [], "note": "缺少 device_id（也可传 id / device_name / device_code）"})
 
-        # ✅ 先按 device_id 过滤
         qs = DeviceReading.objects.using(REMOTE_DB).filter(device_id=resolved_id)
 
-        # ✅ 再按 base_id 过滤（只取该基地 pigsty_id 的读数）
         if base_id is not None:
             qs = qs.filter(pigsty_id=base_id)
 
-        # ✅ 用过滤后的 max(time) 计算窗口
         max_t = qs.aggregate(mx=Max(time_f)).get("mx")
         if not max_t:
             return _json_ok({
@@ -540,34 +593,205 @@ def trend(request):
         return _json_err(e)
 
 
-# ========= 不支持的旧接口（防止前端误调用报 500） =========
+@require_GET
+def device_readings_list(request, device_id: int):
+    try:
+        dev = Device.objects.using(REMOTE_DB).filter(pk=device_id).only("id").first()
+        if not dev:
+            return _json_err(RuntimeError("设备不存在"), status=404)
+
+        try:
+            page = max(int(request.GET.get("page", "1")), 1)
+            page_size = min(max(int(request.GET.get("page_size", "10")), 1), 100)
+        except Exception:
+            page, page_size = 1, 10
+
+        keyword = (request.GET.get("keyword") or "").strip()
+        date_from = _parse_date_ymd(request.GET.get("date_from") or "")
+        date_to = _parse_date_ymd(request.GET.get("date_to") or "")
+        base_id = _norm_base_id(request.GET.get("base_id") or "")
+
+        sort_by = (request.GET.get("sort_by") or "collected_time").strip()
+        sort_dir = (request.GET.get("sort_dir") or "desc").strip().lower()
+        if sort_dir not in {"asc", "desc"}:
+            sort_dir = "desc"
+
+        fm = _get_reading_field_map()
+        time_f = fm["time"]
+        base_f = fm["base_id"]
+        image_f = fm["image"]
+
+        qs = DeviceReading.objects.using(REMOTE_DB).filter(device_id=device_id)
+
+        if base_id is not None and base_f:
+            qs = qs.filter(**{base_f: base_id})
+
+        if time_f:
+            if date_from:
+                qs = qs.filter(**{f"{time_f}__date__gte": date_from})
+            if date_to:
+                qs = qs.filter(**{f"{time_f}__date__lte": date_to})
+
+        if keyword:
+            q_kw = Q()
+
+            if image_f:
+                q_kw |= Q(**{f"{image_f}__icontains": keyword})
+
+            if time_f:
+                kw_date = _parse_date_ymd(keyword)
+                if kw_date:
+                    q_kw |= Q(**{f"{time_f}__date": kw_date})
+
+            num = None
+            try:
+                num = float(keyword)
+            except Exception:
+                num = None
+
+            if num is not None:
+                for k in ["CO2", "temperature", "humidity", "C2H4", "C2H5OH", "CO", "H2", "O2", "VOC"]:
+                    f = fm.get(k)
+                    if f:
+                        q_kw |= Q(**{f: num})
+
+            if q_kw.children:
+                qs = qs.filter(q_kw)
+
+        sort_field_map = {
+            "id": "id",
+            "CO2": fm.get("CO2"),
+            "temperature": fm.get("temperature"),
+            "humidity": fm.get("humidity"),
+            "collected_time": fm.get("time"),
+            "C2H4": fm.get("C2H4"),
+            "C2H5OH": fm.get("C2H5OH"),
+            "CO": fm.get("CO"),
+            "H2": fm.get("H2"),
+            "O2": fm.get("O2"),
+            "VOC": fm.get("VOC"),
+        }
+
+        actual_sort_field = sort_field_map.get(sort_by)
+
+        if actual_sort_field:
+            prefix = "" if sort_dir == "asc" else "-"
+            if actual_sort_field == "id":
+                qs = qs.order_by(f"{prefix}id")
+            else:
+                qs = qs.order_by(f"{prefix}{actual_sort_field}", "-id")
+        else:
+            if time_f:
+                qs = qs.order_by(f"-{time_f}", "-id")
+            else:
+                qs = qs.order_by("-id")
+
+        total = qs.count()
+
+        paginator = Paginator(qs, page_size)
+        page_obj = paginator.get_page(page)
+
+        results = [_serialize_reading(request, obj, fm) for obj in page_obj.object_list]
+
+        return _json_ok({
+            "device_id": device_id,
+            "base_id": base_id,
+            "results": results,
+            "total": int(total),
+            "page": int(page),
+            "page_size": int(page_size),
+            "sort_by": sort_by,
+            "sort_dir": sort_dir,
+        })
+    except Exception as e:
+        return _json_err(e)
+
+
+@csrf_exempt
+@require_POST
+def update_reading(request, reading_id: int):
+    body = _parse_json_body(request)
+    data: Dict[str, Any] = {}
+    data.update(request.POST.dict() if hasattr(request, "POST") else {})
+    data.update(body or {})
+
+    try:
+        obj = DeviceReading.objects.using(REMOTE_DB).filter(pk=reading_id).first()
+        if not obj:
+            return _json_err(RuntimeError("读数记录不存在"), status=404)
+
+        fm = _get_reading_field_map()
+        update_fields: List[str] = []
+
+        numeric_keys = ["CO2", "temperature", "humidity", "C2H4", "C2H5OH", "CO", "H2", "O2", "VOC"]
+        for key in numeric_keys:
+            if key in data:
+                f = fm.get(key)
+                if not f:
+                    continue
+                setattr(obj, f, _to_float_or_none(data.get(key)))
+                update_fields.append(f)
+
+        if "collected_time" in data:
+            f = fm.get("time")
+            if f:
+                setattr(obj, f, _parse_datetime_or_none(data.get("collected_time")))
+                update_fields.append(f)
+
+        if "image" in data:
+            f = fm.get("image")
+            if f:
+                raw = data.get("image")
+                text = "" if raw is None else str(raw).strip()
+                setattr(obj, f, text or None)
+                update_fields.append(f)
+
+        if not update_fields:
+            return _json_err(ValueError("没有提供任何可更新字段"), status=400)
+
+        update_fields = list(dict.fromkeys(update_fields))
+
+        with transaction.atomic(using=REMOTE_DB):
+            obj.save(using=REMOTE_DB, update_fields=update_fields)
+
+        return _json_ok({
+            "updated": 1,
+            "reading": _serialize_reading(request, obj, fm),
+        })
+    except Exception as e:
+        return _json_err(e)
+
+
+@csrf_exempt
+@require_POST
+def delete_reading(request, reading_id: int):
+    try:
+        obj = DeviceReading.objects.using(REMOTE_DB).filter(pk=reading_id).first()
+        if not obj:
+            return _json_err(RuntimeError("读数记录不存在"), status=404)
+
+        fm = _get_reading_field_map()
+        row = _serialize_reading(request, obj, fm)
+
+        obj.delete(using=REMOTE_DB)
+
+        return _json_ok({
+            "deleted": 1,
+            "reading": row,
+        })
+    except Exception as e:
+        return _json_err(e)
+
 
 @csrf_exempt
 @require_POST
 def save_device_location(request):
-    """
-    你当前 device 表没有 longitude/latitude/location 字段，因此不支持保存位置。
-    """
     return _json_err(RuntimeError("当前 device 表无经纬度/位置信息字段，save_device_location 接口不支持"), status=400)
 
-
-# ========= 更新设备（适配新 device 表字段） =========
 
 @csrf_exempt
 @require_POST
 def update_device(request):
-    """
-    POST /storage/api/dashboard/device-update/
-    支持更新字段（适配新 device 表）：
-      - device_name / name
-      - device_code / code
-      - description
-      - notes
-      - collect_interval
-      - extract_air_time
-      - extract_tested_gas_tin
-      - extract_wait_time
-    """
     body = _parse_json_body(request)
     data: Dict[str, Any] = {}
     data.update(request.POST.dict() if hasattr(request, "POST") else {})
@@ -591,7 +815,6 @@ def update_device(request):
 
         update_fields: List[str] = []
 
-        # name
         if _key_in(data, "device_name", "name") and DEVICE_NAME_F:
             text = "" if (data.get("device_name") is None and data.get("name") is None) else str(data.get("device_name") or data.get("name")).strip()
             field = obj._meta.get_field(DEVICE_NAME_F)
@@ -601,7 +824,6 @@ def update_device(request):
                 setattr(obj, DEVICE_NAME_F, text)
             update_fields.append(DEVICE_NAME_F)
 
-        # device_code
         if _key_in(data, "device_code", "code") and DEVICE_CODE_F:
             text = "" if (data.get("device_code") is None and data.get("code") is None) else str(data.get("device_code") or data.get("code")).strip()
             field = obj._meta.get_field(DEVICE_CODE_F)
@@ -611,7 +833,6 @@ def update_device(request):
                 setattr(obj, DEVICE_CODE_F, text)
             update_fields.append(DEVICE_CODE_F)
 
-        # description / notes
         if _key_in(data, "description") and DEVICE_DESC_F:
             text = "" if data.get("description") is None else str(data.get("description")).strip()
             field = obj._meta.get_field(DEVICE_DESC_F)
@@ -630,7 +851,6 @@ def update_device(request):
                 setattr(obj, DEVICE_NOTES_F, text)
             update_fields.append(DEVICE_NOTES_F)
 
-        # float fields
         float_map = {
             "collect_interval": "collect_interval",
             "extract_air_time": "extract_air_time",
@@ -650,7 +870,6 @@ def update_device(request):
         with transaction.atomic(using=REMOTE_DB):
             obj.save(update_fields=update_fields, using=REMOTE_DB)
 
-        # 重新注解 last_seen/base_src 以便返回
         qs = _annotate_device_last_seen_and_base(Device.objects.using(REMOTE_DB).filter(pk=obj.pk))
         obj2 = qs.first() or obj
 
@@ -660,15 +879,9 @@ def update_device(request):
         return _json_err(e)
 
 
-# ========= 删除设备 =========
-
 @csrf_exempt
 @require_POST
 def delete_device(request):
-    """
-    POST /storage/api/dashboard/device-delete/
-    { "id": 123 } 或 { "device_name": "xxx" } 或 { "device_code": "SN001" }
-    """
     body = _parse_json_body(request)
     data: Dict[str, Any] = {}
     data.update(request.POST.dict() if hasattr(request, "POST") else {})

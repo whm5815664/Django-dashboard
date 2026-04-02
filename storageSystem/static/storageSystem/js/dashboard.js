@@ -343,6 +343,19 @@
     return state.tableIndex.get(key) || null;
   }
 
+  function openReadingsPageByItem(item) {
+    if (!item) return;
+
+    const id = pick(item, ["id"], "");
+    if (!id) return;
+
+    const sp = new URLSearchParams();
+    if (state.filterBaseId) sp.set("base_id", state.filterBaseId);
+
+    const q = sp.toString() ? `?${sp.toString()}` : "";
+    window.location.href = `/storage/device/${id}/readings/${q}`;
+  }
+
   // ---------- table ----------
   function getTableFilters() {
     const deviceCode = document.getElementById("filterDeviceCode")?.value || state.filterDeviceCode || "";
@@ -442,6 +455,10 @@
                   <i class="fa-solid fa-chart-line me-1"></i>趋势
                 </button>
 
+                <button class="btn btn-sm btn-outline-info js-read-device" data-id="${escapeHtml(idKey)}">
+                  <i class="fa-solid fa-database me-1"></i>读取
+                </button>
+
                 <button class="btn btn-sm btn-outline-success js-edit-device" data-id="${escapeHtml(idKey)}">
                   <i class="fa-solid fa-pen-to-square me-1"></i>编辑
                 </button>
@@ -471,6 +488,16 @@
         if (selKpi) selKpi.value = id;
 
         await loadTrend();
+      });
+    });
+
+    // 读取按钮
+    tbody.querySelectorAll(".js-read-device").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id || "";
+        const item = getItemById(id);
+        if (!item) return;
+        openReadingsPageByItem(item);
       });
     });
 
