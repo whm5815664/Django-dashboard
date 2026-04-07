@@ -37,8 +37,11 @@ def get_table_counts(db, tables=None):
     return results
 
 
-def get_column_stats(db, table, column):
+def get_column_stats(db, table, column, where_clause=None):
     from django.db import connections
+    where_sql = f"WHERE {column} IS NOT NULL"
+    if where_clause:
+        where_sql += f" AND {where_clause}"
     with connections[db].cursor() as cursor:
         cursor.execute(f"""
             SELECT 
@@ -48,15 +51,15 @@ def get_column_stats(db, table, column):
                 AVG({column}) as avg_val,
                 SUM({column}) as sum_val
             FROM {table}
-            WHERE {column} IS NOT NULL
+            {where_sql}
         """)
         row = cursor.fetchone()
         return {
             'count': row[0],
-            'min': row[1],
-            'max': row[2],
+            'min': float(row[1]) if row[1] is not None else None,
+            'max': float(row[2]) if row[2] is not None else None,
             'avg': round(float(row[3]), 4) if row[3] is not None else None,
-            'sum': row[4]
+            'sum': float(row[4]) if row[4] is not None else None
         }
 
 
@@ -85,6 +88,7 @@ def main():
     parser.add_argument('--tables', type=str, help='统计表列表(逗号分隔)')
     parser.add_argument('--table', type=str, help='单个表名')
     parser.add_argument('--stats', type=str, help='统计字段名')
+    parser.add_argument('--where', type=str, help='WHERE条件 (如: pigsty_id=1)')
     parser.add_argument('--summary', action='store_true', help='表结构摘要')
     parser.add_argument('--format', choices=['table', 'json'], default='table', help='输出格式')
     args = parser.parse_args()
@@ -106,7 +110,7 @@ def main():
             cols = args.stats.split(',')
             stats = {}
             for col in cols:
-                stats[col] = get_column_stats(args.db, args.table, col.strip())
+                stats[col] = get_column_stats(args.db, args.table, col.strip(), args.where)
             if args.format == 'json':
                 print(json.dumps(stats, ensure_ascii=False, indent=2))
             else:
