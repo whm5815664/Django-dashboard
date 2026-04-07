@@ -33,8 +33,10 @@
 
         /* ========== 弹窗容器（白色客服风格，小尺寸） ========== */
         .agent-modal-container {
-            width: 100%;
-            height: 100%;
+            width: 360px;
+            height: 420px;
+            max-width: 100%;
+            max-height: 100%;
             background: #ffffff;
             border-radius: 12px;
             box-shadow: none;
@@ -273,7 +275,15 @@
             border-radius: 6px;
             font-size: 11px;
             color: #6b7280;
-            line-height: 1.4;
+            line-height: 1.0;
+            font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+            white-space: pre-wrap; /* 命令输出/推理过程保留换行 */
+        }
+
+        .reasoning-pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .reasoning-section strong {
@@ -292,6 +302,155 @@
             font-size: 12px;
             display: block;
             margin-bottom: 6px;
+        }
+
+        /* ========== Markdown 渲染区（正文排版与 agent_view.html 一致，白底主题） ========== */
+        .agent-bot-content .markdown-body {
+            margin-top: 4px;
+            line-height: 1.4;
+            white-space: normal; /* 覆盖 pre-wrap，避免多余换行 */
+            color: #111827;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        .agent-bot-content .markdown-body > :first-child {
+            margin-top: 0;
+        }
+
+        .agent-bot-content .markdown-body > :last-child {
+            margin-bottom: 0;
+        }
+
+        .agent-bot-content .markdown-body h1 {
+            font-size: 1.35em;
+            margin: 0.5em 0 0.28em;
+            color: #111827;
+            font-weight: 700;
+        }
+
+        .agent-bot-content .markdown-body h2 {
+            font-size: 1.22em;
+            margin: 0.48em 0 0.26em;
+            color: #111827;
+            font-weight: 600;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.22em;
+        }
+
+        .agent-bot-content .markdown-body h3 {
+            font-size: 1.08em;
+            margin: 0.42em 0 0.22em;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .agent-bot-content .markdown-body h4,
+        .agent-bot-content .markdown-body h5,
+        .agent-bot-content .markdown-body h6 {
+            margin: 0.35em 0 0.18em;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .agent-bot-content .markdown-body p {
+            margin: 0.2em 0;
+            line-height: 1.4;
+        }
+
+        /* 修复：避免 strong 被意外变成块级导致换行 */
+        .agent-bot-content .markdown-body strong {
+            display: inline;
+        }
+
+        .agent-bot-content .markdown-body ul,
+        .agent-bot-content .markdown-body ol {
+            margin: 0.22em 0 0.22em 1.15em;
+            padding-left: 0.45em;
+        }
+
+        .agent-bot-content .markdown-body li {
+            margin: 0.1em 0;
+            line-height: 1.38;
+        }
+
+        .agent-bot-content .markdown-body li > p {
+            margin: 0.1em 0;
+        }
+
+        .agent-bot-content .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 100%;
+            margin: 0.35em 0;
+            font-size: 0.9em;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .agent-bot-content .markdown-body th,
+        .agent-bot-content .markdown-body td {
+            border: 1px solid #e5e7eb;
+            padding: 5px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .agent-bot-content .markdown-body th {
+            background: #f9fafb;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .agent-bot-content .markdown-body tbody tr:nth-child(even) td {
+            background: #fafafa;
+        }
+
+        .agent-bot-content .markdown-body code {
+            background: #f3f4f6;
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+        }
+
+        .agent-bot-content .markdown-body pre {
+            background: rgba(0, 0, 0, 0.06);
+            padding: 8px 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.35em 0;
+            line-height: 1.35;
+            border: 1px solid #e5e7eb;
+        }
+
+        .agent-bot-content .markdown-body pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.88em;
+        }
+
+        .agent-bot-content .markdown-body blockquote {
+            margin: 0.25em 0;
+            padding: 0.2em 0 0.2em 10px;
+            border-left: 3px solid rgba(37, 99, 235, 0.45);
+            color: #4b5563;
+            background: rgba(37, 99, 235, 0.06);
+            border-radius: 8px;
+        }
+
+        .agent-bot-content .markdown-body a {
+            color: #2563eb;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .agent-bot-content .markdown-body hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 0.45em 0;
         }
 
         /* ========== 加载动画 ========== */
@@ -475,7 +634,7 @@
                         <div class="agent-message-avatar">🤖</div>
                         <div class="agent-message-content agent-bot-content">
                             <div class="agent-welcome-message">
-                                <p>🌱 欢迎使用AIoT实验室的智能体助手，<a href="{% url 'agent_view' %}" target="_blank">点击链接跳转智能体后台</a></p>
+                                <p>🌱 欢迎使用AIoT实验室的智能体助手，\n<a href="{% url 'agent_view' %}" target="_blank">点击链接跳转智能体后台</a></p>
                             </div>
                         </div>
                     </div>
@@ -499,6 +658,8 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <script>
         // 接入 aiModels.agent.brain_agent：创建/发送/删除会话（opencode 后台）
         // API: agent_create_session_view, agent_send_message_view, agent_delete_session_view
@@ -536,14 +697,45 @@
             return div.innerHTML;
         }
 
-        function formatResponse(text) {
-            // 简单的 Markdown 格式化
-            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-            text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-            text = text.replace(/\n/g, '<br>');
-            return text;
+        // Markdown（GFM 含表格）+ 安全过滤
+        if (typeof marked !== 'undefined' && marked.use) {
+            /* breaks: false 避免单换行变 <br>，减少多余空行 */
+            marked.use({ gfm: true, breaks: false });
+        }
+
+        function renderMarkdown(md) {
+            if (md == null || md === '') return '';
+            const s = String(md);
+            try {
+                if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                    const raw = marked.parse(s, { async: false });
+                    if (typeof DOMPurify !== 'undefined' && typeof DOMPurify.sanitize === 'function') {
+                        return DOMPurify.sanitize(raw);
+                    }
+                    return raw;
+                }
+            } catch (e) {
+                console.warn('Markdown 渲染失败:', e);
+            }
+            return escapeHtml(s).replace(/\n/g, '<br>');
+        }
+
+        function buildAgentReplyHtml(reasoningPlain, answerMd) {
+            const parts = [];
+            if (reasoningPlain) {
+                parts.push(
+                    '<div class="reasoning-section"><strong>[思考过程]</strong>' +
+                    '<pre class="reasoning-pre">' + escapeHtml(reasoningPlain) + '</pre>' +
+                    '</div>'
+                );
+            }
+            if (answerMd) {
+                parts.push(
+                    '<div class="text-section"><strong>[回答]</strong>' +
+                    '<div class="markdown-body">' + renderMarkdown(answerMd) + '</div></div>'
+                );
+            }
+            return parts.join('');
         }
 
         // ========== 消息管理 ==========
@@ -569,7 +761,7 @@
                 if (isLoading) {
                     contentDiv.innerHTML = content;
                 } else {
-                    contentDiv.innerHTML = formatResponse(escapeHtml(content));
+                    contentDiv.innerHTML = '<div class="markdown-body">' + renderMarkdown(content) + '</div>';
                 }
             }
 
@@ -672,22 +864,17 @@
                                     if (data.type === 'reasoning') {
                                         reasoningContent += data.content;
                                         if (contentDiv) {
-                                            contentDiv.innerHTML = formatResponse(
-                                                '<div class="reasoning-section"><strong>[思考过程]</strong>' + 
-                                                escapeHtml(reasoningContent) + '</div>' + 
-                                                (textContent ? '<div class="text-section"><strong>[回答]</strong>' + escapeHtml(textContent) + '</div>' : '')
-                                            );
+                                            contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
                                         }
                                         var chatBox = document.getElementById('agent-chat-box');
                                         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
                                     } else if (data.type === 'text') {
-                                        textContent += data.content;
+                                        const delta = (data.content !== undefined && data.content !== null)
+                                            ? data.content
+                                            : (data.text || '');
+                                        textContent += delta;
                                         if (contentDiv) {
-                                            contentDiv.innerHTML = formatResponse(
-                                                (reasoningContent ? '<div class="reasoning-section"><strong>[思考过程]</strong>' + escapeHtml(reasoningContent) + '</div>' : '') +
-                                                '<div class="text-section"><strong>[回答]</strong>' + 
-                                                escapeHtml(textContent) + '</div>'
-                                            );
+                                            contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
                                         }
                                         var chatBox = document.getElementById('agent-chat-box');
                                         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
@@ -696,12 +883,7 @@
                                         const finalReasoning = data.reasoning || reasoningContent;
                                         const finalText = data.text || textContent;
                                         if (contentDiv) {
-                                            contentDiv.innerHTML = formatResponse(
-                                                (finalReasoning ? 
-                                                    '<div class="reasoning-section"><strong>[思考过程]</strong>' + escapeHtml(finalReasoning) + '</div>' : '') +
-                                                '<div class="text-section"><strong>[回答]</strong>' + 
-                                                escapeHtml(finalText) + '</div>'
-                                            );
+                                            contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, finalText);
                                         }
                                         
                                         agentChatHistory.push({ role: 'user', content: question });
@@ -738,12 +920,17 @@
             .catch(function(error) {
                 if (error.name === 'AbortError') {
                     console.log('请求已被用户取消');
-                    if (botMessageEl) {
+                    if (thinkingElement && thinkingElement.parentNode) {
+                        const contentDiv = thinkingElement.querySelector('.agent-message-content');
+                        if (contentDiv) {
+                            contentDiv.innerHTML = '⏹ 回答已停止';
+                        }
+                    } else if (botMessageEl) {
                         const contentDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
                         if (contentDiv) {
                             contentDiv.innerHTML = '⏹ 回答已停止';
                         }
-                    } // 终止提示统一由“气泡”承载，不再在非气泡位置写入提示文案
+                    }
                 } else {
                     console.error('Error:', error);
                     if (thinkingElement && thinkingElement.parentNode) {
@@ -827,13 +1014,12 @@
         }
 
         /**
-         * 强制结束回答：终止当前请求，删除会话并重建新会话（与 agent_view.html 一致）
+         * 强制结束回答：仅中止当前 SSE，保留当前会话（不删会话、不建新会话）；「回答已停止」由 send 的 AbortError 分支写入气泡
          */
         function forceStopAgentAnswer() {
             const stopBtn = document.getElementById('agent-stop-btn');
             const sendBtn = document.getElementById('agent-send-btn');
 
-            // 终止当前 SSE 请求
             if (currentAgentAbortController) {
                 try { currentAgentAbortController.abort(); } catch (e) {}
                 currentAgentAbortController = null;
@@ -843,34 +1029,7 @@
             if (sendBtn) sendBtn.disabled = false;
             if (stopBtn) stopBtn.style.display = 'none';
 
-            // 用气泡显示“回答已停止”，后续创建新会话成功后替换该气泡内容
-            const stopMsgId = 'agent-stop-msg-' + Date.now();
-            addAgentMessage('bot', '⏹ 回答已停止', stopMsgId);
-
-            // 删除并重建会话
-            const oldSessionId = agentSessionId;
-            deleteAgentSession(false)
-                .then(() => createAgentSession())
-                .then((newSessionId) => {
-                    console.log('强制终止完成：会话已重建', { oldSessionId, newSessionId });
-                    const stopMsgEl = document.getElementById(stopMsgId);
-                    if (stopMsgEl) {
-                        const contentDiv = stopMsgEl.querySelector('.agent-message-content');
-                        if (contentDiv) {
-                            contentDiv.innerHTML = formatResponse(escapeHtml('✅ 已创建新会话'));
-                        }
-                    }
-                })
-                .catch((e) => {
-                    console.warn('强制终止：会话重建失败', e);
-                    const stopMsgEl = document.getElementById(stopMsgId);
-                    if (stopMsgEl) {
-                        const contentDiv = stopMsgEl.querySelector('.agent-message-content');
-                        if (contentDiv) {
-                            contentDiv.innerHTML = formatResponse(escapeHtml('❌ 新会话创建失败，请稍后重试'));
-                        }
-                    }
-                });
+            console.log('强制终止：已保留当前会话', { sessionId: agentSessionId });
         }
 
         // ========== 清空聊天 ==========

@@ -17,9 +17,9 @@
           "name": "glm-4.7-flash:latest",
           "description": "https://ollama.com/library/glm-4.7-flash"
         },
-        "llama3.1:8b": {
-          "name": "llama3.1:8b",
-          "description": "Meta Llama 3.1 8B model"
+        "qwen3.5:0.8b": {
+          "name": "qwen3.5:0.8b",
+          "description": "https://ollama.com/library/qwen3.5"
         }
       }
     }

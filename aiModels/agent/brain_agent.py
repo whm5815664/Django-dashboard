@@ -128,27 +128,40 @@ def stream_output(
     session_id: str,
     interval: float = 5.0,
     parent_message_id: Optional[str] = None,
+    max_stream_seconds: float = 300.0,
 ) -> Generator[Dict[str, Any], None, None]:
     """流式获取输出，返回生成器，每次 yield 一个包含 type 和 content 的字典。
 
     注意：
     - opencode 会对同一条 assistant message 进行"就地更新"，同一个 part 的 text 会从空字符串逐步补全。
     - 这里使用 part_id -> 已打印字符长度 的映射，每次只输出新增的部分。
+    - finish / step-finish 为 tool-calls 时不结束流，继续轮询直至模型在工具后生成文字或超时。
     """
     printed_text_lens: Dict[str, int] = {}  # {part_id: 已打印的字符长度}
-    printed_tool_ids = set()    
+    printed_tool_ids = set()  # 已处理的 question 等工具 part（避免重复）
+    tool_stdout_emitted = set()  # 已推送 stdout 的 bash/shell part（需在 status=completed 时再推）
     last_message_id = None
+    stream_started = time.time()
 
     while True:
         try:
+            if time.time() - stream_started > max_stream_seconds:
+                yield {"type": "error", "content": "流式输出超时，请重试或缩短问题。"}
+                break
+
             r = requests.get(
                 f"{base_url}/session/{session_id}/message",
                 timeout=30
             )
             messages = r.json()
-            print('--------------------------------')
-            print('messages:', messages[-1])
-            print('--------------------------------')
+            print('messages:', messages)
+            if messages:
+                tail = messages[-1]
+                tinfo = tail.get("info", {})
+                print(
+                    f"SSE poll: role={tinfo.get('role')} id={tinfo.get('id')} finish={tinfo.get('finish')}",
+                    flush=True,
+                )
 
             if not messages:
                 time.sleep(interval)
@@ -179,6 +192,7 @@ def stream_output(
             if message_id != last_message_id:
                 printed_text_lens = {}
                 printed_tool_ids = set()
+                tool_stdout_emitted = set()
                 last_message_id = message_id
                 print(f"\n===== assistant message: {message_id} =====", flush=True)
 
@@ -215,15 +229,29 @@ def stream_output(
 
                 #工具调用标识
                 elif part_type == "tool":
-                    if part_id in printed_tool_ids:
-                        continue
-                    printed_tool_ids.add(part_id)
-                
                     tool_name = part.get("tool")
                     state = part.get("state", {}) or {}
                     status = state.get("status")
-                
+
+                    # bash 首次变为 completed 时再推 stdout（此前轮询可能为 running，不能用 printed_tool_ids 提前跳过）
+                    if status == "completed" and tool_name in ("bash", "shell"):
+                        if part_id not in tool_stdout_emitted:
+                            tool_stdout_emitted.add(part_id)
+                            meta = state.get("metadata") or {}
+                            raw_out = meta.get("output") or state.get("output") or ""
+                            if isinstance(raw_out, str) and raw_out.strip():
+                                snippet = raw_out.strip()
+                                if len(snippet) > 12000:
+                                    snippet = snippet[:12000] + "\n…(输出已截断)"
+                                block = f"\n\n【命令输出】\n{snippet}\n"
+                                # 需求：当工具 status==completed 时，将“命令输出”放到 reasoning 栏位显示
+                                print("\n[reasoning] " + block[:500] + ("…" if len(block) > 500 else ""), flush=True)
+                                yield {"type": "reasoning", "content": block}
+
                     if tool_name == "question" and status in ("running", "pending"):
+                        if part_id in printed_tool_ids:
+                            continue
+                        printed_tool_ids.add(part_id)
                         questions = state.get("input", {}).get("questions", []) or []
                 
                         text = "我需要先确认以下信息，才能继续：\n"
@@ -238,12 +266,17 @@ def stream_output(
                         print("\n[text] " + text, flush=True)
                         return
                     
-                # 结束表示
+                # 结束表示（工具调用后的 step-finish 不应结束 SSE，需等下一轮 assistant）
                 elif part_type == "step-finish":
-                    finished = True
+                    info_f = assistant_msg.get("info", {}).get("finish")
+                    if part.get("reason") == "tool-calls" or info_f == "tool-calls":
+                        pass
+                    else:
+                        finished = True
 
-            # 若 opencode 已标记本条消息结束（如 stop / tool-calls），也视为完成，避免仅因无 step-finish 而一直轮询且无最终回答
-            if not finished and assistant_msg.get("info", {}).get("finish"):
+            info_finish = assistant_msg.get("info", {}).get("finish")
+            # tool-calls 表示仍可能继续生成，不可在此处结束流
+            if not finished and info_finish and info_finish != "tool-calls":
                 finished = True
 
             if finished:

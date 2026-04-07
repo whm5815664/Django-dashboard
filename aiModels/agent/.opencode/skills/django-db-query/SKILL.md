@@ -9,15 +9,13 @@ description: Django数据库查询技能，支持查询本地数据库(web_datab
 
 ### 本地数据库 (default)
 - 数据库: web_database
-- 配置: settings.py 中的 DATABASES["default"]
+- Host: 127.0.0.1:3306
+- 用户: root
 
 ### 远程数据库 (pig) - 环境监测数据库
 - 数据库: pig
-- Host: 47.99.61.189
-- Port: 3307
+- Host: 47.99.61.189:3307
 - 用户: zb25
-- 密码: zb123456
-- 配置: settings.py 中的 DATABASES["pig"]
 
 ## 表名映射
 
@@ -26,126 +24,139 @@ description: Django数据库查询技能，支持查询本地数据库(web_datab
 | environment_data | 环境监控数据表 |
 | device | 设备表 |
 | base | 基地表 |
-| pig_pigsty | 基地信息表 |
+| pig_pigsty | 柑橘基地信息表 |
 | pig_farm | 公司表 |
 
 ## 字段映射
 
-### 远程数据库 (pig) 字段
-- `pigsty_id`: 基地编号（只取数字部分，int类型）
+### 远程数据库 (pig)
+- `pigsty_id`: 基地编号（int类型，只取数字部分）
 - `device_id`: 设备编号
-- `image`: 图片字段，图片URL为 `http://47.99.61.189:8175/media/` + image
+- `image`: 图片字段，URL为 `http://47.99.61.189:8175/media/` + image
 
-### 本地数据库 (default) 字段
-- `base_id`: 基地编号，对应远程数据库的 `pigsty_id`
-- 用户输入时只取数字部分（例如：输入HB001，远程数据库中对应pig_pigsty为1）
+### 本地数据库 (default)
+- `base_id`: 基地编号（如HB001），对应远程数据库的pigsty_id需提取数字部分
 
-## 使用方法
+## 快捷脚本查询
 
-### 1. 使用 Django ORM 查询
+本技能提供三个脚本，可直接在命令行执行查询，无需手动编写Python代码。
+
+脚本路径相对于技能目录: `scripts/`
+
+### 1. db_query.py - 通用查询
+
+```bash
+# SQL直接查询
+python scripts/db_query.py --db pig --sql "SELECT * FROM pig_pigsty LIMIT 10"
+
+# 表查询（支持where、排序、限制）
+python scripts/db_query.py --db pig --table environment_data --where "pigsty_id=1" --order-by "id DESC" --limit 50
+
+# 指定列
+python scripts/db_query.py --db default --table base --columns base_id,base_name
+
+# JSON输出
+python scripts/db_query.py --db pig --table device --format json
+```
+
+### 2. db_stats.py - 数据统计
+
+```bash
+# 统计多个表记录数
+python scripts/db_stats.py --db pig --tables environment_data,device,pig_pigsty
+
+# 统计字段指标（count/min/max/avg/sum）
+python scripts/db_stats.py --db pig --table environment_data --stats temperature,humidity,co2
+
+# 表结构摘要
+python scripts/db_stats.py --db default --table base --summary
+```
+
+### 3. db_schema.py - 表结构查询
+
+```bash
+# 列出所有表
+python scripts/db_schema.py --db pig --tables
+
+# 查看表列信息
+python scripts/db_schema.py --db pig --table environment_data --columns
+
+# 查看表索引
+python scripts/db_schema.py --db default --table base --indexes
+```
+
+### 脚本参数说明
+
+| 参数 | 说明 |
+|------|------|
+| `--db` | 数据库: default 或 pig |
+| `--sql` | 直接执行SQL |
+| `--table` | 表名 |
+| `--columns` | 查询列名(逗号分隔) |
+| `--where` | WHERE条件 |
+| `--order-by` | ORDER BY排序 |
+| `--limit` | 限制返回条数(默认100) |
+| `--format` | 输出格式: table/json/csv |
+
+## 手动ORM查询
+
+当脚本无法满足复杂查询需求时，可使用Django ORM:
 
 ```python
-import os
-import django
+import os, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-# 查询远程数据库
 from django.db import connections
+from storageSystem.models import Base, Device, DeviceReading
+
+# 原始SQL查询
 with connections['pig'].cursor() as cursor:
-    cursor.execute("SELECT * FROM environment_data LIMIT 10")
+    cursor.execute("SELECT * FROM environment_data WHERE pigsty_id = %s", [1])
     rows = cursor.fetchall()
 
-# 查询本地数据库
-from django.db import models
-from storageSystem.models import Base
+# ORM查询
+Base.objects.all()
+DeviceReading.objects.filter(pigsty__base_id='1')[:10]
 ```
 
-### 2. 图片处理
+## 图片处理
 
 **图片URL**: `http://47.99.61.189:8175/media/` + image字段值
 
-**用户请求时处理流程**:
-1. 下载图片到本地 temp 文件夹: `Django-dashboard/aiModels/agent/temp`
-2. 文件命名: `{session_id}_{序号}.jpg`（如 `abc123_1.jpg`）
-3. 返回给用户**可直接点击的访问链接**: `http://47.99.61.189:8175/media/` + image
+用户请求图片时:
+1. 下载到 `Django-dashboard/aiModels/agent/temp/{session_id}_{序号}.jpg`
+2. 返回用户可点击链接: `http://47.99.61.189:8175/media/` + image
 
 ```python
-import requests
-import os
+import requests, os
 
-def download_image(image_field_value, session_id, index):
-    base_url = "http://47.99.61.189:8175/media/"
-    image_url = base_url + image_field_value
-    
+def download_image(image_field, session_id, index):
+    url = f"http://47.99.61.189:8175/media/{image_field}"
     temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
     os.makedirs(temp_dir, exist_ok=True)
-    
-    filename = f"{session_id}_{index}.jpg"
-    filepath = os.path.join(temp_dir, filename)
-    
-    response = requests.get(image_url, timeout=30)
-    if response.status_code == 200:
-        with open(filepath, 'wb') as f:
-            f.write(response.content)
-    
-    # 返回给用户可直接点击的链接
-    return image_url
+    resp = requests.get(url, timeout=30)
+    if resp.status_code == 200:
+        with open(os.path.join(temp_dir, f"{session_id}_{index}.jpg"), 'wb') as f:
+            f.write(resp.content)
+    return url
 ```
 
-### 3. 基地编号转换
-
-本地base_id与远程pigsty_id的转换：
-- 本地输入: HB001 -> 远程 pigsty_id = 1
-- 本地输入: HB002 -> 远程 pigsty_id = 2
+## 基地编号转换
 
 ```python
+import re
 def convert_base_id(base_id):
-    """将本地base_id转换为远程pigsty_id"""
-    import re
     match = re.search(r'\d+', base_id)
-    if match:
-        return int(match.group())
-    return None
+    return int(match.group()) if match else None
+# HB001 -> 1, HB002 -> 2
 ```
 
-## 查询示例
+## 数据总结规范
 
-### 查询所有基地
-```python
-with connections['pig'].cursor() as cursor:
-    cursor.execute("SELECT * FROM pig_pigsty")
-    columns = [col[0] for col in cursor.description]
-    rows = cursor.fetchall()
-```
-
-### 按基地查询环境数据
-```python
-def get_environment_data_by_pigsty(pigsty_id, limit=100):
-    with connections['pig'].cursor() as cursor:
-        cursor.execute(
-            "SELECT * FROM environment_data WHERE pigsty_id = %s ORDER BY id DESC LIMIT %s",
-            [pigsty_id, limit]
-        )
-        return cursor.fetchall()
-```
-
-### 统计各表数据量
-```python
-def get_table_counts():
-    tables = ['environment_data', 'device', 'base', 'pig_pigsty', 'pig_farm']
-    with connections['pig'].cursor() as cursor:
-        for table in tables:
-            cursor.execute(f"SELECT COUNT(*) FROM {table}")
-            count = cursor.fetchone()[0]
-            print(f"{table}: {count}")
-```
-
-## 数据总结
-
-查询数据后，应对数据进行总结：
+查询后应总结:
 1. 总记录数
-2. 各字段含义和数据类型
-3. 数据时间范围（如果有时间字段）
-4. 关键统计指标（平均值、最大值、最小值等）
+2. 字段含义和数据类型
+3. 数据时间范围
+4. 关键统计指标（平均值、最大值、最小值）
 5. 图片数量和状态
