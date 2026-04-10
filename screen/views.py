@@ -39,6 +39,11 @@ def baseIndex(request):
     return render(request, 'base/baseIndex.html')
 
 
+# 基地数据大屏（新）
+def base_dashboard(request):
+    return render(request, "screen/base_dashboard.html")
+
+
 
 
 

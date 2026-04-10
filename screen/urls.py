@@ -6,6 +6,9 @@ from . import views
 # 数字大屏数据读取
 from .data import screenData
 
+# 基地大屏数据读取
+from .data import baseDashboard
+
 # 基地数据读取
 from .data import baseData
 
@@ -24,6 +27,18 @@ urlpatterns = [
 
     # 基地主页
     path('baseIndex', views.baseIndex, name='baseIndex'),
+
+    # 基地数据大屏页面
+    path('base_dashboard', views.base_dashboard, name='base_dashboard'),
+
+    # 基地数据大屏接口
+    path('api/base_dashboard/summary', baseDashboard.dashboard_summary, name='base_dashboard_summary'),
+    path('api/base_dashboard/overview', baseDashboard.dashboard_overview_matrix, name='base_dashboard_overview'),
+    path('api/base_dashboard/base_env', baseDashboard.dashboard_base_env, name='base_dashboard_base_env'),
+    path('api/base_dashboard/today', baseDashboard.dashboard_today_series, name='base_dashboard_today'),
+    path('api/base_dashboard/alarms', baseDashboard.dashboard_alarm_center, name='base_dashboard_alarms'),
+    path('api/base_dashboard/device_status', baseDashboard.dashboard_device_status, name='base_dashboard_device_status'),
+    path('api/base_dashboard/monitor_images', baseDashboard.dashboard_base_monitor_images, name='base_dashboard_monitor_images'),
 
     # 功能-摄像头
     path('video_feed', video.video_feed, name='video1_feed'),  # 摄像头

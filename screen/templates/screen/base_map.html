@@ -550,7 +550,7 @@
         </div>
 
         <div class="panel line2">
-          <h2>湖北柑橘总产量</h2>
+          <h2>湖北总产量</h2>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
@@ -568,7 +568,7 @@
         <div class="right-top">
           <div class="stat-card">
             <div class="value" id="stat-total-production">588.7</div>
-            <div class="label">柑橘总产量（万吨）</div>
+            <div class="label">总产量（万吨）</div>
           </div>
           <div class="stat-card">
             <div class="value" id="stat-base-count">3</div>
@@ -2138,7 +2138,8 @@
     const layerOptions = [
       { type: 'satellite', name: '卫星图'},
       { type: 'road', name: '路网图'},
-      { type: 'building', name: '3D图'}
+      { type: 'building', name: '3D图'},
+      { type: 'dashboard', name: '数据图'}
     ];
 
     // 创建按钮
@@ -2177,6 +2178,10 @@
         e.preventDefault();
         e.stopPropagation();
         console.log('点击图层按钮:', option.type);
+        if (option.type === 'dashboard') {
+          window.location.href = "{% url 'base_dashboard' %}";
+          return;
+        }
         switchLayer(option.type);
         updateButtonStyles(option.type);
       });

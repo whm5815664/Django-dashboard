@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基地数据大屏</title>
+
+    <style>
+      :root{
+        --bg0:#070f1a;
+        --bg1:#0b1626;
+        --card:#0f2238cc;
+        --stroke:#1b3a5b;
+        --text:#d7e6ff;
+        --muted:#8fb1d4;
+        --good:#22c55e;
+        --warn:#f59e0b;
+        --bad:#ef4444;
+        --cyan:#34d3ff;
+        --blue:#2b9bff;
+      }
+      *{box-sizing:border-box;}
+      html,body{height:100%;}
+      body{
+        margin:0;
+        color:var(--text);
+        background:
+          radial-gradient(1200px 800px at 50% -200px, rgba(52,211,255,.20), transparent 60%),
+          radial-gradient(900px 700px at 110% 20%, rgba(43,155,255,.12), transparent 60%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        overflow:hidden;
+        font-family: "Microsoft YaHei", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      header{
+        height:64px;
+        display:grid;
+        grid-template-columns: 220px 1fr 260px;
+        align-items:center;
+        padding:0 18px;
+        border-bottom:1px solid rgba(27,58,91,.55);
+        background: linear-gradient(180deg, rgba(15,34,56,.72), rgba(15,34,56,.18));
+        backdrop-filter: blur(8px);
+      }
+      .brand{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        opacity:.95;
+      }
+      .brand img{height:40px; width:auto; display:block;}
+      .brand .name{font-weight:700; letter-spacing:.5px;}
+      header h1{
+        margin:0;
+        font-size:18px;
+        font-weight:800;
+        letter-spacing:2px;
+        text-align:center;
+      }
+      .clock{
+        justify-self:end;
+        display:flex;
+        flex-direction:column;
+        align-items:flex-end;
+        gap:4px;
+        font-size:12px;
+        color:var(--muted);
+      }
+      .clock .time{font-size:14px; color:var(--text); font-weight:700;}
+      .back-home{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        padding:6px 12px;
+        border-radius:999px;
+        border:1px solid rgba(27,58,91,.6);
+        background: rgba(0,0,0,.12);
+        color: var(--text);
+        text-decoration:none;
+        font-size:12px;
+        font-weight:800;
+        letter-spacing:.5px;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      }
+      .back-home:hover{
+        transform: translateY(-1px);
+        border-color: rgba(52,211,255,.55);
+        background: rgba(0,0,0,.18);
+      }
+
+      .page{
+        height:calc(100% - 64px);
+        padding:12px;
+        display:grid;
+        grid-template-columns: 360px 1fr 360px;
+        gap:12px;
+      }
+
+      .col{
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        min-height:0;
+      }
+
+      .top-kpis{
+        display:grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap:12px;
+      }
+
+      .card{
+        border:1px solid rgba(27,58,91,.65);
+        background: var(--card);
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        border-radius:14px;
+        overflow:hidden;
+        position:relative;
+      }
+      .card::before{
+        content:"";
+        position:absolute;
+        inset:0;
+        background: radial-gradient(600px 260px at 10% 0%, rgba(52,211,255,.12), transparent 55%);
+        pointer-events:none;
+      }
+      .card-hd{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:10px 12px;
+        border-bottom:1px solid rgba(27,58,91,.45);
+        background: linear-gradient(180deg, rgba(15,34,56,.45), rgba(15,34,56,0));
+      }
+      .card-hd .title{
+        display:flex;
+        align-items:center;
+        gap:8px;
+        font-weight:800;
+        letter-spacing:1px;
+        font-size:13px;
+      }
+      .chip{
+        font-size:12px;
+        padding:4px 8px;
+        border-radius:999px;
+        border:1px solid rgba(27,58,91,.6);
+        color:var(--muted);
+        background: rgba(0,0,0,.12);
+      }
+      .card-bd{padding:12px; position:relative; min-height:0;}
+
+      .kpi{
+        padding:12px 14px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        height:100%;
+      }
+      .kpi .label{color:var(--muted); font-size:14px; font-weight:800; letter-spacing:.5px;}
+      .kpi .value{
+        font-size:34px;
+        font-weight:900;
+        letter-spacing:1px;
+        display:flex;
+        align-items:baseline;
+        gap:8px;
+      }
+      .kpi .value small{font-size:14px; color:var(--muted); font-weight:800;}
+      .kpi .meta{display:none;}
+
+      .matrix{
+        display:grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap:10px;
+      }
+      .matrix-item{
+        border:1px solid rgba(27,58,91,.55);
+        background: rgba(9,22,36,.42);
+        border-radius:12px;
+        padding:10px 10px 8px;
+        cursor:pointer;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease;
+        user-select:none;
+      }
+      .matrix-item:hover{
+        transform: translateY(-2px);
+        border-color: rgba(52,211,255,.55);
+        background: rgba(9,22,36,.56);
+      }
+      .matrix-item.active{
+        border-color: rgba(52,211,255,.85);
+        box-shadow: 0 0 0 1px rgba(52,211,255,.18) inset;
+      }
+      .mi-top{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
+        margin-bottom:8px;
+      }
+      .mi-name{
+        font-weight:900;
+        font-size:13px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .badge{
+        font-size:12px;
+        padding:2px 8px;
+        border-radius:999px;
+        border:1px solid rgba(27,58,91,.55);
+      }
+      .badge.good{color: var(--good); border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.08);}
+      .badge.warn{color: var(--warn); border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.08);}
+      .badge.bad{color: var(--bad); border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.08);}
+      .badge.none{color: var(--muted);}
+      .mi-metrics{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap:8px;
+      }
+      .metric{
+        border-radius:10px;
+        border:1px solid rgba(27,58,91,.35);
+        padding:8px;
+        background: rgba(0,0,0,.10);
+      }
+      .metric .k{font-size:12px; color:var(--muted);}
+      .metric .v{font-size:16px; font-weight:900; margin-top:2px;}
+      .metric .v small{font-size:12px; color:var(--muted); font-weight:700;}
+      .mi-time{
+        margin-top:8px;
+        color:var(--muted);
+        font-size:12px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .env-list{
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        min-height:0;
+      }
+      .env-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        margin-bottom:6px;
+      }
+      .env-head .base{
+        font-weight:900;
+        letter-spacing:.5px;
+      }
+      .env-table{
+        width:100%;
+        border-collapse:separate;
+        border-spacing:0;
+        overflow:hidden;
+        border:1px solid rgba(27,58,91,.45);
+        border-radius:12px;
+      }
+      .env-table thead th{
+        text-align:left;
+        font-size:12px;
+        color:var(--muted);
+        padding:10px 10px;
+        border-bottom:1px solid rgba(27,58,91,.35);
+        background: rgba(0,0,0,.12);
+        position:sticky;
+        top:0;
+        z-index:2;
+      }
+      .env-table tbody td{
+        padding:10px 10px;
+        font-size:12px;
+        border-bottom:1px solid rgba(27,58,91,.25);
+        color:rgba(215,230,255,.92);
+        white-space:nowrap;
+      }
+      .env-table tbody tr:hover td{
+        background: rgba(52,211,255,.06);
+      }
+      .env-pager{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        margin-top:10px;
+      }
+      .pager-btn{
+        width:34px;
+        height:28px;
+        border-radius:10px;
+        border:1px solid rgba(27,58,91,.55);
+        background: rgba(0,0,0,.12);
+        color: rgba(215,230,255,.92);
+        cursor:pointer;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease, opacity .12s ease;
+      }
+      .pager-btn:hover{
+        transform: translateY(-1px);
+        border-color: rgba(52,211,255,.55);
+        background: rgba(0,0,0,.18);
+      }
+      .pager-btn:disabled{
+        opacity:.45;
+        cursor:not-allowed;
+        transform:none;
+      }
+      .pager-info{
+        flex:1;
+        text-align:center;
+        color: var(--muted);
+        font-size:12px;
+      }
+      .scroll{
+        overflow:auto;
+        min-height:0;
+        padding-right:4px;
+      }
+      .scroll::-webkit-scrollbar{width:8px;height:8px;}
+      .scroll::-webkit-scrollbar-thumb{background:rgba(143,177,212,.25);border-radius:999px;}
+      .scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.10);}
+
+      .alarm-item{
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:10px;
+        padding:10px 10px;
+        border:1px solid rgba(27,58,91,.45);
+        background: rgba(0,0,0,.10);
+        border-radius:12px;
+      }
+      .alarm-item .left{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        min-width:0;
+      }
+      .alarm-item .title{
+        font-weight:900;
+        font-size:12px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      .alarm-item .desc{font-size:12px; color:var(--muted); line-height:1.35;}
+      .alarm-item .right{font-size:12px; color:var(--muted); white-space:nowrap;}
+      .alarm-item .danger{color: var(--bad);}
+      .alarm-item .danger-strong{
+        color: var(--bad);
+        font-weight: 900;
+      }
+
+      /* 设备监控缩略图（2×2） */
+      .monitor-grid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap:8px;
+        flex:1;
+        min-height:0;
+      }
+      .monitor-cell{
+        border:1px solid rgba(27,58,91,.55);
+        border-radius:10px;
+        overflow:hidden;
+        background: rgba(9,22,36,.42);
+        position:relative;
+        min-height:0;
+        aspect-ratio: 4 / 3;
+        max-height: 140px;
+      }
+      .monitor-cell img{
+        width:100%;
+        height:100%;
+        object-fit: cover;
+        display:block;
+      }
+      .monitor-cell .cap{
+        position:absolute;
+        left:0; right:0; bottom:0;
+        padding:4px 6px;
+        font-size:10px;
+        color: var(--text);
+        background: linear-gradient(180deg, transparent, rgba(0,0,0,.72));
+        display:flex;
+        justify-content:space-between;
+        gap:6px;
+        line-height:1.2;
+      }
+      .monitor-cell--empty{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color: var(--muted);
+        font-size:11px;
+      }
+
+      /* 右侧：智能体 / 模型库 工具栏 */
+      .tool-bar-row{
+        display:flex;
+        gap:10px;
+        align-items:stretch;
+      }
+      .tool-bar-btn{
+        flex:1;
+        min-height:40px;
+        padding:0 10px;
+        border-radius:12px;
+        border:1px solid rgba(52,211,255,.45);
+        background: rgba(52,211,255,.10);
+        color: var(--text);
+        cursor:pointer;
+        font-weight:800;
+        font-size:12px;
+        letter-spacing:1px;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      }
+      .tool-bar-btn:hover{
+        transform: translateY(-1px);
+        border-color: rgba(52,211,255,.65);
+        background: rgba(52,211,255,.16);
+      }
+
+      /* 内嵌 iframe 区域（尺寸见下方 .modal.embed-tool-modal，需覆盖通用 .modal 的 520px 宽） */
+      .embed-tool-modal .modal-bd{
+        padding:0;
+        flex:1;
+        min-height:0;
+        background: rgba(7,15,26,.95);
+      }
+      .embed-tool-frame{
+        width:100%;
+        height:100%;
+        border:0;
+        display:block;
+        background: #0b1626;
+      }
+
+      .hd-actions{
+        display:flex;
+        align-items:center;
+        gap:8px;
+      }
+      .icon-btn{
+        width:30px;
+        height:28px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:10px;
+        border:1px solid rgba(27,58,91,.55);
+        background: rgba(0,0,0,.12);
+        color: rgba(215,230,255,.92);
+        cursor:pointer;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease, opacity .12s ease;
+      }
+      .icon-btn:hover{
+        transform: translateY(-1px);
+        border-color: rgba(52,211,255,.55);
+        background: rgba(0,0,0,.18);
+      }
+      .icon-btn svg{width:16px;height:16px;opacity:.95;}
+
+      .modal-mask{
+        position:fixed;
+        inset:0;
+        background: rgba(0,0,0,.55);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        padding: 16px;
+      }
+      .modal{
+        width: min(520px, 100%);
+        border:1px solid rgba(27,58,91,.65);
+        background: rgba(15,34,56,.92);
+        box-shadow: 0 20px 60px rgba(0,0,0,.55);
+        border-radius: 14px;
+        overflow:hidden;
+      }
+      /* 智能体/模型库弹窗：必须写在 .modal 之后且提高优先级，否则 width 仍为 520px */
+      .modal.embed-tool-modal{
+        width: min(calc(100vw / 2), calc(100vw - 32px));
+        height: min(calc(100vh * 2 / 3), calc(100vh - 32px));
+        display:flex;
+        flex-direction:column;
+      }
+      .modal-hd{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding: 12px 12px;
+        border-bottom:1px solid rgba(27,58,91,.45);
+        background: linear-gradient(180deg, rgba(15,34,56,.62), rgba(15,34,56,0));
+      }
+      .modal-title{
+        font-weight:900;
+        letter-spacing:1px;
+        font-size:13px;
+      }
+      .modal-bd{padding:12px;}
+      .form-grid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap:10px;
+      }
+      .field{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+      }
+      .field label{
+        color: var(--muted);
+        font-size:12px;
+        font-weight:800;
+      }
+      .field input{
+        height: 34px;
+        border-radius: 10px;
+        border:1px solid rgba(27,58,91,.55);
+        background: rgba(0,0,0,.16);
+        color: rgba(215,230,255,.92);
+        padding: 0 10px;
+        outline:none;
+      }
+      .field input:focus{
+        border-color: rgba(52,211,255,.75);
+        box-shadow: 0 0 0 2px rgba(52,211,255,.12);
+      }
+      .hint{
+        margin-top: 10px;
+        color: var(--muted);
+        font-size:12px;
+        line-height:1.45;
+      }
+      .modal-ft{
+        display:flex;
+        align-items:center;
+        justify-content:flex-end;
+        gap:10px;
+        padding: 12px 12px;
+        border-top:1px solid rgba(27,58,91,.35);
+        background: rgba(0,0,0,.10);
+      }
+      .btn{
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 10px;
+        border:1px solid rgba(27,58,91,.55);
+        background: rgba(0,0,0,.12);
+        color: rgba(215,230,255,.92);
+        cursor:pointer;
+        font-weight:900;
+        letter-spacing:.5px;
+      }
+      .btn.primary{
+        border-color: rgba(52,211,255,.65);
+        background: rgba(52,211,255,.16);
+      }
+
+      .split{
+        display:grid;
+        grid-template-rows: 1fr 1fr;
+        gap:12px;
+        min-height:0;
+      }
+
+      .chartBox{height:260px;}
+      .chartBoxTall{height:320px;}
+      @media (max-width: 1280px){
+        .page{grid-template-columns: 320px 1fr 320px;}
+        .matrix{grid-template-columns: repeat(3, 1fr);}
+      }
+      @media (max-width: 1080px){
+        body{overflow:auto;}
+        .page{height:auto; grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div class="brand">
+        <img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT" />
+      </div>
+      <h1>基地环境监测数据大屏</h1>
+      <div class="clock">
+        <a class="back-home" href="http://127.0.0.1:8000/screen/base_map/%E6%B9%96%E5%8C%97%E7%9C%81/">返回主页</a>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- 左侧 -->
+      <section class="col">
+        <div class="card" style="flex: 1; min-height: 0;">
+          <div class="card-hd">
+            <div class="title">基地环境数据</div>
+            <div class="chip" id="envChip">点击矩阵选择基地</div>
+          </div>
+          <div class="card-bd env-list">
+            <div class="env-head">
+              <div class="base" id="envBaseTitle">—</div>
+              <div class="chip" id="envLastTime">—</div>
+            </div>
+            <div class="scroll" style="flex: 1;">
+              <table class="env-table">
+                <thead>
+                  <tr>
+                    <th style="width: 92px;">时间</th>
+                    <th style="width: 70px;">设备</th>
+                    <th>温度</th>
+                    <th>湿度</th>
+                    <th>CO₂</th>
+                  </tr>
+                </thead>
+                <tbody id="envTbody">
+                  <tr><td colspan="5" style="color: var(--muted);">暂无数据</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="env-pager">
+              <button class="pager-btn" id="envPrevBtn" title="上一页">←</button>
+              <div class="pager-info" id="envPageInfo">—</div>
+              <button class="pager-btn" id="envNextBtn" title="下一页">→</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="height: 180px; display:flex; flex-direction:column;">
+          <div class="card-hd">
+            <div class="title">基地温湿度</div>
+            <div class="chip" id="todayChip">—</div>
+          </div>
+          <div class="card-bd" style="flex:1; padding:0;">
+            <div id="todayChart" style="height: 100%; width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="height: 270px;">
+          <div class="card-hd">
+            <div class="title">协同预警中心</div>
+            <div class="hd-actions">
+              <button class="icon-btn" id="alarmSettingsBtn" title="阈值设置">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" stroke="currentColor" stroke-width="2"/>
+                  <path d="M19.4 13.2c.04-.4.04-.8 0-1.2l2-1.5-2-3.4-2.4 1a7.9 7.9 0 0 0-1-.6l-.4-2.6H8.8l-.4 2.6c-.35.16-.68.36-1 .6l-2.4-1-2 3.4 2 1.5c-.04.4-.04.8 0 1.2l-2 1.5 2 3.4 2.4-1c.32.24.65.44 1 .6l.4 2.6h6.4l.4-2.6c.35-.16.68-.36 1-.6l2.4 1 2-3.4-2-1.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-bd">
+            <div class="scroll" style="height: 210px;">
+              <div id="alarmList" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="alarm-item">
+                  <div class="left">
+                    <div class="title">加载中…</div>
+                    <div class="desc">正在查询所有基地的最新温湿度。</div>
+                  </div>
+                  <div class="right">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 中间 -->
+      <section class="col" style="min-width:0;">
+        <div class="top-kpis">
+          <div class="card">
+            <div class="kpi">
+              <div class="label">在线基地数</div>
+              <div class="value"><span id="kpiOnlineBase">--</span><small id="kpiBaseMeta">/ --</small></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="kpi">
+              <div class="label">设备在线数</div>
+              <div class="value"><span id="kpiOnlineDevice">--</span><small>台</small></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="kpi">
+              <div class="label">异常警告数</div>
+              <div class="value"><span id="kpiAbnormal">--</span><small>项</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1; min-height:0;">
+          <div class="card-hd">
+            <div class="title">总览矩阵</div>
+            <div class="chip" id="matrixChip">点击切换基地</div>
+          </div>
+          <div class="card-bd">
+            <div class="scroll" style="height: 310px;">
+              <div class="matrix" id="matrixGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="height: 320px;">
+          <div class="card-hd">
+            <div class="title">天气预报</div>
+            <div class="chip" id="weatherChip">点击矩阵定位并查询</div>
+          </div>
+          <div class="card-bd">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div id="weatherMap" class="chartBoxTall" style="height: 280px; border-radius:12px; overflow:hidden; border:1px solid rgba(27,58,91,.45);"></div>
+              <div id="weatherPanel" style="
+                display:none;
+                height: 280px;
+                border-radius:12px;
+                overflow:hidden;
+                border:1px solid rgba(27,58,91,.45);
+                background: rgba(0,0,0,.10);
+              ">
+                <div style="padding:10px 12px; border-bottom:1px solid rgba(27,58,91,.35); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="font-weight:800; letter-spacing:1px; font-size:12px;">天气预报</div>
+                  <div class="chip" id="weatherPanelTitle">—</div>
+                </div>
+                <div class="scroll" style="height: 236px; padding:10px 12px;">
+                  <div id="weatherPanelBody" style="color:#8fb1d4; font-size:12px;">请选择基地…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧 -->
+      <section class="col">
+        <div class="card" style="height: 240px; display:flex; flex-direction:column;">
+          <div class="card-hd">
+            <div class="title">设备运行状况</div>
+            <div class="chip" id="deviceChip">在线率</div>
+          </div>
+          <div class="card-bd" style="flex:1; display:flex; flex-direction:column; padding:8px 10px; min-height:0;">
+            <div id="deviceGauge" style="flex:1; width:100%; min-height:0;"></div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px; color:var(--muted); font-size:12px;">
+              <div>总设备：<span id="devTotal">--</span></div>
+              <div>在线：<span id="devOnline">--</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1; min-height:0; display:flex; flex-direction:column;">
+          <div class="card-hd">
+            <div class="title">运行情况</div>
+            <div class="chip">设备监控</div>
+          </div>
+          <div class="card-bd" style="display:flex; flex-direction:column; gap:8px; flex:1; min-height:0; padding:10px;">
+            <div id="monitorImagesGrid" class="monitor-grid" aria-label="基地最新设备监控图"></div>
+          </div>
+        </div>
+
+        <div class="card" style="flex-shrink:0;">
+          <div class="card-hd">
+            <div class="title">工具栏</div>
+            <div class="chip">AI 工具</div>
+          </div>
+          <div class="card-bd" style="padding:10px 12px;">
+            <div class="tool-bar-row">
+              <button type="button" class="tool-bar-btn" id="openAgentEmbedBtn" data-embed-title="智能体" data-embed-url="{% url 'agent_view' %}">智能体</button>
+              <button type="button" class="tool-bar-btn" id="openModelLibEmbedBtn" data-embed-title="模型库" data-embed-url="{% url 'model_library' %}">模型库</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 智能体 / 模型库：内嵌页面弹窗 -->
+    <div class="modal-mask" id="embedToolModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal embed-tool-modal">
+        <div class="modal-hd">
+          <div class="modal-title" id="embedToolModalTitle">—</div>
+          <button type="button" class="icon-btn" id="embedToolModalCloseBtn" title="关闭" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-bd">
+          <iframe class="embed-tool-frame" id="embedToolFrame" title="" src="about:blank"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- 协同预警中心：阈值设置弹窗 -->
+    <div class="modal-mask" id="alarmSettingsModal" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-hd">
+          <div class="modal-title">安全阈值设置</div>
+          <button class="icon-btn" id="alarmSettingsCloseBtn" title="关闭">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-bd">
+          <div class="form-grid">
+            <div class="field">
+              <label for="tempMin">温度下限（°C）</label>
+              <input id="tempMin" type="number" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="tempMax">温度上限（°C）</label>
+              <input id="tempMax" type="number" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="humMin">湿度下限（%）</label>
+              <input id="humMin" type="number" step="1" />
+            </div>
+            <div class="field">
+              <label for="humMax">湿度上限（%）</label>
+              <input id="humMax" type="number" step="1" />
+            </div>
+          </div>
+          <div class="hint">
+            保存后将按照阈值范围筛选异常基地，并输出异常基地、设备与时间（刷新周期 30s）。
+          </div>
+        </div>
+        <div class="modal-ft">
+          <button class="btn" id="alarmSettingsCancelBtn">取消</button>
+          <button class="btn primary" id="alarmSettingsSaveBtn">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      // 复用项目里已有的安全密钥配置
+      window._AMapSecurityConfig = {
+        securityJsCode: "3411731d2cf8f23b624a8182a47626cd",
+      };
+    </script>
+    <script src="https://webapi.amap.com/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script>
+      const API = {
+        summary: "{% url 'base_dashboard_summary' %}",
+        overview: "{% url 'base_dashboard_overview' %}",
+        baseEnv: "{% url 'base_dashboard_base_env' %}",
+        today: "{% url 'base_dashboard_today' %}",
+        alarms: "{% url 'base_dashboard_alarms' %}",
+        deviceStatus: "{% url 'base_dashboard_device_status' %}",
+        monitorImages: "{% url 'base_dashboard_monitor_images' %}",
+      };
+
+      const MONITOR_MEDIA_BASE = "http://47.99.61.189:8175/media/";
+      function monitorImageUrl(imagePath){
+        const p = String(imagePath || "").replace(/^\/+/, "");
+        return p ? MONITOR_MEDIA_BASE + p : "";
+      }
+      function escapeHtmlAttr(s){
+        return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      }
+
+      // 时间显示：优先显示后端原字符串，避免浏览器时区换算导致偏移
+      function fmtTime(t){
+        if(!t) return "—";
+        if (typeof t === "string") {
+          const m = t.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::\d{2})?/);
+          if (m) return m[2];
+        }
+        const d = new Date(t);
+        if(Number.isNaN(d.getTime())) return String(t);
+        const hh = String(d.getHours()).padStart(2,"0");
+        const mm = String(d.getMinutes()).padStart(2,"0");
+        return `${hh}:${mm}`;
+      }
+      function fmtFull(t){
+        if(!t) return "—";
+        if (typeof t === "string") {
+          const m = t.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/);
+          if (m) return `${m[1]} ${m[2]}`;
+        }
+        const d = new Date(t);
+        if(Number.isNaN(d.getTime())) return String(t);
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const da = String(d.getDate()).padStart(2,"0");
+        const hh = String(d.getHours()).padStart(2,"0");
+        const mm = String(d.getMinutes()).padStart(2,"0");
+        const ss = String(d.getSeconds()).padStart(2,"0");
+        return `${y}-${m}-${da} ${hh}:${mm}:${ss}`;
+      }
+      function badgeClass(status){
+        if(status === "正常") return "good";
+        if(status === "异常") return "bad";
+        if(status === "无数据") return "none";
+        return "warn";
+      }
+
+      // 通用 GET JSON（支持 query 参数）
+      async function getJSON(url, params){
+        const u = new URL(url, window.location.origin);
+        if(params){
+          Object.keys(params).forEach(k=>{
+            if(params[k] !== undefined && params[k] !== null && String(params[k]).length>0){
+              u.searchParams.set(k, params[k]);
+            }
+          });
+        }
+        const res = await fetch(u.toString(), { credentials: "same-origin" });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      }
+
+      // 预警阈值配置：持久化到 localStorage（默认与后端一致）
+      const ALARM_SETTINGS_KEY = "base_dashboard_alarm_thresholds_v1";
+      const DEFAULT_ALARM_SETTINGS = {
+        temp_min: 0,
+        temp_max: 45,
+        hum_min: 20,
+        hum_max: 95
+      };
+      function _toNum(v){
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+      function getAlarmSettings(){
+        try{
+          const raw = localStorage.getItem(ALARM_SETTINGS_KEY);
+          if(!raw) return { ...DEFAULT_ALARM_SETTINGS };
+          const obj = JSON.parse(raw);
+          const tmin = _toNum(obj.temp_min);
+          const tmax = _toNum(obj.temp_max);
+          const hmin = _toNum(obj.hum_min);
+          const hmax = _toNum(obj.hum_max);
+          return {
+            temp_min: tmin == null ? DEFAULT_ALARM_SETTINGS.temp_min : tmin,
+            temp_max: tmax == null ? DEFAULT_ALARM_SETTINGS.temp_max : tmax,
+            hum_min: hmin == null ? DEFAULT_ALARM_SETTINGS.hum_min : hmin,
+            hum_max: hmax == null ? DEFAULT_ALARM_SETTINGS.hum_max : hmax
+          };
+        }catch(e){
+          return { ...DEFAULT_ALARM_SETTINGS };
+        }
+      }
+      function setAlarmSettings(s){
+        localStorage.setItem(ALARM_SETTINGS_KEY, JSON.stringify(s));
+      }
+      function formatAlarmRange(s){
+        const tmin = (s && s.temp_min != null) ? Number(s.temp_min).toFixed(1) : "—";
+        const tmax = (s && s.temp_max != null) ? Number(s.temp_max).toFixed(1) : "—";
+        const hmin = (s && s.hum_min != null) ? Math.round(Number(s.hum_min)) : "—";
+        const hmax = (s && s.hum_max != null) ? Math.round(Number(s.hum_max)) : "—";
+        return `T:${tmin}~${tmax}°C H:${hmin}~${hmax}%`;
+      }
+
+      let state = {
+        selectedBaseId: "",
+        selectedBaseName: "",
+        // 高德地图 + 天气
+        AMap: null,
+        weatherMap: null,
+        weatherMarker: null,
+        weatherService: null,
+
+        todayChart: null,
+        deviceGauge: null,
+
+        // 基地环境数据分页
+        envItems: [],
+        envPage: 1,
+        envPageSize: 5,
+      };
+
+      // 基地环境数据分页渲染（每页 5 条）
+      function renderEnvPage(){
+        const tbody = document.getElementById("envTbody");
+        const info = document.getElementById("envPageInfo");
+        const prevBtn = document.getElementById("envPrevBtn");
+        const nextBtn = document.getElementById("envNextBtn");
+
+        const items = Array.isArray(state.envItems) ? state.envItems : [];
+        const pageSize = state.envPageSize || 5;
+        const total = items.length;
+        const totalPages = total === 0 ? 1 : Math.ceil(total / pageSize);
+
+        // 纠正页码
+        state.envPage = Math.max(1, Math.min(state.envPage || 1, totalPages));
+
+        if(info) info.textContent = total === 0 ? "0 条" : `第 ${state.envPage} / ${totalPages} 页（共 ${total} 条）`;
+        if(prevBtn) prevBtn.disabled = (state.envPage <= 1 || total === 0);
+        if(nextBtn) nextBtn.disabled = (state.envPage >= totalPages || total === 0);
+
+        if(!tbody) return;
+        if(total === 0){
+          tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">暂无数据</td></tr>`;
+          return;
+        }
+
+        const start = (state.envPage - 1) * pageSize;
+        const pageItems = items.slice(start, start + pageSize);
+
+        tbody.innerHTML = pageItems.map(it=>{
+          const t = it.temperature == null ? "—" : `${Number(it.temperature).toFixed(1)}°C`;
+          const h = it.humidity == null ? "—" : `${Number(it.humidity).toFixed(0)}%`;
+          const c = it.CO2 == null ? "—" : `${Number(it.CO2).toFixed(0)}ppm`;
+          return `
+            <tr>
+              <td>${fmtTime(it.collected_time)}</td>
+              <td>${(it.device_id ?? "-")}</td>
+              <td>${t}</td>
+              <td>${h}</td>
+              <td>${c}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+
+      // 顶部 KPI：在线基地 / 在线设备 / 异常告警（异常数与预警阈值一致）
+      async function loadSummary(){
+        const settings = getAlarmSettings();
+        const data = await getJSON(API.summary, settings);
+        if(!data || !data.success) return;
+        document.getElementById("kpiOnlineBase").textContent = data.online_base_count ?? "--";
+        document.getElementById("kpiBaseMeta").textContent = `/ ${data.base_total ?? "--"}`;
+        document.getElementById("kpiOnlineDevice").textContent = data.online_device_count ?? "--";
+        document.getElementById("kpiAbnormal").textContent = data.abnormal_warning_count ?? "--";
+        // meta 区域已移除，避免因元素不存在报错
+      }
+
+      // 总览矩阵渲染 + 点击联动
+      function renderMatrix(items){
+        const grid = document.getElementById("matrixGrid");
+        grid.innerHTML = "";
+        items.forEach((it)=>{
+          const div = document.createElement("div");
+          div.className = "matrix-item" + ((state.selectedBaseId && String(it.base_id) === String(state.selectedBaseId)) ? " active" : "");
+          div.dataset.baseId = it.base_id ?? "";
+          div.dataset.baseName = it.base_name ?? "";
+          div.dataset.lng = (it.longitude ?? "");
+          div.dataset.lat = (it.latitude ?? "");
+          div.dataset.city = (it.city_name ?? "");
+          div.dataset.province = (it.province_name ?? "");
+
+          const status = it.status ?? "—";
+          const bc = badgeClass(status);
+          const temp = it.temperature == null ? "—" : `${Number(it.temperature).toFixed(1)}°C`;
+          const hum = it.humidity == null ? "—" : `${Number(it.humidity).toFixed(0)}%`;
+
+          div.innerHTML = `
+            <div class="mi-top">
+              <div class="mi-name" title="${(it.base_name ?? it.base_id ?? "-")}">${(it.base_name ?? it.base_id ?? "-")}</div>
+              <div class="badge ${bc}">${status}</div>
+            </div>
+            <div class="mi-metrics">
+              <div class="metric">
+                <div class="k">温度</div>
+                <div class="v">${temp}</div>
+              </div>
+              <div class="metric">
+                <div class="k">湿度</div>
+                <div class="v">${hum}</div>
+              </div>
+            </div>
+            <div class="mi-time">最新：${fmtFull(it.collected_time)}</div>
+          `;
+
+          div.addEventListener("click", ()=>{
+            state.selectedBaseId = String(it.base_id || "");
+            state.selectedBaseName = String(it.base_name || it.base_id || "");
+            document.querySelectorAll(".matrix-item").forEach(el=>el.classList.remove("active"));
+            div.classList.add("active");
+            loadBaseEnv(state.selectedBaseId, state.selectedBaseName);
+            loadMonitorImages(state.selectedBaseId);
+            locateAndForecast(it);
+            loadTodaySeries(state.selectedBaseId, state.selectedBaseName);
+          });
+          grid.appendChild(div);
+        });
+      }
+
+      // 拉取总览矩阵数据，并初始化默认选中基地
+      async function loadOverview(){
+        const settings = getAlarmSettings();
+        const data = await getJSON(API.overview, settings);
+        if(!data || !data.success) return;
+        const items = data.items || [];
+        // 默认选中第一条有数据的基地
+        if(!state.selectedBaseId){
+          const first = items.find(x=>x && x.base_id) || items[0];
+          if(first){
+            state.selectedBaseId = String(first.base_id || "");
+            state.selectedBaseName = String(first.base_name || first.base_id || "");
+          }
+        }
+        renderMatrix(items);
+        if(state.selectedBaseId){
+          await loadBaseEnv(state.selectedBaseId, state.selectedBaseName);
+          await loadMonitorImages(state.selectedBaseId);
+          // 默认基地定位 + 天气
+          const selected = items.find(x => x && String(x.base_id) === String(state.selectedBaseId));
+          if(selected) await locateAndForecast(selected);
+          await loadTodaySeries(state.selectedBaseId, state.selectedBaseName);
+        }
+      }
+
+      // 拉取基地环境数据（最多 20 条），前端按 5 条/页分页
+      async function loadBaseEnv(baseId, baseName){
+        document.getElementById("envChip").textContent = `基地：${baseId || "—"}`;
+        document.getElementById("envBaseTitle").textContent = baseName || baseId || "—";
+        const tbody = document.getElementById("envTbody");
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--muted);">加载中…</td></tr>`;
+        try{
+          const data = await getJSON(API.baseEnv, { base_id: baseId, limit: 20 });
+          if(!data || !data.success){
+            state.envItems = [];
+            state.envPage = 1;
+            renderEnvPage();
+            return;
+          }
+          // 强制只显示最新 20 条（即便后端未来调整）
+          const items = (data.items || []).slice(0, 20);
+          if(!items.length){
+            document.getElementById("envLastTime").textContent = "—";
+            state.envItems = [];
+            state.envPage = 1;
+            renderEnvPage();
+            return;
+          }
+          document.getElementById("envLastTime").textContent = `最新：${fmtFull(items[0].collected_time)}`;
+          state.envItems = items;
+          state.envPage = 1;
+          renderEnvPage();
+        }catch(e){
+          state.envItems = [];
+          state.envPage = 1;
+          renderEnvPage();
+        }
+      }
+
+      /** 右侧「能耗/运行摘要」：当前基地最新 4 张带图环境记录 */
+      function renderMonitorImagesPlaceholder(msg){
+        const grid = document.getElementById("monitorImagesGrid");
+        if(!grid) return;
+        grid.innerHTML = `<div class="monitor-cell monitor-cell--empty" style="grid-column: 1 / -1; aspect-ratio:auto; min-height:120px;">${msg || "—"}</div>`;
+      }
+
+      async function loadMonitorImages(baseId){
+        const grid = document.getElementById("monitorImagesGrid");
+        if(!grid) return;
+        if(!baseId){
+          renderMonitorImagesPlaceholder("请选择基地");
+          return;
+        }
+        grid.innerHTML = `<div class="monitor-cell monitor-cell--empty" style="grid-column: 1 / -1; aspect-ratio:auto; min-height:120px;">加载中…</div>`;
+        try{
+          const data = await getJSON(API.monitorImages, { base_id: baseId });
+          if(!data || !data.success){
+            renderMonitorImagesPlaceholder("暂无监控图片");
+            return;
+          }
+          const raw = Array.isArray(data.items) ? data.items.slice(0, 4) : [];
+          const slots = [];
+          for(let i = 0; i < 4; i++){
+            slots.push(raw[i] || null);
+          }
+          const hasAny = slots.some(s => s && monitorImageUrl(s.image_path));
+          if(!hasAny){
+            renderMonitorImagesPlaceholder("该基地暂无带图记录");
+            return;
+          }
+          grid.innerHTML = slots.map((it, idx)=>{
+            const url = it ? monitorImageUrl(it.image_path) : "";
+            if(!url){
+              return `<div class="monitor-cell monitor-cell--empty">暂无</div>`;
+            }
+            const dev = it.device_id != null ? `设备 ${it.device_id}` : "—";
+            const t = fmtTime(it.collected_time);
+            const title = escapeHtmlAttr(`${dev} ${fmtFull(it.collected_time)}`);
+            return `
+              <div class="monitor-cell" title="${title}">
+                <img src="${escapeHtmlAttr(url)}" alt="监控 ${idx + 1}" loading="lazy" onerror="var p=this.parentElement;this.onerror=null;this.remove();if(p){p.className='monitor-cell monitor-cell--empty';p.textContent='加载失败';}" />
+                <div class="cap"><span>${dev}</span><span>${t}</span></div>
+              </div>
+            `;
+          }).join("");
+        }catch(e){
+          renderMonitorImagesPlaceholder("加载失败");
+        }
+      }
+
+      // 初始化高德地图实例（只初始化一次）
+      async function initWeatherMapIfNeeded(){
+        if(state.weatherMap && state.AMap) return;
+        const el = document.getElementById("weatherMap");
+        if(!el) return;
+        try{
+          // 复用 base_map.html 的 key（后续你若要改，只需要改这一处）
+          const AMap = await AMapLoader.load({
+            key: "9969ad3b8112bd56b65dc90191ab4753",
+            version: "2.0",
+            plugins: ["AMap.Marker", "AMap.Weather"]
+          });
+          state.AMap = AMap;
+          state.weatherMap = new AMap.Map("weatherMap", {
+            zoom: 6,
+            center: [112.938814, 30.937196], // 默认中国中部
+            
+            animateEnable: false,  // 禁用地图动画
+          });
+          state.weatherMarker = new AMap.Marker({
+            position: state.weatherMap.getCenter(),
+            anchor: "bottom-center",
+          });
+          state.weatherMap.add(state.weatherMarker);
+
+          // 天气服务
+          state.weatherService = new AMap.Weather();
+
+          // 当前天气：地图钉右侧弹窗（自定义层，保证始终在右边）
+          const mapContainer = state.weatherMap.getContainer();
+          mapContainer.style.position = "relative";
+          const livePopup = document.createElement("div");
+          livePopup.id = "weatherLivePopup";
+          livePopup.style.cssText = [
+            "position:absolute",
+            "z-index:999",
+            "min-width:220px",
+            "max-width:300px",
+            "padding:10px 12px",
+            "border-radius:12px",
+            "border:1px solid rgba(27,58,91,.55)",
+            "background: rgba(15,34,56,.92)",
+            "box-shadow: 0 10px 30px rgba(0,0,0,.35)",
+            "backdrop-filter: blur(6px)",
+            "color:#d7e6ff",
+            "display:none",
+            "pointer-events:none",
+            "transform: translateY(-50%)",
+          ].join(";");
+          mapContainer.appendChild(livePopup);
+          state.weatherLivePopupEl = livePopup;
+
+          state.__repositionWeatherLivePopup = function(){
+            if(!state.weatherLivePopupEl || state.weatherLivePopupEl.style.display === "none") return;
+            if(!state.weatherMarker || !state.weatherMap) return;
+            const lnglat = state.weatherMarker.getPosition && state.weatherMarker.getPosition();
+            if(!lnglat) return;
+            const px = state.weatherMap.lngLatToContainer(lnglat);
+            const offsetX = 18;
+            const offsetY = -6;
+            state.weatherLivePopupEl.style.left = `${Math.round(px.x + offsetX)}px`;
+            state.weatherLivePopupEl.style.top = `${Math.round(px.y + offsetY)}px`;
+          };
+          state.weatherMap.on("mapmove", state.__repositionWeatherLivePopup);
+          state.weatherMap.on("zoomchange", state.__repositionWeatherLivePopup);
+          state.weatherMap.on("moveend", state.__repositionWeatherLivePopup);
+
+          // 点击地图时也展开右侧面板（不影响总览矩阵点击逻辑）
+          state.weatherMap.on("click", function(){
+            const p = document.getElementById("weatherPanel");
+            if(p) p.style.display = "block";
+          });
+
+          window.addEventListener("resize", ()=> state.weatherMap && state.weatherMap.resize());
+        }catch(e){
+          console.error(e);
+          // 无需额外提示位
+        }
+      }
+
+      // HTML 安全转义（拼接弹窗/面板内容）
+      function _escapeHtml(s){
+        return String(s ?? "")
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;")
+          .replaceAll("'","&#39;");
+      }
+
+      // 地图钉右侧：实时天气小弹窗
+      function openLiveWeatherPopup(baseLabel, liveData){
+        if(!state.weatherLivePopupEl) return;
+        const liveLine = liveData
+          ? `${_escapeHtml(liveData.weather || "—")} · ${_escapeHtml(liveData.temperature ?? "—")}°C · 湿度${_escapeHtml(liveData.humidity ?? "—")}% · ` +
+            `风${_escapeHtml(liveData.windDirection || "—")}${_escapeHtml(liveData.windPower || "")}级`
+          : "—";
+        const reportTime = liveData && liveData.reportTime ? _escapeHtml(liveData.reportTime) : "—";
+        state.weatherLivePopupEl.innerHTML = `
+          <div style="max-width:300px;">
+            <div style="font-weight:800;margin-bottom:6px;">${_escapeHtml(baseLabel || "当前天气")}</div>
+            <div style="font-size:12px;color:#8fb1d4;line-height:1.45;">
+              ${liveLine}<br/>
+              发布时间：${reportTime}
+            </div>
+          </div>
+        `;
+        state.weatherLivePopupEl.style.display = "block";
+        if(state.__repositionWeatherLivePopup) state.__repositionWeatherLivePopup();
+      }
+
+      // 右侧面板：未来 3 天预报
+      function openWeatherPopup(baseLabel, liveData, forecastData, pos){
+        const panel = document.getElementById("weatherPanel");
+        const panelTitle = document.getElementById("weatherPanelTitle");
+        const panelBody = document.getElementById("weatherPanelBody");
+        if(!panel || !panelBody) return;
+        panel.style.display = "block";
+        if(panelTitle) panelTitle.textContent = baseLabel || "—";
+
+        // 适配你实际返回：forecastData.forecasts 直接是“未来多天列表”
+        let forecastsHtml = `<div style="color:#8fb1d4;font-size:12px;margin-top:6px;">未来预报：未获取到</div>`;
+        let reportTime = "—";
+        if(forecastData && forecastData.forecasts && forecastData.forecasts.length){
+          reportTime = forecastData.reportTime ? _escapeHtml(forecastData.reportTime) : "—";
+          // 只显示未来 3 天
+          const forecasts = (forecastData.forecasts || []).slice(0, 3);
+          forecastsHtml = `
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,58,91,.25);">
+              <div style="
+                display:flex;
+                gap:10px;
+                overflow-x:auto;
+                padding-bottom:6px;
+              ">
+                ${forecasts.map((f, idx)=>{
+                  const date = _escapeHtml(f.date || "");
+                  const week = _escapeHtml(f.week || "");
+                  const day = `${_escapeHtml(f.dayWeather || "—")} ${_escapeHtml(f.dayTemp ?? "—")}°C`;
+                  const dayWind = `${_escapeHtml(f.dayWindDir || "—")}${_escapeHtml(f.dayWindPower || "—")}级`;
+                  const night = `${_escapeHtml(f.nightWeather || "—")} ${_escapeHtml(f.nightTemp ?? "—")}°C`;
+                  const nightWind = `${_escapeHtml(f.nightWindDir || "—")}${_escapeHtml(f.nightWindPower || "—")}级`;
+                  const isTomorrow = idx === 1;
+                  const tag = isTomorrow ? `<span style="margin-left:6px;font-size:11px;color:#34d3ff;">明日</span>` : "";
+                  return `
+                    <div style="
+                      flex: 0 0 160px;
+                      border:1px solid rgba(27,58,91,.35);
+                      border-radius:12px;
+                      background: rgba(0,0,0,.10);
+                      padding:8px 10px;
+                    ">
+                      <div style="font-weight:800;font-size:12px;color:#d7e6ff;">
+                        ${date}${tag}
+                      </div>
+
+                      <div style="margin-top:8px;">
+                        <div style="font-size:12px;color:#d7e6ff;font-weight:700;">白天</div>
+                        <div style="font-size:12px;color:#8fb1d4;line-height:1.35;margin-top:2px;">
+                          ${day}<br/>
+                          风：${dayWind}
+                        </div>
+                      </div>
+
+                      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(27,58,91,.25);">
+                        <div style="font-size:12px;color:#d7e6ff;font-weight:700;">夜间</div>
+                        <div style="font-size:12px;color:#8fb1d4;line-height:1.35;margin-top:2px;">
+                          ${night}<br/>
+                          风：${nightWind}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        }
+
+        const content = `
+          <div style="max-width:560px;">
+            <div style="font-size:12px;color:#8fb1d4;line-height:1.45;">
+              预报发布时间：${reportTime}
+            </div>
+            ${forecastsHtml}
+          </div>
+        `;
+        panelBody.innerHTML = content;
+      }
+
+      // 点击基地：地图瞬移到基地 + 查询实时/预报
+      async function locateAndForecast(baseItem){
+        await initWeatherMapIfNeeded();
+        const chip = document.getElementById("weatherChip");
+        const baseId = baseItem && baseItem.base_id ? String(baseItem.base_id) : "";
+        const baseName = baseItem && baseItem.base_name ? String(baseItem.base_name) : baseId;
+        const city = (baseItem && (baseItem.city_name || baseItem.province_name)) ? String(baseItem.city_name || baseItem.province_name) : "";
+        const lng = baseItem && baseItem.longitude != null ? Number(baseItem.longitude) : null;
+        const lat = baseItem && baseItem.latitude != null ? Number(baseItem.latitude) : null;
+
+        chip.textContent = baseId ? `已选：${baseId}` : "点击矩阵定位并查询";
+
+        let pos = null;
+        if(state.weatherMap && lng != null && lat != null && !Number.isNaN(lng) && !Number.isNaN(lat)){
+          pos = [lng, lat];
+          // 新需求：地图钉“钉死”在图层上，代表基地位置
+          state.weatherMarker && state.weatherMarker.setPosition(pos);
+          // 需求：更快的“瞬移”到目标点（先 setCenter 再 setZoom）
+          state.weatherMap.setCenter(pos);
+          state.weatherMap.setZoom(12);
+        }
+
+        // 天气预报：按城市名查询
+        const baseLabel = `${baseName}${baseId ? `（${baseId}）` : ""}`;
+        if(!state.weatherService || !city){
+          // 地图弹窗：无天气服务/无城市信息时提示
+          openWeatherPopup(baseLabel, null, null, pos);
+          return;
+        }
+
+        // 参考官方文档：getLive / getForecast（按城市名或adcode）
+        // https://lbs.amap.com/api/javascript-api-v2/documentation#weather
+        state.weatherService.getLive(city, function(errLive, liveData){
+          if(errLive) console.error(errLive);
+          // 当前天气：地图弹窗显示
+          openLiveWeatherPopup(baseLabel, liveData || null);
+          state.weatherService.getForecast(city, function(errFc, fcData){
+            if(errFc){
+              console.error(errFc);
+              openWeatherPopup(baseLabel, liveData || null, null, pos);
+              return;
+            }
+            openWeatherPopup(baseLabel, liveData || null, fcData || null, pos);
+          });
+        });
+      }
+
+      // 初始化“今日温湿度”折线图
+      function initTodayChart(){
+        const el = document.getElementById("todayChart");
+        state.todayChart = echarts.init(el);
+        window.addEventListener("resize", ()=>state.todayChart && state.todayChart.resize());
+      }
+      // 拉取并渲染“今日温湿度”折线图
+      async function loadTodaySeries(baseId, baseName){
+        if(!state.todayChart) initTodayChart();
+        const chip = document.getElementById("todayChip");
+        if(!baseId){
+          chip.textContent = "未选择基地";
+          state.todayChart.clear();
+          return;
+        }
+        chip.textContent = `${baseId}`;
+        try{
+          const data = await getJSON(API.today, { base_id: baseId });
+          const items = (data && data.items) ? data.items : [];
+          const x = items.map(it=>fmtTime(it.collected_time));
+          const t = items.map(it=>it.temperature);
+          const h = items.map(it=>it.humidity);
+          state.todayChart.setOption({
+            backgroundColor: "transparent",
+            tooltip: { trigger: "axis", confine: true },
+            grid: { left: 42, right: 14, top: 18, bottom: 24, containLabel: true },
+            xAxis: {
+              type: "category",
+              data: x,
+              axisLabel: { color: "#8fb1d4", fontSize: 10, hideOverlap: true },
+              axisLine: { lineStyle: { color: "rgba(27,58,91,.55)" } }
+            },
+            yAxis: [
+              {
+                type: "value",
+                axisLabel: { color: "#8fb1d4", fontSize: 10 },
+                splitLine: { lineStyle: { color: "rgba(27,58,91,.20)" } }
+              },
+              {
+                type: "value",
+                axisLabel: { color: "#8fb1d4", fontSize: 10 },
+                splitLine: { show: false }
+              }
+            ],
+            series: [
+              {
+                name: "温度",
+                type: "line",
+                smooth: true,
+                symbol: "none",
+                data: t,
+                clip: true,
+                lineStyle: { width: 2, color: "#34d3ff" },
+                areaStyle: { color: "rgba(52,211,255,.08)" },
+              },
+              {
+                name: "湿度",
+                type: "line",
+                smooth: true,
+                symbol: "none",
+                yAxisIndex: 1,
+                data: h,
+                clip: true,
+                lineStyle: { width: 2, color: "#2b9bff" },
+                areaStyle: { color: "rgba(43,155,255,.06)" },
+              }
+            ]
+          }, true);
+        }catch(e){
+          state.todayChart.setOption({
+            title: { text: "今日数据加载失败", left: "center", top: "middle", textStyle: { color: "#8fb1d4", fontSize: 12 } }
+          }, true);
+        }
+      }
+
+      // 初始化“设备运行状况”仪表盘
+      function initDeviceGauge(){
+        const el = document.getElementById("deviceGauge");
+        state.deviceGauge = echarts.init(el);
+        window.addEventListener("resize", ()=>state.deviceGauge && state.deviceGauge.resize());
+      }
+      // 拉取并渲染“设备运行状况”
+      async function loadDeviceStatus(){
+        if(!state.deviceGauge) initDeviceGauge();
+        const data = await getJSON(API.deviceStatus);
+        if(!data || !data.success) return;
+        const rate = data.online_rate ?? 0;
+        document.getElementById("devTotal").textContent = data.total_devices ?? "--";
+        document.getElementById("devOnline").textContent = data.online_devices ?? "--";
+
+        state.deviceGauge.setOption({
+          backgroundColor: "transparent",
+          series: [
+            {
+              type: "gauge",
+              center: ["50%", "62%"],
+              radius: "105%",
+              startAngle: 210,
+              endAngle: -30,
+              min: 0,
+              max: 100,
+              progress: { show: true, width: 12 },
+              axisLine: { lineStyle: { width: 12, color: [[1, "rgba(27,58,91,.35)"]] } },
+              // 刻度线/刻度数字分层：数字外移，避免挡住刻度线
+              splitLine: { distance: -14, length: 10, lineStyle: { color: "rgba(143,177,212,.35)" } },
+              axisTick: { distance: -14, length: 6, lineStyle: { color: "rgba(143,177,212,.25)" } },
+              axisLabel: { color: "#8fb1d4", distance: 20 },
+              pointer: { show: false },
+              title: { show: true, color: "#d7e6ff", fontSize: 12, offsetCenter: [0, "48%"] },
+              detail: { valueAnimation: true, formatter: "{value}%", color: "#d7e6ff", fontSize: 22, offsetCenter: [0, "10%"] },
+              data: [{ value: rate, name: "在线率" }]
+            }
+          ]
+        }, true);
+      }
+
+      // 拉取并渲染“协同预警中心”
+      async function loadAlarms(){
+        const settings = getAlarmSettings();
+        const data = await getJSON(API.alarms, settings);
+        const list = document.getElementById("alarmList");
+        const chip = document.getElementById("alarmChip");
+        const items = (data && data.items) ? data.items : [];
+        if(!items.length){
+          list.innerHTML = `
+            <div class="alarm-item">
+              <div class="left">
+                <div class="title">当前无异常</div>
+                <div class="desc">所有基地的最新温湿度均在阈值范围内（${formatAlarmRange(settings)}）。</div>
+              </div>
+              <div class="right">${fmtFull(new Date())}</div>
+            </div>
+          `;
+          if(chip) chip.textContent = `异常 0 条`;
+          return;
+        }
+        list.innerHTML = items.map(it=>`
+          <div class="alarm-item">
+            <div class="left">
+              <div class="title danger-strong">${(it.base_name ?? it.base_id ?? "-")}（${it.base_id ?? "-"}）</div>
+              <div class="desc">设备：${it.device_id ?? "—"}；${it.message ?? "异常"}；温度：${it.temperature ?? "—"}°C，湿度：${it.humidity ?? "—"}%</div>
+            </div>
+            <div class="right danger">${fmtFull(it.collected_time)}</div>
+          </div>
+        `).join("");
+        if(chip) chip.textContent = `异常 ${items.length} 条`;
+      }
+
+      function initAlarmSettingsModal(){
+        const modal = document.getElementById("alarmSettingsModal");
+        const btnOpen = document.getElementById("alarmSettingsBtn");
+        const btnClose = document.getElementById("alarmSettingsCloseBtn");
+        const btnCancel = document.getElementById("alarmSettingsCancelBtn");
+        const btnSave = document.getElementById("alarmSettingsSaveBtn");
+
+        const tempMinEl = document.getElementById("tempMin");
+        const tempMaxEl = document.getElementById("tempMax");
+        const humMinEl = document.getElementById("humMin");
+        const humMaxEl = document.getElementById("humMax");
+
+        function open(){
+          const s = getAlarmSettings();
+          tempMinEl.value = s.temp_min;
+          tempMaxEl.value = s.temp_max;
+          humMinEl.value = s.hum_min;
+          humMaxEl.value = s.hum_max;
+          modal.style.display = "flex";
+          tempMinEl && tempMinEl.focus();
+        }
+        function close(){
+          modal.style.display = "none";
+        }
+        function save(){
+          const tmin = _toNum(tempMinEl.value);
+          const tmax = _toNum(tempMaxEl.value);
+          const hmin = _toNum(humMinEl.value);
+          const hmax = _toNum(humMaxEl.value);
+          if(tmin == null || tmax == null || hmin == null || hmax == null){
+            alert("请输入完整的数值范围。");
+            return;
+          }
+          if(tmin > tmax){
+            alert("温度下限不能大于上限。");
+            return;
+          }
+          if(hmin > hmax){
+            alert("湿度下限不能大于上限。");
+            return;
+          }
+          const s = { temp_min: tmin, temp_max: tmax, hum_min: hmin, hum_max: hmax };
+          setAlarmSettings(s);
+          close();
+          loadAlarms();
+          // 阈值变更后，矩阵/摘要也要立刻按新阈值刷新
+          loadOverview();
+          loadSummary();
+        }
+
+        btnOpen && btnOpen.addEventListener("click", (e)=>{ e.preventDefault(); open(); });
+        btnClose && btnClose.addEventListener("click", (e)=>{ e.preventDefault(); close(); });
+        btnCancel && btnCancel.addEventListener("click", (e)=>{ e.preventDefault(); close(); });
+        btnSave && btnSave.addEventListener("click", (e)=>{ e.preventDefault(); save(); });
+        modal && modal.addEventListener("click", (e)=>{ if(e.target === modal) close(); });
+        window.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && modal && modal.style.display === "flex") close(); });
+      }
+
+      /** 智能体 / 模型库：同源 iframe 小窗 */
+      function initEmbedToolModal(){
+        const modal = document.getElementById("embedToolModal");
+        const frame = document.getElementById("embedToolFrame");
+        const titleEl = document.getElementById("embedToolModalTitle");
+        const closeBtn = document.getElementById("embedToolModalCloseBtn");
+        function openEmbed(url, title){
+          if(!modal || !frame || !titleEl) return;
+          titleEl.textContent = title || "—";
+          frame.setAttribute("title", title || "内嵌页面");
+          frame.src = url || "about:blank";
+          modal.style.display = "flex";
+          modal.setAttribute("aria-hidden", "false");
+        }
+        function closeEmbed(){
+          if(!modal || !frame) return;
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden", "true");
+          frame.src = "about:blank";
+        }
+        function bindOpen(btnId){
+          const btn = document.getElementById(btnId);
+          if(!btn) return;
+          btn.addEventListener("click", (e)=>{
+            e.preventDefault();
+            const u = btn.getAttribute("data-embed-url") || "";
+            const t = btn.getAttribute("data-embed-title") || "";
+            openEmbed(u, t);
+          });
+        }
+        bindOpen("openAgentEmbedBtn");
+        bindOpen("openModelLibEmbedBtn");
+        closeBtn && closeBtn.addEventListener("click", (e)=>{ e.preventDefault(); closeEmbed(); });
+        modal && modal.addEventListener("click", (e)=>{ if(e.target === modal) closeEmbed(); });
+        window.addEventListener("keydown", (e)=>{
+          if(e.key !== "Escape") return;
+          if(modal && modal.style.display === "flex"){
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            closeEmbed();
+          }
+        }, true);
+      }
+
+      // 首次加载
+      async function boot(){
+        try{
+          await Promise.all([loadSummary(), loadOverview(), loadAlarms(), loadDeviceStatus()]);
+          initAlarmSettingsModal();
+          initEmbedToolModal();
+        }catch(e){
+          console.error(e);
+        }
+      }
+      boot();
+
+      // 基地环境数据分页按钮
+      (function bindEnvPager(){
+        const prevBtn = document.getElementById("envPrevBtn");
+        const nextBtn = document.getElementById("envNextBtn");
+        if(prevBtn){
+          prevBtn.addEventListener("click", function(){
+            state.envPage = Math.max(1, (state.envPage || 1) - 1);
+            renderEnvPage();
+          });
+        }
+        if(nextBtn){
+          nextBtn.addEventListener("click", function(){
+            state.envPage = (state.envPage || 1) + 1;
+            renderEnvPage();
+          });
+        }
+        renderEnvPage();
+      })();
+
+      // 定时刷新：摘要/告警/设备状态 30s；矩阵/趋势 60s（保留选中基地）
+      setInterval(()=>{ loadSummary(); loadAlarms(); loadDeviceStatus(); if(state.selectedBaseId){ loadTodaySeries(state.selectedBaseId, state.selectedBaseName); loadMonitorImages(state.selectedBaseId); } }, 30000);
+      setInterval(()=>{ loadOverview(); }, 60000);
+    </script>
+  </body>
+</html>
