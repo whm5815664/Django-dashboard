@@ -25,6 +25,16 @@ SECRET_KEY = "django-insecure-(x9v!(8ql6r6d*-fyp03@-_k5-*(h(z**!0$hi))cm+bv-orj@
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
+#
+# =========================
+# Remote media proxy (HTTPS mixed content fix)
+# =========================
+#
+# 远程图片仍是 HTTP 服务，但页面可能跑在 HTTPS 下会被浏览器拦截；
+# 统一通过本项目同源接口 `/media-proxy/<path>` 转发。
+#
+# 只使用一个变量：直接填写 `http(s)://ip:port`
+REMOTE_MEDIA_BASE = "http://47.99.61.189:8175"
 
 
 # =========================

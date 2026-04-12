@@ -2970,8 +2970,8 @@
     }
 
     if (imagePath && imagePath.trim() !== '') {
-      // 构建图片URL：http://47.99.61.189:8175/media/ + image字段内容
-      imageUrl = 'http://47.99.61.189:8175/media/' + imagePath;
+      // 通过同源代理获取远程图片，避免 https 页面 mixed content
+      imageUrl = '/media-proxy/' + imagePath.replace(/^\/+/, '');
     }
 
     // 显示图片或空状态

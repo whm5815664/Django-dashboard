@@ -22,6 +22,8 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.generic import RedirectView
 
+from config.media_proxy import remote_media_proxy
+
 # 处理浏览器开发工具自动请求的路径（Chrome/Edge等）
 def chrome_devtools_handler(request):
     """处理 /.well-known/appspecific/com.chrome.devtools.json 请求"""
@@ -31,6 +33,8 @@ urlpatterns = [
     path("", RedirectView.as_view(url="/screen/base_map/湖北省/"), name="home"),
     
     path("admin/", admin.site.urls),
+    path("media-proxy/<path:subpath>", remote_media_proxy, name="remote_media_proxy"),
+    
     path('screen/', include('screen.urls')),
     path('aiModels/', include('aiModels.urls')),
     path("storage/", include("storageSystem.urls")),

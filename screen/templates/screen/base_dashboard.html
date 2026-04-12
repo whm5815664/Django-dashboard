@@ -596,7 +596,7 @@
       </div>
       <h1>基地环境监测数据大屏</h1>
       <div class="clock">
-        <a class="back-home" href="http://127.0.0.1:8000/screen/base_map/%E6%B9%96%E5%8C%97%E7%9C%81/">返回主页</a>
+        <a class="back-home" href="{% url 'base_map' province_name='湖北省' %}">返回主页</a>
       </div>
     </header>
 
@@ -714,7 +714,15 @@
         <div class="card" style="height: 320px;">
           <div class="card-hd">
             <div class="title">天气预报</div>
-            <div class="chip" id="weatherChip">点击矩阵定位并查询</div>
+            <div class="hd-actions">
+              <button type="button" class="icon-btn" id="weatherRefreshBtn" title="刷新天气" aria-label="刷新天气">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M20 10a8 8 0 00-14.32-4.9M4 14a8 8 0 0014.32 4.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="chip" id="weatherChip">点击矩阵定位并查询</div>
+            </div>
           </div>
           <div class="card-bd">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -858,7 +866,7 @@
         monitorImages: "{% url 'base_dashboard_monitor_images' %}",
       };
 
-      const MONITOR_MEDIA_BASE = "http://47.99.61.189:8175/media/";
+      const MONITOR_MEDIA_BASE = "/media-proxy/";
       function monitorImageUrl(imagePath){
         const p = String(imagePath || "").replace(/^\/+/, "");
         return p ? MONITOR_MEDIA_BASE + p : "";
@@ -968,6 +976,10 @@
         weatherMap: null,
         weatherMarker: null,
         weatherService: null,
+        /** 当前用于「刷新」按钮的基地行数据（与矩阵/overview 同步） */
+        weatherBaseItem: null,
+        /** 已对哪个基地拉取过天气（用于 60s overview 轮询时跳过重复请求） */
+        weatherLastFetchedBaseId: "",
 
         todayChart: null,
         deviceGauge: null,
@@ -1072,14 +1084,20 @@
             <div class="mi-time">最新：${fmtFull(it.collected_time)}</div>
           `;
 
-          div.addEventListener("click", ()=>{
+          div.addEventListener("click", async ()=>{
+            const prevBaseId = String(state.selectedBaseId || "");
             state.selectedBaseId = String(it.base_id || "");
             state.selectedBaseName = String(it.base_name || it.base_id || "");
             document.querySelectorAll(".matrix-item").forEach(el=>el.classList.remove("active"));
             div.classList.add("active");
             loadBaseEnv(state.selectedBaseId, state.selectedBaseName);
             loadMonitorImages(state.selectedBaseId);
-            locateAndForecast(it);
+            state.weatherBaseItem = it;
+            await locateWeatherMapOnly(it);
+            if(String(it.base_id || "") !== prevBaseId){
+              await fetchWeatherFromAmap(it);
+              state.weatherLastFetchedBaseId = String(it.base_id || "");
+            }
             loadTodaySeries(state.selectedBaseId, state.selectedBaseName);
           });
           grid.appendChild(div);
@@ -1104,9 +1122,15 @@
         if(state.selectedBaseId){
           await loadBaseEnv(state.selectedBaseId, state.selectedBaseName);
           await loadMonitorImages(state.selectedBaseId);
-          // 默认基地定位 + 天气
           const selected = items.find(x => x && String(x.base_id) === String(state.selectedBaseId));
-          if(selected) await locateAndForecast(selected);
+          if(selected){
+            state.weatherBaseItem = selected;
+            await locateWeatherMapOnly(selected);
+            if(state.weatherLastFetchedBaseId !== String(state.selectedBaseId)){
+              await fetchWeatherFromAmap(selected);
+              state.weatherLastFetchedBaseId = String(state.selectedBaseId || "");
+            }
+          }
           await loadTodaySeries(state.selectedBaseId, state.selectedBaseName);
         }
       }
@@ -1386,49 +1410,51 @@
         panelBody.innerHTML = content;
       }
 
-      // 点击基地：地图瞬移到基地 + 查询实时/预报
-      async function locateAndForecast(baseItem){
+      // 地图定位与钉点（不请求高德天气 API）
+      async function locateWeatherMapOnly(baseItem){
         await initWeatherMapIfNeeded();
         const chip = document.getElementById("weatherChip");
         const baseId = baseItem && baseItem.base_id ? String(baseItem.base_id) : "";
-        const baseName = baseItem && baseItem.base_name ? String(baseItem.base_name) : baseId;
-        const city = (baseItem && (baseItem.city_name || baseItem.province_name)) ? String(baseItem.city_name || baseItem.province_name) : "";
         const lng = baseItem && baseItem.longitude != null ? Number(baseItem.longitude) : null;
         const lat = baseItem && baseItem.latitude != null ? Number(baseItem.latitude) : null;
 
-        chip.textContent = baseId ? `已选：${baseId}` : "点击矩阵定位并查询";
+        if(chip) chip.textContent = baseId ? `已选：${baseId}` : "点击矩阵定位并查询";
 
-        let pos = null;
         if(state.weatherMap && lng != null && lat != null && !Number.isNaN(lng) && !Number.isNaN(lat)){
-          pos = [lng, lat];
-          // 新需求：地图钉“钉死”在图层上，代表基地位置
+          const pos = [lng, lat];
           state.weatherMarker && state.weatherMarker.setPosition(pos);
-          // 需求：更快的“瞬移”到目标点（先 setCenter 再 setZoom）
           state.weatherMap.setCenter(pos);
           state.weatherMap.setZoom(12);
         }
+      }
 
-        // 天气预报：按城市名查询
+      // 仅在此处调用高德天气 getLive / getForecast
+      async function fetchWeatherFromAmap(baseItem){
+        await initWeatherMapIfNeeded();
+        const baseId = baseItem && baseItem.base_id ? String(baseItem.base_id) : "";
+        const baseName = baseItem && baseItem.base_name ? String(baseItem.base_name) : baseId;
+        const city = (baseItem && (baseItem.city_name || baseItem.province_name)) ? String(baseItem.city_name || baseItem.province_name) : "";
         const baseLabel = `${baseName}${baseId ? `（${baseId}）` : ""}`;
+
         if(!state.weatherService || !city){
-          // 地图弹窗：无天气服务/无城市信息时提示
-          openWeatherPopup(baseLabel, null, null, pos);
+          openLiveWeatherPopup(baseLabel, null);
+          openWeatherPopup(baseLabel, null, null, null);
           return;
         }
 
-        // 参考官方文档：getLive / getForecast（按城市名或adcode）
-        // https://lbs.amap.com/api/javascript-api-v2/documentation#weather
-        state.weatherService.getLive(city, function(errLive, liveData){
-          if(errLive) console.error(errLive);
-          // 当前天气：地图弹窗显示
-          openLiveWeatherPopup(baseLabel, liveData || null);
-          state.weatherService.getForecast(city, function(errFc, fcData){
-            if(errFc){
-              console.error(errFc);
-              openWeatherPopup(baseLabel, liveData || null, null, pos);
-              return;
-            }
-            openWeatherPopup(baseLabel, liveData || null, fcData || null, pos);
+        await new Promise((resolve) => {
+          state.weatherService.getLive(city, function(errLive, liveData){
+            if(errLive) console.error(errLive);
+            openLiveWeatherPopup(baseLabel, liveData || null);
+            state.weatherService.getForecast(city, function(errFc, fcData){
+              if(errFc){
+                console.error(errFc);
+                openWeatherPopup(baseLabel, liveData || null, null, null);
+              }else{
+                openWeatherPopup(baseLabel, liveData || null, fcData || null, null);
+              }
+              resolve();
+            });
           });
         });
       }
@@ -1694,6 +1720,20 @@
         }
       }
       boot();
+
+      (function bindWeatherRefreshBtn(){
+        const btn = document.getElementById("weatherRefreshBtn");
+        if(!btn) return;
+        btn.addEventListener("click", async (e)=>{
+          e.preventDefault();
+          const item = state.weatherBaseItem;
+          if(!item) return;
+          await fetchWeatherFromAmap(item);
+          if(item.base_id != null && String(item.base_id) !== ""){
+            state.weatherLastFetchedBaseId = String(item.base_id);
+          }
+        });
+      })();
 
       // 基地环境数据分页按钮
       (function bindEnvPager(){

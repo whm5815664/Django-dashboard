@@ -20,7 +20,7 @@
     c2h4: "C₂H₄",
   };
 
-  const MEDIA_BASE_URL = "http://47.99.61.189:8175/media/";
+  const MEDIA_BASE_URL = "/media-proxy/";
 
   const state = {
     range: "30d",

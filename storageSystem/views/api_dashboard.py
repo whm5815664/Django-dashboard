@@ -16,10 +16,12 @@ from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from django.conf import settings
+
 from storageSystem.models import Base, Device, DeviceReading
 
 REMOTE_DB = "pig"
-MEDIA_BASE_URL = "http://47.99.61.189:8175/media/"
+MEDIA_PROXY_PREFIX = "/media-proxy/"
 
 
 def _json_ok(data: Dict[str, Any]) -> JsonResponse:
@@ -206,23 +208,27 @@ def _build_media_url(request, raw) -> Optional[str]:
                 return None
             if url.startswith("http://") or url.startswith("https://"):
                 return url
-            return MEDIA_BASE_URL + url.lstrip("/")
+            return MEDIA_PROXY_PREFIX + url.lstrip("/")
         except Exception:
             text = str(raw).strip()
             if not text:
                 return None
             if text.startswith("http://") or text.startswith("https://"):
                 return text
-            return MEDIA_BASE_URL + text.lstrip("/")
+            return MEDIA_PROXY_PREFIX + text.lstrip("/")
 
     text = str(raw).strip()
     if not text:
         return None
 
     if text.startswith("http://") or text.startswith("https://"):
+        base = (getattr(settings, "REMOTE_MEDIA_BASE", "") or "").strip().rstrip("/")
+        upstream_prefix = f"{base}/media/" if base else ""
+        if upstream_prefix and text.startswith(upstream_prefix):
+            return MEDIA_PROXY_PREFIX + text[len(upstream_prefix):].lstrip("/")
         return text
 
-    return MEDIA_BASE_URL + text.lstrip("/")
+    return MEDIA_PROXY_PREFIX + text.lstrip("/")
 
 
 def _serialize_reading(request, obj: DeviceReading, field_map: Optional[Dict[str, Optional[str]]] = None) -> Dict[str, Any]:
