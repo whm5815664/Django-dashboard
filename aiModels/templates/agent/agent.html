@@ -634,7 +634,7 @@
                         <div class="agent-message-avatar">🤖</div>
                         <div class="agent-message-content agent-bot-content">
                             <div class="agent-welcome-message">
-                                <p>🌱 欢迎使用AIoT实验室的智能体助手，\n<a href="{% url 'agent_view' %}" target="_blank">点击链接跳转智能体后台</a></p>
+                                <p>🌱 欢迎使用AIoT实验室的智能体助手，\n<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a></p>
                             </div>
                         </div>
                     </div>
@@ -674,6 +674,24 @@
         const agentApiBase = "{% url 'agent_session_create' %}".replace(/\/create\/?$/, '');
         /** 智能体后台页面URL */
         const agentViewUrl = "{% url 'agent_view' %}";
+
+        /**
+         * 从弹窗/iframe 内跳转到智能体后台：优先让父页面跳转（不新建窗口）
+         * @param {Event=} e
+         */
+        function navigateToAgentView(e) {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            const url = agentViewUrl;
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.location.href = url;
+                    return;
+                }
+            } catch (err) {
+                // cross-origin 或被浏览器限制时，回退到当前页跳转
+            }
+            window.location.href = url;
+        }
 
         // ========== 工具函数 ==========
         function getCookie(name) {
@@ -1039,7 +1057,7 @@
             chatBox.innerHTML = '';
             agentChatHistory = [];
             // 创建欢迎消息HTML
-            const welcomeHtml = '🌱 欢迎使用AIoT实验室的智能体助手，<a href="' + agentViewUrl + '" target="_blank">点击链接跳转智能体后台</a>';
+            const welcomeHtml = '🌱 欢迎使用AIoT实验室的智能体助手，<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a>';
             const messageDiv = document.createElement('div');
             messageDiv.className = 'agent-message agent-bot-message';
             const avatar = document.createElement('div');

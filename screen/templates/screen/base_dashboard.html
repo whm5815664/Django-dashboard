@@ -482,17 +482,20 @@
         padding: 16px;
       }
       .modal{
-        width: min(520px, 100%);
+        width: min(720px, 100%);
         border:1px solid rgba(27,58,91,.65);
         background: rgba(15,34,56,.92);
         box-shadow: 0 20px 60px rgba(0,0,0,.55);
         border-radius: 14px;
         overflow:hidden;
+        max-height: calc(100vh - 32px);
+        display:flex;
+        flex-direction:column;
       }
       /* 智能体/模型库弹窗：必须写在 .modal 之后且提高优先级，否则 width 仍为 520px */
       .modal.embed-tool-modal{
-        width: min(calc(100vw / 2), calc(100vw - 32px));
-        height: min(calc(100vh * 2 / 3), calc(100vh - 32px));
+        width: min(72vw, calc(100vw - 32px));
+        height: min(85vh, calc(100vh - 32px));
         display:flex;
         flex-direction:column;
       }
@@ -509,7 +512,11 @@
         letter-spacing:1px;
         font-size:13px;
       }
-      .modal-bd{padding:12px;}
+      .modal-bd{
+        padding:12px;
+        overflow:auto;
+        min-height:0;
+      }
       .form-grid{
         display:grid;
         grid-template-columns: 1fr 1fr;
@@ -594,7 +601,7 @@
       <div class="brand">
         <img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT" />
       </div>
-      <h1>基地环境监测数据大屏</h1>
+      <h1>AIoT农业多模态数据可视化平台</h1>
       <div class="clock">
         <a class="back-home" href="{% url 'base_map' province_name='湖北省' %}">返回主页</a>
       </div>
