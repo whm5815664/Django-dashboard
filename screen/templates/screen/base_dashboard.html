@@ -11,14 +11,11 @@
         --bg0:#070f1a;
         --bg1:#0b1626;
         --card:#0f2238cc;
-        --stroke:#1b3a5b;
         --text:#d7e6ff;
         --muted:#8fb1d4;
         --good:#22c55e;
         --warn:#f59e0b;
         --bad:#ef4444;
-        --cyan:#34d3ff;
-        --blue:#2b9bff;
       }
       *{box-sizing:border-box;}
       html,body{height:100%;}
@@ -50,7 +47,6 @@
         opacity:.95;
       }
       .brand img{height:40px; width:auto; display:block;}
-      .brand .name{font-weight:700; letter-spacing:.5px;}
       header h1{
         margin:0;
         font-size:18px;
@@ -67,7 +63,6 @@
         font-size:12px;
         color:var(--muted);
       }
-      .clock .time{font-size:14px; color:var(--text); font-weight:700;}
       .back-home{
         display:inline-flex;
         align-items:center;
@@ -168,7 +163,6 @@
         gap:8px;
       }
       .kpi .value small{font-size:14px; color:var(--muted); font-weight:800;}
-      .kpi .meta{display:none;}
 
       .matrix{
         display:grid;
@@ -328,6 +322,79 @@
       .scroll::-webkit-scrollbar-thumb{background:rgba(143,177,212,.25);border-radius:999px;}
       .scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.10);}
 
+      /* 纵向滚动条（总览矩阵、基地环境数据等）：细滑块、主题色 */
+      .scroll-y-themed{
+        overflow-x:hidden;
+        overflow-y:auto;
+        overscroll-behavior-y:contain;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:thin;
+        scrollbar-color:rgba(52,211,255,.42) rgba(9,22,36,.55);
+        padding-right:2px;
+      }
+      .scroll-y-themed::-webkit-scrollbar{
+        width:6px;
+      }
+      .scroll-y-themed::-webkit-scrollbar-track{
+        margin:6px 0;
+        background:rgba(0,0,0,.22);
+        border-radius:999px;
+      }
+      .scroll-y-themed::-webkit-scrollbar-thumb{
+        border-radius:999px;
+        background:linear-gradient(180deg,rgba(52,211,255,.42),rgba(43,155,255,.52));
+        box-shadow:0 0 0 1px rgba(27,58,91,.35) inset;
+      }
+      .scroll-y-themed::-webkit-scrollbar-thumb:hover{
+        background:linear-gradient(180deg,rgba(52,211,255,.62),rgba(43,155,255,.75));
+      }
+
+      /* 左侧「基地环境数据」：占满剩余高度，内部表格区域可纵向滚动 */
+      .env-panel-card{
+        display:flex;
+        flex-direction:column;
+        flex:1;
+        min-height:0;
+      }
+      .env-panel-card > .card-bd.env-list{
+        flex:1;
+        min-height:0;
+      }
+      .env-panel-card .env-list > .scroll.scroll-y-themed{
+        flex:1;
+        min-height:0;
+      }
+
+      /* 每日预报横向滚动：细滑块、主题色、避免误触整页滚动 */
+      .weather-forecast-strip{
+        display:flex;
+        gap:10px;
+        overflow-x:auto;
+        overflow-y:hidden;
+        scroll-behavior:smooth;
+        -webkit-overflow-scrolling:touch;
+        overscroll-behavior-x:contain;
+        padding:2px 4px 10px;
+        margin:0 -4px;
+        scrollbar-width:thin;
+        scrollbar-color:rgba(52,211,255,.42) rgba(9,22,36,.55);
+      }
+      .weather-forecast-strip::-webkit-scrollbar{
+        height:5px;
+      }
+      .weather-forecast-strip::-webkit-scrollbar-track{
+        margin:0 6px;
+        background:rgba(0,0,0,.22);
+        border-radius:999px;
+      }
+      .weather-forecast-strip::-webkit-scrollbar-thumb{
+        border-radius:999px;
+        background:linear-gradient(90deg,rgba(52,211,255,.38),rgba(43,155,255,.5));
+        box-shadow:0 0 0 1px rgba(27,58,91,.35) inset;
+      }
+      .weather-forecast-strip::-webkit-scrollbar-thumb:hover{
+        background:linear-gradient(90deg,rgba(52,211,255,.58),rgba(43,155,255,.72));
+      }
       .alarm-item{
         display:flex;
         align-items:flex-start;
@@ -576,14 +643,6 @@
         background: rgba(52,211,255,.16);
       }
 
-      .split{
-        display:grid;
-        grid-template-rows: 1fr 1fr;
-        gap:12px;
-        min-height:0;
-      }
-
-      .chartBox{height:260px;}
       .chartBoxTall{height:320px;}
       @media (max-width: 1280px){
         .page{grid-template-columns: 320px 1fr 320px;}
@@ -610,7 +669,7 @@
     <main class="page">
       <!-- 左侧 -->
       <section class="col">
-        <div class="card" style="flex: 1; min-height: 0;">
+        <div class="card env-panel-card">
           <div class="card-hd">
             <div class="title">基地环境数据</div>
             <div class="chip" id="envChip">点击矩阵选择基地</div>
@@ -620,7 +679,7 @@
               <div class="base" id="envBaseTitle">—</div>
               <div class="chip" id="envLastTime">—</div>
             </div>
-            <div class="scroll" style="flex: 1;">
+            <div class="scroll scroll-y-themed" role="region" aria-label="基地环境数据列表，可上下滚动">
               <table class="env-table">
                 <thead>
                   <tr>
@@ -712,7 +771,7 @@
             <div class="chip" id="matrixChip">点击切换基地</div>
           </div>
           <div class="card-bd">
-            <div class="scroll" style="height: 310px;">
+            <div class="scroll scroll-y-themed" style="height: 310px;" role="region" aria-label="总览矩阵，可上下滚动">
               <div class="matrix" id="matrixGrid"></div>
             </div>
           </div>
@@ -742,11 +801,11 @@
                 border:1px solid rgba(27,58,91,.45);
                 background: rgba(0,0,0,.10);
               ">
-                <div style="padding:10px 12px; border-bottom:1px solid rgba(27,58,91,.35); display:flex; align-items:center; justify-content:space-between;">
+                <div style="padding:8px 12px; border-bottom:1px solid rgba(27,58,91,.35); display:flex; align-items:center; justify-content:space-between;">
                   <div style="font-weight:800; letter-spacing:1px; font-size:12px;">天气预报</div>
                   <div class="chip" id="weatherPanelTitle">—</div>
                 </div>
-                <div class="scroll" style="height: 236px; padding:10px 12px;">
+                <div class="scroll" style="height: 236px; padding:4px 12px 8px;">
                   <div id="weatherPanelBody" style="color:#8fb1d4; font-size:12px;">请选择基地…</div>
                 </div>
               </div>
@@ -978,11 +1037,10 @@
       let state = {
         selectedBaseId: "",
         selectedBaseName: "",
-        // 高德地图 + 天气
+        // 高德地图（仅定位展示）；天气数据来自 Open-Meteo API
         AMap: null,
         weatherMap: null,
         weatherMarker: null,
-        weatherService: null,
         /** 当前用于「刷新」按钮的基地行数据（与矩阵/overview 同步） */
         weatherBaseItem: null,
         /** 已对哪个基地拉取过天气（用于 60s overview 轮询时跳过重复请求） */
@@ -1051,7 +1109,6 @@
         document.getElementById("kpiBaseMeta").textContent = `/ ${data.base_total ?? "--"}`;
         document.getElementById("kpiOnlineDevice").textContent = data.online_device_count ?? "--";
         document.getElementById("kpiAbnormal").textContent = data.abnormal_warning_count ?? "--";
-        // meta 区域已移除，避免因元素不存在报错
       }
 
       // 总览矩阵渲染 + 点击联动
@@ -1063,10 +1120,6 @@
           div.className = "matrix-item" + ((state.selectedBaseId && String(it.base_id) === String(state.selectedBaseId)) ? " active" : "");
           div.dataset.baseId = it.base_id ?? "";
           div.dataset.baseName = it.base_name ?? "";
-          div.dataset.lng = (it.longitude ?? "");
-          div.dataset.lat = (it.latitude ?? "");
-          div.dataset.city = (it.city_name ?? "");
-          div.dataset.province = (it.province_name ?? "");
 
           const status = it.status ?? "—";
           const bc = badgeClass(status);
@@ -1102,10 +1155,10 @@
             state.weatherBaseItem = it;
             await locateWeatherMapOnly(it);
             if(String(it.base_id || "") !== prevBaseId){
-              await fetchWeatherFromAmap(it);
+              await fetchWeatherFromOpenMeteo(it);
               state.weatherLastFetchedBaseId = String(it.base_id || "");
             }
-            loadTodaySeries(state.selectedBaseId, state.selectedBaseName);
+            loadTodaySeries(state.selectedBaseId);
           });
           grid.appendChild(div);
         });
@@ -1134,11 +1187,11 @@
             state.weatherBaseItem = selected;
             await locateWeatherMapOnly(selected);
             if(state.weatherLastFetchedBaseId !== String(state.selectedBaseId)){
-              await fetchWeatherFromAmap(selected);
+              await fetchWeatherFromOpenMeteo(selected);
               state.weatherLastFetchedBaseId = String(state.selectedBaseId || "");
             }
           }
-          await loadTodaySeries(state.selectedBaseId, state.selectedBaseName);
+          await loadTodaySeries(state.selectedBaseId);
         }
       }
 
@@ -1237,7 +1290,7 @@
           const AMap = await AMapLoader.load({
             key: "9969ad3b8112bd56b65dc90191ab4753",
             version: "2.0",
-            plugins: ["AMap.Marker", "AMap.Weather"]
+            plugins: ["AMap.Marker"]
           });
           state.AMap = AMap;
           state.weatherMap = new AMap.Map("weatherMap", {
@@ -1251,9 +1304,6 @@
             anchor: "bottom-center",
           });
           state.weatherMap.add(state.weatherMarker);
-
-          // 天气服务
-          state.weatherService = new AMap.Weather();
 
           // 当前天气：地图钉右侧弹窗（自定义层，保证始终在右边）
           const mapContainer = state.weatherMap.getContainer();
@@ -1339,7 +1389,7 @@
       }
 
       // 右侧面板：未来 3 天预报
-      function openWeatherPopup(baseLabel, liveData, forecastData, pos){
+      function openWeatherPopup(baseLabel, forecastData){
         const panel = document.getElementById("weatherPanel");
         const panelTitle = document.getElementById("weatherPanelTitle");
         const panelBody = document.getElementById("weatherPanelBody");
@@ -1348,32 +1398,26 @@
         if(panelTitle) panelTitle.textContent = baseLabel || "—";
 
         // 适配你实际返回：forecastData.forecasts 直接是“未来多天列表”
-        let forecastsHtml = `<div style="color:#8fb1d4;font-size:12px;margin-top:6px;">未来预报：未获取到</div>`;
-        let reportTime = "—";
+        let forecastsHtml = `<div style="color:#8fb1d4;font-size:12px;margin-top:0;">未来预报：未获取到</div>`;
         if(forecastData && forecastData.forecasts && forecastData.forecasts.length){
-          reportTime = forecastData.reportTime ? _escapeHtml(forecastData.reportTime) : "—";
           // 只显示未来 3 天
           const forecasts = (forecastData.forecasts || []).slice(0, 3);
           forecastsHtml = `
-            <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,58,91,.25);">
-              <div style="
-                display:flex;
-                gap:10px;
-                overflow-x:auto;
-                padding-bottom:6px;
-              ">
+            <div style="margin-top:0;padding-top:0;">
+              <div class="weather-forecast-strip" role="region" aria-label="未来三日预报，可横向滚动查看">
                 ${forecasts.map((f, idx)=>{
                   const date = _escapeHtml(f.date || "");
-                  const week = _escapeHtml(f.week || "");
-                  const day = `${_escapeHtml(f.dayWeather || "—")} ${_escapeHtml(f.dayTemp ?? "—")}°C`;
+                  const dh = _escapeHtml(String(f.dayHumidity ?? "—"));
+                  const nh = _escapeHtml(String(f.nightHumidity ?? "—"));
+                  const day = `${_escapeHtml(f.dayWeather || "—")} ${_escapeHtml(f.dayTemp ?? "—")}°C · 湿度 ${dh}%`;
                   const dayWind = `${_escapeHtml(f.dayWindDir || "—")}${_escapeHtml(f.dayWindPower || "—")}级`;
-                  const night = `${_escapeHtml(f.nightWeather || "—")} ${_escapeHtml(f.nightTemp ?? "—")}°C`;
+                  const night = `${_escapeHtml(f.nightWeather || "—")} ${_escapeHtml(f.nightTemp ?? "—")}°C · 湿度 ${nh}%`;
                   const nightWind = `${_escapeHtml(f.nightWindDir || "—")}${_escapeHtml(f.nightWindPower || "—")}级`;
                   const isTomorrow = idx === 1;
                   const tag = isTomorrow ? `<span style="margin-left:6px;font-size:11px;color:#34d3ff;">明日</span>` : "";
                   return `
                     <div style="
-                      flex: 0 0 160px;
+                      flex: 0 0 178px;
                       border:1px solid rgba(27,58,91,.35);
                       border-radius:12px;
                       background: rgba(0,0,0,.10);
@@ -1408,16 +1452,62 @@
 
         const content = `
           <div style="max-width:560px;">
-            <div style="font-size:12px;color:#8fb1d4;line-height:1.45;">
-              预报发布时间：${reportTime}
-            </div>
             ${forecastsHtml}
           </div>
         `;
         panelBody.innerHTML = content;
       }
 
-      // 地图定位与钉点（不请求高德天气 API）
+      // Open-Meteo：WMO 天气代码 → 中文（https://open-meteo.com/en/docs）
+      function wmoCodeToZh(code){
+        if(code == null || Number.isNaN(Number(code))) return "—";
+        const c = Number(code);
+        const map = {
+          0: "晴", 1: "晴", 2: "多云", 3: "阴",
+          45: "雾", 48: "雾凇",
+          51: "小毛毛雨", 53: "中毛毛雨", 55: "大毛毛雨",
+          56: "冻毛毛雨", 57: "冻毛毛雨",
+          61: "小雨", 63: "中雨", 65: "大雨", 66: "冻雨", 67: "冻雨",
+          71: "小雪", 73: "中雪", 75: "大雪", 77: "雪粒",
+          80: "小阵雨", 81: "阵雨", 82: "强阵雨",
+          85: "小阵雪", 86: "阵雪",
+          95: "雷阵雨", 96: "雷阵雨伴冰雹", 97: "强雷阵雨", 99: "强雷阵雨伴冰雹"
+        };
+        if(map[c] !== undefined) return map[c];
+        if(c >= 51 && c <= 55) return "毛毛雨";
+        if(c >= 61 && c <= 67) return "雨";
+        if(c >= 71 && c <= 77) return "雪";
+        if(c >= 80 && c <= 82) return "阵雨";
+        if(c >= 85 && c <= 86) return "阵雪";
+        if(c >= 95 && c <= 99) return "雷暴";
+        return "未知";
+      }
+      function degToWindDirZh(deg){
+        if(deg == null || Number.isNaN(Number(deg))) return "—";
+        const dirs = ["北","东北","东","东南","南","西南","西","西北"];
+        const idx = Math.round(((Number(deg) % 360) / 45)) % 8;
+        return dirs[idx];
+      }
+      /** Open-Meteo 默认 wind_speed_10m 为 km/h，换算为蒲福风级（0–12） */
+      function beaufortFromKmh(kmh){
+        if(kmh == null || Number.isNaN(Number(kmh))) return "";
+        const ms = Number(kmh) / 3.6;
+        if(ms < 0.3) return "0";
+        if(ms < 1.6) return "1";
+        if(ms < 3.4) return "2";
+        if(ms < 5.5) return "3";
+        if(ms < 8.0) return "4";
+        if(ms < 10.8) return "5";
+        if(ms < 13.9) return "6";
+        if(ms < 17.2) return "7";
+        if(ms < 20.8) return "8";
+        if(ms < 24.5) return "9";
+        if(ms < 28.5) return "10";
+        if(ms < 32.7) return "11";
+        return "12";
+      }
+
+      // 地图定位与钉点（天气由 Open-Meteo 按经纬度单独请求）
       async function locateWeatherMapOnly(baseItem){
         await initWeatherMapIfNeeded();
         const chip = document.getElementById("weatherChip");
@@ -1435,35 +1525,92 @@
         }
       }
 
-      // 仅在此处调用高德天气 getLive / getForecast
-      async function fetchWeatherFromAmap(baseItem){
+      // 使用基地经纬度请求 Open-Meteo Forecast API（https://api.open-meteo.com/v1/forecast）
+      async function fetchWeatherFromOpenMeteo(baseItem){
         await initWeatherMapIfNeeded();
         const baseId = baseItem && baseItem.base_id ? String(baseItem.base_id) : "";
         const baseName = baseItem && baseItem.base_name ? String(baseItem.base_name) : baseId;
-        const city = (baseItem && (baseItem.city_name || baseItem.province_name)) ? String(baseItem.city_name || baseItem.province_name) : "";
         const baseLabel = `${baseName}${baseId ? `（${baseId}）` : ""}`;
+        const lng = baseItem && baseItem.longitude != null ? Number(baseItem.longitude) : null;
+        const lat = baseItem && baseItem.latitude != null ? Number(baseItem.latitude) : null;
 
-        if(!state.weatherService || !city){
+        if(lng == null || lat == null || Number.isNaN(lng) || Number.isNaN(lat)){
           openLiveWeatherPopup(baseLabel, null);
-          openWeatherPopup(baseLabel, null, null, null);
+          openWeatherPopup(baseLabel, null);
           return;
         }
 
-        await new Promise((resolve) => {
-          state.weatherService.getLive(city, function(errLive, liveData){
-            if(errLive) console.error(errLive);
-            openLiveWeatherPopup(baseLabel, liveData || null);
-            state.weatherService.getForecast(city, function(errFc, fcData){
-              if(errFc){
-                console.error(errFc);
-                openWeatherPopup(baseLabel, liveData || null, null, null);
-              }else{
-                openWeatherPopup(baseLabel, liveData || null, fcData || null, null);
-              }
-              resolve();
-            });
-          });
-        });
+        try{
+          const u = new URL("https://api.open-meteo.com/v1/forecast");
+          u.searchParams.set("latitude", String(lat));
+          u.searchParams.set("longitude", String(lng));
+          u.searchParams.set("current", "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m");
+          u.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min,wind_speed_10m_max,wind_direction_10m_dominant");
+          u.searchParams.set("timezone", "auto");
+          u.searchParams.set("forecast_days", "7");
+
+          const res = await fetch(u.toString(), { credentials: "omit" });
+          if(!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          const cur = data && data.current;
+          let liveData = null;
+          if(cur){
+            liveData = {
+              weather: wmoCodeToZh(cur.weather_code),
+              temperature: cur.temperature_2m != null ? Math.round(cur.temperature_2m * 10) / 10 : "—",
+              humidity: cur.relative_humidity_2m,
+              windDirection: degToWindDirZh(cur.wind_direction_10m),
+              windPower: beaufortFromKmh(cur.wind_speed_10m),
+              reportTime: cur.time ? String(cur.time).replace("T", " ") : "—"
+            };
+          }
+
+          let forecastData = null;
+          const daily = data && data.daily;
+          if(daily && Array.isArray(daily.time) && daily.time.length){
+            const forecasts = [];
+            const n = Math.min(3, daily.time.length);
+            const fmtRh = (v)=>{
+              if(v == null || Number.isNaN(Number(v))) return "—";
+              return String(Math.round(Number(v)));
+            };
+            for(let i = 0; i < n; i++){
+              const dateStr = daily.time[i];
+              const wc = daily.weather_code && daily.weather_code[i];
+              const wzh = wmoCodeToZh(wc);
+              const tmax = daily.temperature_2m_max && daily.temperature_2m_max[i];
+              const tmin = daily.temperature_2m_min && daily.temperature_2m_min[i];
+              const rhMax = daily.relative_humidity_2m_max && daily.relative_humidity_2m_max[i];
+              const rhMin = daily.relative_humidity_2m_min && daily.relative_humidity_2m_min[i];
+              const wmax = daily.wind_speed_10m_max && daily.wind_speed_10m_max[i];
+              const wdir = daily.wind_direction_10m_dominant && daily.wind_direction_10m_dominant[i];
+              const wp = beaufortFromKmh(wmax);
+              const wd = degToWindDirZh(wdir);
+              forecasts.push({
+                date: dateStr,
+                dayWeather: wzh,
+                nightWeather: wzh,
+                dayTemp: tmax != null ? Math.round(tmax * 10) / 10 : "—",
+                nightTemp: tmin != null ? Math.round(tmin * 10) / 10 : "—",
+                dayHumidity: fmtRh(rhMax),
+                nightHumidity: fmtRh(rhMin),
+                dayWindDir: wd,
+                dayWindPower: wp,
+                nightWindDir: wd,
+                nightWindPower: wp
+              });
+            }
+            forecastData = { forecasts };
+          }
+
+          openLiveWeatherPopup(baseLabel, liveData);
+          openWeatherPopup(baseLabel, forecastData);
+        }catch(e){
+          console.error(e);
+          openLiveWeatherPopup(baseLabel, null);
+          openWeatherPopup(baseLabel, null);
+        }
       }
 
       // 初始化“今日温湿度”折线图
@@ -1473,7 +1620,7 @@
         window.addEventListener("resize", ()=>state.todayChart && state.todayChart.resize());
       }
       // 拉取并渲染“今日温湿度”折线图
-      async function loadTodaySeries(baseId, baseName){
+      async function loadTodaySeries(baseId){
         if(!state.todayChart) initTodayChart();
         const chip = document.getElementById("todayChip");
         if(!baseId){
@@ -1735,7 +1882,7 @@
           e.preventDefault();
           const item = state.weatherBaseItem;
           if(!item) return;
-          await fetchWeatherFromAmap(item);
+          await fetchWeatherFromOpenMeteo(item);
           if(item.base_id != null && String(item.base_id) !== ""){
             state.weatherLastFetchedBaseId = String(item.base_id);
           }
@@ -1762,7 +1909,7 @@
       })();
 
       // 定时刷新：摘要/告警/设备状态 30s；矩阵/趋势 60s（保留选中基地）
-      setInterval(()=>{ loadSummary(); loadAlarms(); loadDeviceStatus(); if(state.selectedBaseId){ loadTodaySeries(state.selectedBaseId, state.selectedBaseName); loadMonitorImages(state.selectedBaseId); } }, 30000);
+      setInterval(()=>{ loadSummary(); loadAlarms(); loadDeviceStatus(); if(state.selectedBaseId){ loadTodaySeries(state.selectedBaseId); loadMonitorImages(state.selectedBaseId); } }, 30000);
       setInterval(()=>{ loadOverview(); }, 60000);
     </script>
   </body>

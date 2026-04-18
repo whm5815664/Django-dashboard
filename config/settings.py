@@ -118,6 +118,19 @@ DATABASES = {
             'charset': 'utf8mb4',
         },
     },
+
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
+    #     'NAME': "coldchain", # 数据库名称
+    #     'HOST': "47.113.147.210", # 数据库地址，
+    #     'PORT': 3306, # 端口
+    #     'USER': "jetbot",  # 数据库用户名
+    #     'PASSWORD': "yahboom", # 数据库密码
+    #     'OPTIONS': {
+    #         'charset': 'utf8mb4',
+    #     },
+    # },
+
     # 远程 MySQL 数据库：pig
     "pig": {
         "ENGINE": "django.db.backends.mysql",
