@@ -9,7 +9,24 @@ from IPython.display import display, IFrame, HTML
 
 
 from ltp import LTP
-ltp = LTP()
+def _init_ltp() -> LTP:
+    """
+    优先从本项目内置的 HuggingFace 缓存目录加载 LTP small 模型：
+      `aiModels/graph/models--LTP--small/snapshots/<hash>/`
+    若不存在，则回退到 LTP 默认加载方式（通常会去找 LTP/small 或 HF cache）。
+    """
+    base_dir = Path(__file__).resolve().parent
+    local_root = base_dir / "models--LTP--small"
+    if local_root.exists():
+        # 兼容 snapshots 下 hash 不固定的情况：找到任意 config.json 所在目录
+        candidates = sorted(local_root.glob("snapshots/*/config.json"))
+        if candidates:
+            model_dir = candidates[0].parent
+            return LTP(str(model_dir))
+    return LTP()
+
+
+ltp = _init_ltp()
 
 # ===================== 领域词表（可按需扩充） =====================
 CROPS = [

@@ -1832,10 +1832,87 @@
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
+                
+                // ========== 结束判定优化 ==========
+                // 后端可能先发 finish/finished，再补发少量 text/reasoning；这里改为“待结束”状态，直到内容稳定不再增长才真正结束，避免截断。
+                const END_STABLE_MS = 700;      // 多久无增长判定稳定
+                const END_CHECK_INTERVAL_MS = 200;
+                const END_MAX_WAIT_MS = 10000;  // 最长等待，避免流异常不结束
+                let pendingEnd = false;
+                let finalized = false;
+                let finishDeadlineAt = 0;
+                let lastTotalLen = 0;
+                let lastGrowthAt = Date.now();
+                let endCheckTimer = null;
+                let finishPayload = null;
+
+                function totalLen() {
+                    return (reasoningContent ? reasoningContent.length : 0) + (textContent ? textContent.length : 0);
+                }
+
+                function noteGrowth() {
+                    const nowLen = totalLen();
+                    if (nowLen !== lastTotalLen) {
+                        lastTotalLen = nowLen;
+                        lastGrowthAt = Date.now();
+                    }
+                }
+
+                function finalizeStream() {
+                    if (finalized) return;
+                    finalized = true;
+                    if (endCheckTimer) {
+                        try { clearTimeout(endCheckTimer); } catch (e) {}
+                        endCheckTimer = null;
+                    }
+
+                    const finalReasoning = (finishPayload && finishPayload.reasoning != null) ? finishPayload.reasoning : reasoningContent;
+                    const finalText = (finishPayload && finishPayload.text != null) ? finishPayload.text : textContent;
+                    if (contentDiv) {
+                        contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, finalText);
+                    }
+
+                    if (speechEnabled && hasTTS) {
+                        setTimeout(() => {
+                            const speechText = toSpeechText(finalText);
+                            console.log("语音播报内容：", speechText);
+                            speak(speechText);
+                        }, 100);
+                    }
+
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    try { reader.cancel(); } catch (e) {}
+                }
+
+                function scheduleEndCheck() {
+                    if (finalized) return;
+                    if (!pendingEnd) return;
+                    if (endCheckTimer) return;
+
+                    endCheckTimer = setTimeout(function tick() {
+                        endCheckTimer = null;
+                        if (finalized) return;
+                        if (!pendingEnd) return;
+
+                        noteGrowth();
+                        const now = Date.now();
+                        const stable = (now - lastGrowthAt) >= END_STABLE_MS;
+                        const deadlineHit = finishDeadlineAt > 0 && now >= finishDeadlineAt;
+                        if (stable || deadlineHit) {
+                            finalizeStream();
+                            return;
+                        }
+                        scheduleEndCheck();
+                    }, END_CHECK_INTERVAL_MS);
+                }
 
                 function readStream() {
                     return reader.read().then(({ done, value }) => {
                         if (done) {
+                            // 流已结束：若已进入待结束但仍未 finalize，直接 finalize
+                            if (pendingEnd && !finalized) {
+                                finalizeStream();
+                            }
                             return;
                         }
 
@@ -1850,6 +1927,7 @@
                                     
                                     if (data.type === 'reasoning') {
                                         reasoningContent += data.content;
+                                        noteGrowth();
                                         if (contentDiv) {
                                             contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
                                         }
@@ -1859,28 +1937,18 @@
                                             ? data.content
                                             : (data.text || '');
                                         textContent += delta;
+                                        noteGrowth();
                                         if (contentDiv) {
                                             contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
                                         }
                                         chatBox.scrollTop = chatBox.scrollHeight;
-                                    } else if (data.type === 'finished') {
-                                        // 最终内容
-                                        const finalReasoning = data.reasoning || reasoningContent;
-                                        const finalText = data.text || textContent;
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, finalText);
-                                        }
-                                        
-                                        if (speechEnabled && hasTTS) {
-                                            setTimeout(() => {
-                                                const speechText = toSpeechText(finalText);
-                                                console.log("语音播报内容：", speechText);
-                                                speak(speechText);
-                                            }, 100);
-                                        }
-                                        
-                                        chatBox.scrollTop = chatBox.scrollHeight;
-                                        return;
+                                    } else if (data.type === 'finish' || data.type === 'finished') {
+                                        // 不再立刻结束：进入“待结束”并继续读取，直到内容稳定不再增长
+                                        pendingEnd = true;
+                                        finishPayload = data || finishPayload;
+                                        finishDeadlineAt = Date.now() + END_MAX_WAIT_MS;
+                                        noteGrowth();
+                                        scheduleEndCheck();
                                     } else if (data.type === 'error') {
                                         if (contentDiv) {
                                             contentDiv.innerHTML = '❌ 错误: ' + escapeHtml(data.error);
