@@ -21,6 +21,9 @@
       html,body{height:100%;}
       body{
         margin:0;
+        display:flex;
+        flex-direction:column;
+        min-height:100%;
         color:var(--text);
         background:
           radial-gradient(1200px 800px at 50% -200px, rgba(52,211,255,.20), transparent 60%),
@@ -31,11 +34,11 @@
       }
 
       header{
-        height:64px;
+        flex-shrink:0;
         display:grid;
         grid-template-columns: 220px 1fr 260px;
         align-items:center;
-        padding:0 18px;
+        padding:8px 18px;
         border-bottom:1px solid rgba(27,58,91,.55);
         background: linear-gradient(180deg, rgba(15,34,56,.72), rgba(15,34,56,.18));
         backdrop-filter: blur(8px);
@@ -54,6 +57,48 @@
         letter-spacing:2px;
         text-align:center;
       }
+      .main-area{
+        flex:1;
+        min-height:0;
+        padding:12px;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+      .price-ticker-bar{
+        flex-shrink:0;
+        border:1px solid rgba(27,58,91,.65);
+        border-radius:14px;
+        background: var(--card);
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        padding:8px 14px;
+        overflow:hidden;
+      }
+      .price-ticker{
+        width:100%;
+        overflow:hidden;
+        height:20px;
+        line-height:20px;
+        font-size:12px;
+        color:var(--muted);
+      }
+      .price-ticker--empty{
+        text-align:center;
+        color:rgba(143,177,212,.75);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .price-marquee-inner{
+        display:inline-flex;
+        white-space:nowrap;
+        animation: price-marquee 55s linear infinite;
+      }
+      @keyframes price-marquee{
+        from{ transform: translateX(0); }
+        to{ transform: translateX(-50%); }
+      }
+      .price-marquee-inner .seg{ margin:0 .75em; color:rgba(143,177,212,.45); }
       .clock{
         justify-self:end;
         display:flex;
@@ -85,8 +130,9 @@
       }
 
       .page{
-        height:calc(100% - 64px);
-        padding:12px;
+        flex:1;
+        min-height:0;
+        padding:0;
         display:grid;
         grid-template-columns: 360px 1fr 360px;
         gap:12px;
@@ -650,7 +696,8 @@
       }
       @media (max-width: 1080px){
         body{overflow:auto;}
-        .page{height:auto; grid-template-columns: 1fr; }
+        .main-area{flex:none; height:auto;}
+        .page{flex:none; height:auto; grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -665,6 +712,11 @@
         <a class="back-home" href="{% url 'base_map' province_name='湖北省' %}">返回主页</a>
       </div>
     </header>
+
+    <div class="main-area">
+      <div class="price-ticker-bar">
+        <div id="priceTickerRoot" class="price-ticker price-ticker--empty">数据获取中</div>
+      </div>
 
     <main class="page">
       <!-- 左侧 -->
@@ -854,6 +906,7 @@
         </div>
       </section>
     </main>
+    </div>
 
     <!-- 智能体 / 模型库：内嵌页面弹窗 -->
     <div class="modal-mask" id="embedToolModal" role="dialog" aria-modal="true" aria-hidden="true">
@@ -930,7 +983,56 @@
         alarms: "{% url 'base_dashboard_alarms' %}",
         deviceStatus: "{% url 'base_dashboard_device_status' %}",
         monitorImages: "{% url 'base_dashboard_monitor_images' %}",
+        priceIndices: "{% url 'base_dashboard_price_indices' %}",
       };
+
+      async function loadPriceTicker(){
+        const root = document.getElementById("priceTickerRoot");
+        if(!root) return;
+        try{
+          const res = await fetch(API.priceIndices, { credentials: "same-origin" });
+          let data = {};
+          try{
+            data = await res.json();
+          }catch(_){
+            data = {};
+          }
+          const items = Array.isArray(data.items) ? data.items : [];
+          if(!res.ok){
+            root.className = "price-ticker price-ticker--empty";
+            root.textContent = "价格指数：加载失败（" + (data.error || ("HTTP " + res.status)) + "）";
+            return;
+          }
+          if(items.length === 0){
+            root.className = "price-ticker price-ticker--empty";
+            root.textContent = "价格指数：" + (data.error ? String(data.error) : "暂无数据");
+            return;
+          }
+          root.className = "price-ticker";
+          root.replaceChildren();
+          const inner = document.createElement("div");
+          inner.className = "price-marquee-inner";
+          function appendCycle(){
+            for(const it of items){
+              const span = document.createElement("span");
+              span.textContent = (it.name || "") + "\u3000指数 " + (it.num || "") + "\u3000" + (it.time || "");
+              inner.appendChild(span);
+              const seg = document.createElement("span");
+              seg.className = "seg";
+              seg.textContent = "|";
+              inner.appendChild(seg);
+            }
+          }
+          appendCycle();
+          appendCycle();
+          root.appendChild(inner);
+          root.setAttribute("role", "marquee");
+          root.setAttribute("aria-label", "农业部价格指数");
+        }catch(e){
+          root.className = "price-ticker price-ticker--empty";
+          root.textContent = "价格指数：加载失败（" + (e && e.message ? e.message : String(e)) + "）";
+        }
+      }
 
       const MONITOR_MEDIA_BASE = "/media-proxy/";
       function monitorImageUrl(imagePath){
@@ -1862,6 +1964,8 @@
           }
         }, true);
       }
+
+      void loadPriceTicker();
 
       // 首次加载
       async function boot(){

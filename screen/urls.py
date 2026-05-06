@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/base_dashboard/alarms', baseDashboard.dashboard_alarm_center, name='base_dashboard_alarms'),
     path('api/base_dashboard/device_status', baseDashboard.dashboard_device_status, name='base_dashboard_device_status'),
     path('api/base_dashboard/monitor_images', baseDashboard.dashboard_base_monitor_images, name='base_dashboard_monitor_images'),
+    path('api/base_dashboard/price_indices', views.base_dashboard_price_indices, name='base_dashboard_price_indices'),
 
     # 功能-摄像头
     path('video_feed', video.video_feed, name='video1_feed'),  # 摄像头

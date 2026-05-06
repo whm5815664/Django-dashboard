@@ -2,7 +2,9 @@ import os
 from django.conf import settings
 from django.http import StreamingHttpResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_GET
 
+from .tool.price_spider import fetch_price_indices_json
 
 
 # js数据大屏主页
@@ -42,6 +44,15 @@ def baseIndex(request):
 # 基地数据大屏（新）
 def base_dashboard(request):
     return render(request, "screen/base_dashboard.html")
+
+
+@require_GET
+def base_dashboard_price_indices(request):
+    """价格指数：无头爬取耗时较长，供大屏异步拉取。"""
+    try:
+        return JsonResponse(fetch_price_indices_json())
+    except Exception as exc:
+        return JsonResponse({"url": "", "items": [], "error": str(exc)}, status=500)
 
 
 
