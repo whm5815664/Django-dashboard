@@ -986,9 +986,59 @@
         priceIndices: "{% url 'base_dashboard_price_indices' %}",
       };
 
+      const PRICE_TICKER_SESSION_KEY = "base_dashboard_price_indices_v1";
+      function _priceClientDateISO(){
+        return new Date().toISOString().slice(0, 10);
+      }
+      function applyPriceTickerFromAPI(data, resOk, httpStatus){
+        const root = document.getElementById("priceTickerRoot");
+        if(!root) return;
+        const items = Array.isArray(data.items) ? data.items : [];
+        if(!resOk){
+          root.className = "price-ticker price-ticker--empty";
+          root.textContent = "价格指数：加载失败（" + (data.error || ("HTTP " + String(httpStatus || ""))) + "）";
+          return;
+        }
+        if(items.length === 0){
+          root.className = "price-ticker price-ticker--empty";
+          root.textContent = "价格指数：" + (data.error ? String(data.error) : "暂无数据");
+          return;
+        }
+        root.className = "price-ticker";
+        root.replaceChildren();
+        const inner = document.createElement("div");
+        inner.className = "price-marquee-inner";
+        function appendCycle(){
+          for(const it of items){
+            const span = document.createElement("span");
+            span.textContent = (it.name || "") + "\u3000指数 " + (it.num || "") + "\u3000" + (it.time || "");
+            inner.appendChild(span);
+            const seg = document.createElement("span");
+            seg.className = "seg";
+            seg.textContent = "|";
+            inner.appendChild(seg);
+          }
+        }
+        appendCycle();
+        appendCycle();
+        root.appendChild(inner);
+        root.setAttribute("role", "marquee");
+        root.setAttribute("aria-label", "农业部价格指数");
+      }
       async function loadPriceTicker(){
         const root = document.getElementById("priceTickerRoot");
         if(!root) return;
+        const tKey = _priceClientDateISO();
+        try{
+          const raw = sessionStorage.getItem(PRICE_TICKER_SESSION_KEY);
+          if(raw){
+            const pack = JSON.parse(raw);
+            if(pack && pack.d === tKey && pack.data){
+              applyPriceTickerFromAPI(pack.data, !!pack.ok, pack.status);
+              return;
+            }
+          }
+        }catch(_){}
         try{
           const res = await fetch(API.priceIndices, { credentials: "same-origin" });
           let data = {};
@@ -997,37 +1047,21 @@
           }catch(_){
             data = {};
           }
-          const items = Array.isArray(data.items) ? data.items : [];
-          if(!res.ok){
-            root.className = "price-ticker price-ticker--empty";
-            root.textContent = "价格指数：加载失败（" + (data.error || ("HTTP " + res.status)) + "）";
-            return;
-          }
-          if(items.length === 0){
-            root.className = "price-ticker price-ticker--empty";
-            root.textContent = "价格指数：" + (data.error ? String(data.error) : "暂无数据");
-            return;
-          }
-          root.className = "price-ticker";
-          root.replaceChildren();
-          const inner = document.createElement("div");
-          inner.className = "price-marquee-inner";
-          function appendCycle(){
-            for(const it of items){
-              const span = document.createElement("span");
-              span.textContent = (it.name || "") + "\u3000指数 " + (it.num || "") + "\u3000" + (it.time || "");
-              inner.appendChild(span);
-              const seg = document.createElement("span");
-              seg.className = "seg";
-              seg.textContent = "|";
-              inner.appendChild(seg);
-            }
-          }
-          appendCycle();
-          appendCycle();
-          root.appendChild(inner);
-          root.setAttribute("role", "marquee");
-          root.setAttribute("aria-label", "农业部价格指数");
+          try{
+            sessionStorage.setItem(PRICE_TICKER_SESSION_KEY, JSON.stringify({
+              d: data.cache_date || tKey,
+              ok: res.ok,
+              status: res.status,
+              data: {
+                url: data.url,
+                items: data.items,
+                error: data.error,
+                cache_date: data.cache_date,
+                cached: data.cached,
+              },
+            }));
+          }catch(_){}
+          applyPriceTickerFromAPI(data, res.ok, res.status);
         }catch(e){
           root.className = "price-ticker price-ticker--empty";
           root.textContent = "价格指数：加载失败（" + (e && e.message ? e.message : String(e)) + "）";
@@ -1388,7 +1422,7 @@
         const el = document.getElementById("weatherMap");
         if(!el) return;
         try{
-          // 复用 base_map.html 的 key（后续你若要改，只需要改这一处）
+          // 复用 base_map.html 的 key
           const AMap = await AMapLoader.load({
             key: "9969ad3b8112bd56b65dc90191ab4753",
             version: "2.0",
@@ -1398,7 +1432,6 @@
           state.weatherMap = new AMap.Map("weatherMap", {
             zoom: 6,
             center: [112.938814, 30.937196], // 默认中国中部
-            
             animateEnable: false,  // 禁用地图动画
           });
           state.weatherMarker = new AMap.Marker({

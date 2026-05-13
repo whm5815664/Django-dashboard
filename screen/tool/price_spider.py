@@ -2,12 +2,16 @@
 价格指数列表：无头 Chromium 打开页面，待 Ajax 改写 DOM 后解析 ul>li。
 name ← div.name；num / time ← div.num、div.time 下子节点 font.fo。
 
+进程内按「服务器本地日历日」缓存：同一天只启动一次 Playwright（多进程部署时每个 worker 各有一份缓存）。
 首次使用需安装浏览器内核：pip install playwright && playwright install chromium
 """
 
 from __future__ import annotations
 
+import copy
 import json
+from datetime import date
+from threading import Lock
 from typing import Any, Dict
 
 from bs4 import BeautifulSoup
@@ -110,6 +114,34 @@ def fetch_price_indices_json(
     """
     html = _fetch_rendered_html(url, timeout_s=timeout, headless=headless)
     return _parse_items(html, url)
+
+
+# 当日爬取结果（进程级全局，跨请求复用）
+_daily_lock = Lock()
+_daily_cache_date: date | None = None
+_daily_cache: Dict[str, Any] = {}
+
+
+def get_price_indices_daily() -> Dict[str, Any]:
+    """
+    同一天内多次调用只执行一次 fetch_price_indices_json，其余直接返回深拷贝缓存。
+    日历日以服务器 date.today() 为准。
+    """
+    global _daily_cache_date, _daily_cache
+    today = date.today()
+    with _daily_lock:
+        if _daily_cache_date == today and _daily_cache:
+            out = copy.deepcopy(_daily_cache)
+            out["cached"] = True
+            out["cache_date"] = today.isoformat()
+            return out
+        payload = fetch_price_indices_json()
+        _daily_cache = payload
+        _daily_cache_date = today
+        out = copy.deepcopy(_daily_cache)
+        out["cached"] = False
+        out["cache_date"] = today.isoformat()
+        return out
 
 
 if __name__ == "__main__":

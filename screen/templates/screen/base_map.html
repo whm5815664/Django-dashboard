@@ -375,6 +375,42 @@
         text-align: center;
         font-size: 13px;
       }
+      /* 底部图层切换：静态占位，首屏即可见，不等待地图瓦片与脚本 */
+      .map-layer-control {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        pointer-events: auto;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+      }
+      .map-layer-control .layer-control-btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        background: #f5f5f5;
+        color: #333;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.2s ease, color 0.2s ease;
+        min-width: 80px;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .map-layer-control .layer-control-btn:hover {
+        background: #e6f7ff;
+      }
       /* 工具箱按钮与弹窗 */
       .toolbox-button {
         width: 0.6rem;
@@ -540,6 +576,13 @@
           <div id="base-search-suggest" class="top-search-suggest"></div>
         </div>
         <button type="button" onclick="handleBaseSearch()">搜索</button>
+      </div>
+      <!-- 底部图层切换：与地图加载解耦，避免 complete 后才出现导致布局跳动 -->
+      <div id="layer-control" class="map-layer-control" role="toolbar" aria-label="地图图层切换">
+        <button type="button" class="layer-control-btn" data-type="satellite">卫星图</button>
+        <button type="button" class="layer-control-btn" data-type="road">路网图</button>
+        <button type="button" class="layer-control-btn" data-type="building">3D图</button>
+        <button type="button" class="layer-control-btn" data-type="dashboard">数据图</button>
       </div>
       <!-- 左侧：3个窗格（当日温湿度、湖北柑橘总产量、湖北不同品种产量） -->
       <div class="side left">
@@ -2105,98 +2148,44 @@
     }
   });
 
-  // 创建图层切换控件
+  // 绑定静态图层切换栏（模板内 #layer-control），首屏即可显示，不依赖地图 complete
   function createLayerControl() {
-    // 检查是否已经存在控件，避免重复创建
-    const existingControl = document.getElementById('layer-control');
-    if (existingControl) {
-      existingControl.remove();
+    const layerControlDiv = document.getElementById('layer-control');
+    if (!layerControlDiv) {
+      console.error('找不到图层控件 #layer-control');
+      return;
     }
+    if (layerControlDiv.dataset.layerBound === '1') {
+      updateButtonStyles(currentLayerType);
+      return;
+    }
+    layerControlDiv.querySelectorAll('button.layer-control-btn[data-type]').forEach((button) => {
+      const optionType = button.dataset.type;
+      if (!optionType) return;
 
-    // 创建图层切换按钮容器
-    const layerControlDiv = document.createElement('div');
-    layerControlDiv.id = 'layer-control';
-    layerControlDiv.style.cssText = `
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      padding: 10px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: row;
-      gap: 8px;
-      min-width: 0;
-      justify-content: center;
-      align-items: center;
-    `;
-
-    // 图层选项配置
-    const layerOptions = [
-      { type: 'satellite', name: '卫星图'},
-      { type: 'road', name: '路网图'},
-      { type: 'building', name: '3D图'},
-      { type: 'dashboard', name: '数据图'}
-    ];
-
-    // 创建按钮
-    layerOptions.forEach(option => {
-      const button = document.createElement('button');
-      button.textContent = option.name;
-      button.dataset.type = option.type;
-      button.style.cssText = `
-        padding: 8px 12px;
-        border: none;
-        border-radius: 4px;
-        background: ${currentLayerType === option.type ? '#1890ff' : '#f5f5f5'};
-        color: ${currentLayerType === option.type ? 'white' : '#333'};
-        cursor: pointer;
-        font-size: 12px;
-        transition: all 0.3s ease;
-        min-width: 80px;
-        outline: none;
-      `;
-
-      // 添加悬停效果
       button.addEventListener('mouseenter', function() {
-        if (currentLayerType !== option.type) {
+        if (currentLayerType !== optionType) {
           this.style.background = '#e6f7ff';
         }
       });
 
       button.addEventListener('mouseleave', function() {
-        if (currentLayerType !== option.type) {
-          this.style.background = '#f5f5f5';
-        }
+        updateButtonStyles(currentLayerType);
       });
 
-      // 添加点击事件
       button.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('点击图层按钮:', option.type);
-        if (option.type === 'dashboard') {
+        console.log('点击图层按钮:', optionType);
+        if (optionType === 'dashboard') {
           window.location.href = "{% url 'base_dashboard' %}";
           return;
         }
-        switchLayer(option.type);
-        updateButtonStyles(option.type);
+        switchLayer(optionType);
       });
-
-      layerControlDiv.appendChild(button);
     });
-
-    // 将控件添加到地图容器
-    const mapContainer = document.getElementById('GaodeMap');
-    if (mapContainer) {
-      mapContainer.appendChild(layerControlDiv);
-      console.log('图层控件已添加到地图容器');
-    } else {
-      console.error('找不到地图容器 GaodeMap');
-    }
+    layerControlDiv.dataset.layerBound = '1';
+    updateButtonStyles(currentLayerType);
   }
 
   // 更新按钮样式
@@ -2279,8 +2268,6 @@
         console.log('点击位置的经纬度:', e.lnglat);
       });
 
-      // 重建图层切换控件与UI状态
-      createLayerControl();
       currentLayerType = layerType;
       updateButtonStyles(layerType);
 
@@ -2298,6 +2285,14 @@
   function switchLayer(layerType) {
     if (currentLayerType === layerType) {
       console.log('图层类型相同，无需切换');
+      return;
+    }
+    if (typeof window.AMap === 'undefined') {
+      console.warn('高德脚本尚未加载完成，请稍后再试');
+      return;
+    }
+    if (!map) {
+      console.warn('地图尚未初始化完成，请稍后再试');
       return;
     }
 
@@ -2341,12 +2336,6 @@
       addCurrentLocationMarker(currentLocationLnglat, '当前位置');
       console.log('默认图层添加成功');
 
-      // 地图加载完成后创建图层切换控件
-      map.on('complete', function() {
-        console.log('地图加载完成，创建图层控件');
-        createLayerControl();
-      });
-
       // 点击地图事件
       map.on('click', function(e) {
         console.log('点击位置的经纬度:', e.lnglat);
@@ -2360,9 +2349,10 @@
     }
   }
 
-  // 页面加载完成后初始化地图
+  // 页面加载完成后先绑定底部图层栏（立即可见），再异步初始化地图
   $(document).ready(function() {
     console.log('页面加载完成，开始初始化地图');
+    createLayerControl();
     initMap();
   });
 
