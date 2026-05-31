@@ -563,6 +563,7 @@
     <div class="overlay">
       <!-- 顶部中央搜索栏：按基地编号或名称定位 -->
       <div class="top-search">
+        <button type="button" onclick="handleBaseMapReset()">重置</button>
         <div class="top-search-inner">
           <input
             id="base-search-input"
@@ -1660,6 +1661,67 @@
   let infoWindow = null; // 地图钉信息窗
   let _baseSuggestHideTimer = null;
 
+  // 用户上次移动的地图视角（全局变量 + localStorage，跨页面进入可恢复）
+  const BASE_MAP_VIEW_STORAGE_KEY = 'base_map_last_view_v1';
+  window.baseMapLastView = null; // { center: [lng, lat], zoom: number }
+
+  function loadBaseMapLastView() {
+    if (window.baseMapLastView) {
+      return window.baseMapLastView;
+    }
+    try {
+      const raw = localStorage.getItem(BASE_MAP_VIEW_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const lng = parsed && parsed.center && parsed.center[0];
+      const lat = parsed && parsed.center && parsed.center[1];
+      const zoom = parsed && parsed.zoom;
+      if (
+        typeof lng === 'number' && typeof lat === 'number' &&
+        typeof zoom === 'number' && isFinite(lng) && isFinite(lat) && isFinite(zoom)
+      ) {
+        window.baseMapLastView = { center: [lng, lat], zoom: zoom };
+        return window.baseMapLastView;
+      }
+    } catch (err) {
+      console.warn('读取上次地图视角失败:', err);
+    }
+    return null;
+  }
+
+  function saveBaseMapLastView() {
+    if (!map) return;
+    try {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      if (!center || zoom == null) return;
+      window.baseMapLastView = {
+        center: [center.lng, center.lat],
+        zoom: zoom
+      };
+      localStorage.setItem(BASE_MAP_VIEW_STORAGE_KEY, JSON.stringify(window.baseMapLastView));
+    } catch (err) {
+      console.warn('保存地图视角失败:', err);
+    }
+  }
+
+  function bindMapViewPersistence(targetMap) {
+    if (!targetMap) return;
+    targetMap.setStatus({ animateEnable: false });
+    if (targetMap._viewPersistenceBound) return;
+    targetMap._viewPersistenceBound = true;
+    targetMap.on('moveend', saveBaseMapLastView);
+    targetMap.on('zoomend', saveBaseMapLastView);
+  }
+
+  function getInitialMapView(fallbackCenter, fallbackZoom) {
+    const saved = loadBaseMapLastView();
+    if (saved) {
+      return { center: saved.center, zoom: saved.zoom };
+    }
+    return { center: fallbackCenter, zoom: fallbackZoom };
+  }
+
   // 公共：根据基地数据和坐标，在地图上展示信息窗并更新右侧详情
   function showBaseDetail(markerData, lnglat) {
     if (!markerData) return;
@@ -1926,6 +1988,7 @@
       const currentZoom = map.getZoom ? map.getZoom() : 15;
       map.setZoom(Math.max(currentZoom, 15));
       map.setCenter(pos);
+      saveBaseMapLastView();
     }
     const data = marker.getExtData ? (marker.getExtData() || {}) : {};
     const lnglat = pos ? pos : null;
@@ -2088,6 +2151,21 @@
       map: map,
       title: titleText || '当前位置'
     });
+  }
+
+  // 重置：回到页面加载时的本地定位中心
+  async function handleBaseMapReset() {
+    if (!map) return;
+    if (!currentLocationLnglat) {
+      currentLocationLnglat = await getLocation();
+    }
+    map.setZoom(15);
+    map.setCenter(currentLocationLnglat);
+    saveBaseMapLastView();
+    const input = document.getElementById('base-search-input');
+    if (input) input.value = '';
+    const suggest = document.getElementById('base-search-suggest');
+    if (suggest) suggest.style.display = 'none';
   }
 
   // 搜索：根据输入的基地编号或名称在现有 markers 中定位
@@ -2262,6 +2340,7 @@
 
       // 重建地图实例
       map = new AMap.Map('GaodeMap', options);
+      bindMapViewPersistence(map);
 
       // 重新绑定事件
       map.on('click', function(e) {
@@ -2310,15 +2389,23 @@
       });
       console.log('高德地图API加载成功');
 
-      // 先获取坐标，再创建地图实例
+      // 先获取坐标（用于“当前位置”标记），地图中心优先恢复用户上次视角
       currentLocationLnglat = await getLocation();
+      const initialView = getInitialMapView(currentLocationLnglat, 15);
 
       map = new AMap.Map("GaodeMap", {
-        center: currentLocationLnglat,
-        zoom: 15,
+        center: initialView.center,
+        zoom: initialView.zoom,
         layers: []
       });
-      console.log('地图实例创建成功，中心点:', currentLocationLnglat);
+      bindMapViewPersistence(map);
+      console.log(
+        '地图实例创建成功，中心点:',
+        initialView.center,
+        '缩放:',
+        initialView.zoom,
+        window.baseMapLastView ? '(已恢复上次视角)' : '(首次/无记录)'
+      );
 
       // 创建图层实例
       satelliteLayer = new AMap.TileLayer.Satellite();
