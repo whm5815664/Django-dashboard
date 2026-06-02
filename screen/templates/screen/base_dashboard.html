@@ -99,6 +99,16 @@
         to{ transform: translateX(-50%); }
       }
       .price-marquee-inner .seg{ margin:0 .75em; color:rgba(143,177,212,.45); }
+      .price-marquee-item{
+        cursor:pointer;
+        transition: color .12s ease;
+      }
+      .price-marquee-item:hover{
+        color: rgba(215,230,255,.95);
+      }
+      .price-ticker:not(.price-ticker--empty):hover .price-marquee-inner{
+        animation-play-state: paused;
+      }
       .clock{
         justify-self:end;
         display:flex;
@@ -516,6 +526,32 @@
         color: var(--muted);
         font-size:11px;
       }
+      .monitor-cell--clickable{
+        cursor:pointer;
+        transition: transform .12s ease, border-color .12s ease;
+      }
+      .monitor-cell--clickable:hover{
+        border-color: rgba(52,211,255,.55);
+        transform: scale(1.02);
+      }
+
+      /* 监控图放大预览 */
+      .modal.monitor-preview-modal{
+        width: min(92vw, 960px);
+      }
+      .monitor-preview-modal .modal-bd{
+        padding:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: rgba(0,0,0,.35);
+      }
+      .monitor-preview-img{
+        max-width:100%;
+        max-height: calc(85vh - 72px);
+        object-fit:contain;
+        display:block;
+      }
 
       /* 右侧：智能体 / 模型库 工具栏 */
       .tool-bar-row{
@@ -582,6 +618,20 @@
         background: rgba(0,0,0,.18);
       }
       .icon-btn svg{width:16px;height:16px;opacity:.95;}
+      .embed-external-link{
+        font-size:11px;
+        font-weight:800;
+        color: rgba(143,177,212,.92);
+        text-decoration:none;
+        padding:4px 8px;
+        border-radius:8px;
+        border:1px solid rgba(27,58,91,.55);
+        white-space:nowrap;
+      }
+      .embed-external-link:hover{
+        color: var(--text);
+        border-color: rgba(52,211,255,.55);
+      }
 
       .modal-mask{
         position:fixed;
@@ -913,14 +963,34 @@
       <div class="modal embed-tool-modal">
         <div class="modal-hd">
           <div class="modal-title" id="embedToolModalTitle">—</div>
-          <button type="button" class="icon-btn" id="embedToolModalCloseBtn" title="关闭" aria-label="关闭">
+          <div class="hd-actions">
+            <a id="embedToolModalExternalLink" class="embed-external-link" href="#" target="_blank" rel="noopener noreferrer" hidden>新窗口打开</a>
+            <button type="button" class="icon-btn" id="embedToolModalCloseBtn" title="关闭" aria-label="关闭">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="modal-bd">
+          <iframe class="embed-tool-frame" id="embedToolFrame" title="" src="about:blank"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- 运行情况：监控图放大预览 -->
+    <div class="modal-mask" id="monitorImagePreviewModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal monitor-preview-modal">
+        <div class="modal-hd">
+          <div class="modal-title" id="monitorImagePreviewTitle">—</div>
+          <button type="button" class="icon-btn" id="monitorImagePreviewCloseBtn" title="关闭" aria-label="关闭">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </button>
         </div>
         <div class="modal-bd">
-          <iframe class="embed-tool-frame" id="embedToolFrame" title="" src="about:blank"></iframe>
+          <img id="monitorImagePreviewImg" class="monitor-preview-img" src="" alt="" />
         </div>
       </div>
     </div>
@@ -1006,11 +1076,21 @@
         }
         root.className = "price-ticker";
         root.replaceChildren();
+        const sourceUrl = data && data.url ? String(data.url) : "";
+        if(sourceUrl){
+          root.dataset.sourceUrl = sourceUrl;
+        }else{
+          root.removeAttribute("data-source-url");
+        }
         const inner = document.createElement("div");
         inner.className = "price-marquee-inner";
         function appendCycle(){
           for(const it of items){
             const span = document.createElement("span");
+            span.className = "price-marquee-item";
+            span.setAttribute("role", "button");
+            span.setAttribute("tabindex", "0");
+            span.title = "点击查看来源页面";
             span.textContent = (it.name || "") + "\u3000指数 " + (it.num || "") + "\u3000" + (it.time || "");
             inner.appendChild(span);
             const seg = document.createElement("span");
@@ -1404,8 +1484,9 @@
             const dev = it.device_id != null ? `设备 ${it.device_id}` : "—";
             const t = fmtTime(it.collected_time);
             const title = escapeHtmlAttr(`${dev} ${fmtFull(it.collected_time)}`);
+            const previewTitle = escapeHtmlAttr(`${dev} · ${fmtFull(it.collected_time)}`);
             return `
-              <div class="monitor-cell" title="${title}">
+              <div class="monitor-cell monitor-cell--clickable" title="${title}" data-image-url="${escapeHtmlAttr(url)}" data-image-title="${previewTitle}">
                 <img src="${escapeHtmlAttr(url)}" alt="监控 ${idx + 1}" loading="lazy" onerror="var p=this.parentElement;this.onerror=null;this.remove();if(p){p.className='monitor-cell monitor-cell--empty';p.textContent='加载失败';}" />
                 <div class="cap"><span>${dev}</span><span>${t}</span></div>
               </div>
@@ -1954,17 +2035,61 @@
         window.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && modal && modal.style.display === "flex") close(); });
       }
 
-      /** 智能体 / 模型库：同源 iframe 小窗 */
+      /** 运行情况：监控图点击放大预览 */
+      function initMonitorImagePreview(){
+        const modal = document.getElementById("monitorImagePreviewModal");
+        const img = document.getElementById("monitorImagePreviewImg");
+        const titleEl = document.getElementById("monitorImagePreviewTitle");
+        const closeBtn = document.getElementById("monitorImagePreviewCloseBtn");
+        const grid = document.getElementById("monitorImagesGrid");
+        function openPreview(url, title){
+          if(!modal || !img || !url) return;
+          img.src = url;
+          img.alt = title || "监控预览";
+          if(titleEl) titleEl.textContent = title || "监控预览";
+          modal.style.display = "flex";
+          modal.setAttribute("aria-hidden", "false");
+        }
+        function closePreview(){
+          if(!modal || !img) return;
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden", "true");
+          img.removeAttribute("src");
+        }
+        grid && grid.addEventListener("click", (e)=>{
+          const cell = e.target.closest(".monitor-cell--clickable");
+          if(!cell) return;
+          openPreview(cell.getAttribute("data-image-url"), cell.getAttribute("data-image-title"));
+        });
+        closeBtn && closeBtn.addEventListener("click", (e)=>{ e.preventDefault(); closePreview(); });
+        modal && modal.addEventListener("click", (e)=>{ if(e.target === modal) closePreview(); });
+        window.addEventListener("keydown", (e)=>{
+          if(e.key === "Escape" && modal && modal.style.display === "flex") closePreview();
+        });
+      }
+
+      /** 智能体 / 模型库：同源 iframe 小窗；价格指数滚动条点击亦复用此弹窗 */
       function initEmbedToolModal(){
         const modal = document.getElementById("embedToolModal");
         const frame = document.getElementById("embedToolFrame");
         const titleEl = document.getElementById("embedToolModalTitle");
         const closeBtn = document.getElementById("embedToolModalCloseBtn");
-        function openEmbed(url, title){
+        const externalLink = document.getElementById("embedToolModalExternalLink");
+        const PRICE_SOURCE_FALLBACK = "https://www.agri.cn/sj/";
+        function openEmbed(url, title, opts){
           if(!modal || !frame || !titleEl) return;
           titleEl.textContent = title || "—";
           frame.setAttribute("title", title || "内嵌页面");
           frame.src = url || "about:blank";
+          if(externalLink){
+            if(opts && opts.external && url){
+              externalLink.href = url;
+              externalLink.hidden = false;
+            }else{
+              externalLink.hidden = true;
+              externalLink.removeAttribute("href");
+            }
+          }
           modal.style.display = "flex";
           modal.setAttribute("aria-hidden", "false");
         }
@@ -1973,6 +2098,10 @@
           modal.style.display = "none";
           modal.setAttribute("aria-hidden", "true");
           frame.src = "about:blank";
+          if(externalLink){
+            externalLink.hidden = true;
+            externalLink.removeAttribute("href");
+          }
         }
         function bindOpen(btnId){
           const btn = document.getElementById(btnId);
@@ -1986,6 +2115,22 @@
         }
         bindOpen("openAgentEmbedBtn");
         bindOpen("openModelLibEmbedBtn");
+        const priceRoot = document.getElementById("priceTickerRoot");
+        priceRoot && priceRoot.addEventListener("click", (e)=>{
+          const item = e.target.closest(".price-marquee-item");
+          if(!item) return;
+          e.preventDefault();
+          const url = priceRoot.dataset.sourceUrl || PRICE_SOURCE_FALLBACK;
+          openEmbed(url, "农业部价格指数", { external: true });
+        });
+        priceRoot && priceRoot.addEventListener("keydown", (e)=>{
+          if(e.key !== "Enter" && e.key !== " ") return;
+          const item = e.target.closest(".price-marquee-item");
+          if(!item) return;
+          e.preventDefault();
+          const url = priceRoot.dataset.sourceUrl || PRICE_SOURCE_FALLBACK;
+          openEmbed(url, "农业部价格指数", { external: true });
+        });
         closeBtn && closeBtn.addEventListener("click", (e)=>{ e.preventDefault(); closeEmbed(); });
         modal && modal.addEventListener("click", (e)=>{ if(e.target === modal) closeEmbed(); });
         window.addEventListener("keydown", (e)=>{
@@ -1998,6 +2143,8 @@
         }, true);
       }
 
+      initEmbedToolModal();
+      initMonitorImagePreview();
       void loadPriceTicker();
 
       // 首次加载
@@ -2005,7 +2152,6 @@
         try{
           await Promise.all([loadSummary(), loadOverview(), loadAlarms(), loadDeviceStatus()]);
           initAlarmSettingsModal();
-          initEmbedToolModal();
         }catch(e){
           console.error(e);
         }
