@@ -705,8 +705,8 @@
       style="
         display: none;
         position: fixed;
-        width: 360px;
-        height: 430px;
+        width: 420px;
+        height: 510px;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         box-shadow: 0 14px 40px rgba(0,0,0,0.2);
@@ -723,7 +723,7 @@
       style="
         display:none;
         position: fixed;
-        width: 360px;
+        width: 420px;
         height: 38px;
         z-index: 4001;
         cursor: move;
@@ -775,7 +775,7 @@
       }
 
       function _clampAgentPos(left, top) {
-        var w = 360, h = 420;
+        var w = 420, h = 510;
         var pad = 12;
         var maxLeft = Math.max(pad, window.innerWidth - w - pad);
         var maxTop = Math.max(pad, window.innerHeight - h - pad);
@@ -790,7 +790,7 @@
         // 计算小窗位置：尽量贴近按钮，默认放在按钮右侧
         var btn = document.querySelector('.toolbox-button-agent');
         var rect = btn ? btn.getBoundingClientRect() : null;
-        var w = 360, h = 420, gap = 10;
+        var w = 420, h = 510, gap = 10;
         var left = 16, top = 16;
         if (rect) {
           // ✅ 默认放在按钮左侧
@@ -1722,6 +1722,71 @@
     return { center: fallbackCenter, zoom: fallbackZoom };
   }
 
+  // 与 base_dashboard / 智能体共用：勾选基地供「加载基地数据」使用
+  const BASE_CHECKED_STORAGE_KEY = 'base_dashboard_checked_bases';
+
+  function loadCheckedBaseMap() {
+    try {
+      const raw = localStorage.getItem(BASE_CHECKED_STORAGE_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      const map = {};
+      if (Array.isArray(list)) {
+        list.forEach(function(item) {
+          if (item && item.base_id) {
+            map[String(item.base_id)] = {
+              base_id: String(item.base_id),
+              base_name: String(item.base_name || item.base_id),
+            };
+          }
+        });
+      }
+      return map;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveCheckedBaseMap(map) {
+    const list = Object.values(map || {});
+    localStorage.setItem(BASE_CHECKED_STORAGE_KEY, JSON.stringify(list));
+  }
+
+  function setBaseChecked(baseId, baseName, checked) {
+    const key = String(baseId || '');
+    if (!key) return;
+    const map = loadCheckedBaseMap();
+    if (checked) {
+      map[key] = { base_id: key, base_name: String(baseName || key) };
+    } else {
+      delete map[key];
+    }
+    saveCheckedBaseMap(map);
+  }
+
+  function isBaseChecked(baseId) {
+    const map = loadCheckedBaseMap();
+    return !!map[String(baseId || '')];
+  }
+
+  function escapeMapHtml(text) {
+    return String(text ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function bindInfoWindowBaseCheckbox(baseId, baseName) {
+    setTimeout(function() {
+      const checkboxId = 'base-map-check-' + String(baseId).replace(/[^a-zA-Z0-9]/g, '_');
+      const checkbox = document.getElementById(checkboxId);
+      if (!checkbox) return;
+      checkbox.addEventListener('change', function() {
+        setBaseChecked(baseId, baseName, checkbox.checked);
+      });
+    }, 0);
+  }
+
   // 公共：根据基地数据和坐标，在地图上展示信息窗并更新右侧详情
   function showBaseDetail(markerData, lnglat) {
     if (!markerData) return;
@@ -1743,16 +1808,23 @@
       const detailUrl = safeBaseId
         ? `/storage/dashboard/?base_id=${encodeURIComponent(safeBaseId)}`
         : `/storage/dashboard/`;
+      const checkboxId = 'base-map-check-' + safeBaseId.replace(/[^a-zA-Z0-9]/g, '_');
+      const isChecked = isBaseChecked(safeBaseId);
 
       const content =
         `<div style="max-width:260px;">
-          <div style="font-weight:600;margin-bottom:6px;">基地编号：${safeBaseId}</div>
-          <div style="margin-bottom:8px;">基地名称：${safeBaseName}</div>
+          <div style="font-weight:600;margin-bottom:6px;">基地编号：${escapeMapHtml(safeBaseId)}</div>
+          <div style="margin-bottom:8px;">基地名称：${escapeMapHtml(safeBaseName)}</div>
           ${picUrl ? `<div style="width:180px;height:110px;margin:0 auto;overflow:hidden;border-radius:6px;">
                         <img src="${picUrl}" alt="基地预览图"
                              style="width:100%;height:100%;object-fit:cover;display:block;" />
                       </div>`
                     : `<div style="color:#888;">暂无预览图</div>`}
+          <label for="${checkboxId}" style="display:flex;align-items:center;gap:6px;margin:10px 0 4px;cursor:pointer;font-size:12px;color:#374151;user-select:none;">
+            <input type="checkbox" id="${checkboxId}" ${isChecked ? 'checked' : ''}
+                   style="width:14px;height:14px;accent-color:#2563eb;cursor:pointer;">
+            <span>选中该基地</span>
+          </label>
           <div style="margin-top:10px;text-align:right;">
             <a href="${detailUrl}"
                style="display:inline-block;padding:4px 10px;border-radius:999px;
@@ -1766,6 +1838,7 @@
       infoWindow.setContent(content);
       if (lnglat && map) {
         infoWindow.open(map, lnglat);
+        bindInfoWindowBaseCheckbox(safeBaseId, safeBaseName);
       }
     } catch (err) {
       console.warn('打开信息窗失败:', err);

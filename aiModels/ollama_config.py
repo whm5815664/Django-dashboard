@@ -12,8 +12,16 @@ OPENCODE_BASE_URL = "http://localhost:4096"
 #OPENCODE_MODEL = {'model':'qwen3.5:0.8b', 'modelID': 'qwen3.5:0.8b', 'providerID': 'ollama'}
 
 # 免费api
-#OPENCODE_MODEL = {'model': 'Big Pickle', 'modelID': 'big-pickle', 'providerID': 'opencode'}
+OPENCODE_MODEL = {'model': 'Big Pickle', 'modelID': 'big-pickle', 'providerID': 'opencode'}
 #OPENCODE_MODEL = {'model':'MiniMax M2.5 Free', 'modelID': 'minimax-m2.5-free', 'providerID': 'opencode'}
 
 # 第三方咸鱼api http://ai.wenmodel.com/console(https://m.tb.cn/h.ioaPOiq?tk=QGsd5gSbXZ)
-OPENCODE_MODEL = {'model':'qwen3.5-plus', 'modelID': 'qwen3.5-plus', 'providerID': 'WenModel'}
+#OPENCODE_MODEL = {'model':'qwen3.5-plus', 'modelID': 'qwen3.5-plus', 'providerID': 'WenModel'}
+
+# 可选 OpenCode 模型（页面功能栏切换）
+OPENCODE_MODELS = [
+    {'label': 'Big Pickle', 'model': 'Big Pickle', 'modelID': 'big-pickle', 'providerID': 'opencode'},
+    {'label': 'GPT-OSS', 'model': 'gpt-oss:latest', 'modelID': 'gpt-oss:latest', 'providerID': 'ollama'},
+    {'label': 'Qwen3.5 0.8B', 'model': 'qwen3.5:0.8b', 'modelID': 'qwen3.5:0.8b', 'providerID': 'ollama'},
+    {'label': 'Qwen3.5 Plus', 'model': 'qwen3.5-plus', 'modelID': 'qwen3.5-plus', 'providerID': 'WenModel'},
+]

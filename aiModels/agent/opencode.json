@@ -15,10 +15,6 @@
           "name": "gpt-oss:latest",
           "description": "https://ollama.com/library/gpt-oss"
         },
-        "glm-4.7-flash:latest": {
-          "name": "glm-4.7-flash:latest",
-          "description": "https://ollama.com/library/glm-4.7-flash"
-        },
         "qwen3.5:0.8b": {
           "name": "qwen3.5:0.8b",
           "description": "https://ollama.com/library/qwen3.5"

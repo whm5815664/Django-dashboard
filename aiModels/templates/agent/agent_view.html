@@ -102,6 +102,11 @@
             background-clip: text;
             text-shadow: 0 0 30px rgba(120, 219, 255, 0.5);
         }
+
+        .agent-session-loaded-hint {
+            color: #34d399 !important;
+            font-weight: 500;
+        }
         
         /* ========== 聊天容器样式 ========== */
         .chat-container {
@@ -251,6 +256,260 @@
         }
         
         /* ========== 输入区域样式 ========== */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 4px;
+        }
+
+        .feature-bar-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .feature-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .model-switch-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.65);
+            white-space: nowrap;
+        }
+
+        .model-switch-select {
+            min-width: 160px;
+            max-width: 240px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(0, 0, 0, 0.35);
+            color: #ffffff;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .model-switch-select:focus {
+            border-color: rgba(120, 219, 255, 0.6);
+            box-shadow: 0 0 16px rgba(120, 219, 255, 0.25);
+        }
+
+        .model-switch-select:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .load-base-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(0, 255, 136, 0.12);
+            color: #00ff88;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .load-base-btn:hover:not(:disabled) {
+            border-color: rgba(0, 255, 136, 0.45);
+            background: rgba(0, 255, 136, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .load-base-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .storage-analysis-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(99, 102, 241, 0.18);
+            color: #c7d2fe;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .storage-analysis-btn:hover:not(:disabled) {
+            border-color: rgba(129, 140, 248, 0.55);
+            background: rgba(99, 102, 241, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .storage-analysis-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .run-analysis-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(16, 185, 129, 0.18);
+            color: #a7f3d0;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .run-analysis-btn:hover:not(:disabled) {
+            border-color: rgba(52, 211, 153, 0.55);
+            background: rgba(16, 185, 129, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .run-analysis-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        /* ========== 基地环境数据表格 ========== */
+        .agent-env-load {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .agent-env-load-summary {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.82);
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .agent-env-load-title {
+            font-size: 13px;
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .agent-env-load-section {
+            margin-bottom: 14px;
+        }
+
+        .agent-env-load-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .agent-env-table-wrap {
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.22);
+        }
+
+        .agent-env-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            table-layout: auto;
+        }
+
+        .agent-env-table th {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.88);
+            font-weight: 600;
+            padding: 8px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .agent-env-table th.col-base {
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .agent-env-table td {
+            padding: 7px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.92);
+            background: rgba(0, 0, 0, 0.12);
+            vertical-align: middle;
+        }
+
+        .agent-env-table td.col-base,
+        .agent-env-table td.col-time {
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .agent-env-table td.col-num {
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .agent-env-table tbody tr:nth-child(even) td {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .agent-env-empty {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.55);
+            padding: 8px 0;
+        }
+
+        .agent-monitor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .agent-monitor-cell {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.22);
+        }
+
+        .agent-monitor-cell img {
+            display: block;
+            width: 100%;
+            height: 96px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .agent-monitor-meta {
+            padding: 6px 8px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.78);
+            line-height: 1.35;
+        }
+
+        .agent-monitor-cell--empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 12px;
+        }
+
         .input-area {
             display: flex;
             gap: 15px;
@@ -721,6 +980,24 @@
                 padding: 20px;
             }
             
+            .input-section {
+                gap: 10px;
+            }
+
+            .feature-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .feature-bar-right {
+                justify-content: flex-end;
+            }
+
+            .model-switch-select {
+                width: 100%;
+                max-width: none;
+            }
+
             .input-area {
                 flex-direction: column;
                 gap: 12px;
@@ -973,15 +1250,28 @@
             </div>
 
             <!-- 输入控制区域 -->
-            <div class="input-area">
-                <!-- 问题输入框 -->
-                <input type="text" id="question" placeholder="请输入您的问题..." autocomplete="off">
-                <!-- 强制结束按钮 -->
-                <button id="stop-btn" title="强制结束回答"></button>
-                <!-- 语音控制按钮 -->
-                <button id="voice-btn" title="语音开关/识别">🎤 语音 关</button>
-                <!-- 发送按钮 -->
-                <button id="send-btn" onclick="sendQuestion()">📤 发送</button>
+            <div class="input-section">
+                <div class="feature-bar">
+                    <div class="feature-bar-left">
+                        <button type="button" class="load-base-btn" id="load-base-btn" onclick="loadSelectedBaseData()">加载基地数据</button>
+                        <button type="button" class="storage-analysis-btn" id="storage-analysis-btn" onclick="startStorageAnalysis()">贮藏环境分析</button>
+                        <button type="button" class="run-analysis-btn" id="run-analysis-btn" onclick="startRunAnalysis()">运行情况分析</button>
+                    </div>
+                    <div class="feature-bar-right">
+                        <label class="model-switch-label" for="opencode-model-select">模型</label>
+                        <select id="opencode-model-select" class="model-switch-select" title="切换 OpenCode 模型"></select>
+                    </div>
+                </div>
+                <div class="input-area">
+                    <!-- 问题输入框 -->
+                    <input type="text" id="question" placeholder="请输入您的问题..." autocomplete="off">
+                    <!-- 强制结束按钮 -->
+                    <button id="stop-btn" title="强制结束回答"></button>
+                    <!-- 语音控制按钮 -->
+                    <button id="voice-btn" title="语音开关/识别">🎤 语音 关</button>
+                    <!-- 发送按钮 -->
+                    <button id="send-btn" onclick="sendQuestion()">📤 发送</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1015,6 +1305,351 @@
         const voiceBtn = document.getElementById('voice-btn');       // 语音按钮
         const stopBtn = document.getElementById('stop-btn');         // 强制结束按钮
         const stopConfirmationModal = document.getElementById('stop-confirmation-modal'); // 停止确认弹窗
+        const modelSelect = document.getElementById('opencode-model-select');             // OpenCode 模型选择
+
+        const OPENCODE_MODELS = {{ opencode_models_json|safe }};
+        const OPENCODE_DEFAULT_MODEL_ID = "{{ opencode_default_model_id }}";
+        const AGENT_MODEL_STORAGE_KEY = 'agent_opencode_model_id';
+        const BASE_CHECKED_STORAGE_KEY = 'base_dashboard_checked_bases';
+        const agentLoadBaseDataUrl = "{% url 'agent_load_base_data' %}";
+        const agentStoragePrepareUrl = "{% url 'agent_storage_analysis_prepare' %}";
+        const agentStorageRunUrl = "{% url 'agent_storage_analysis_run' %}";
+        const agentRunAnalysisPrepareUrl = "{% url 'agent_run_analysis_prepare' %}";
+        const agentRunAnalysisRunUrl = "{% url 'agent_run_analysis_run' %}";
+        const DEFAULT_AGENT_INPUT_PLACEHOLDER = '请输入您的问题...';
+        const STORAGE_ANALYSIS_INPUT_PLACEHOLDER = '请输入贮藏的柑橘品种，如：纽霍尔脐橙（可补充关注点）';
+        let agentBaseInfoData = null;
+        let agentBaseEnvData = null;
+        let storageAnalysisMode = false;
+
+        function formatEnvNum(value, digits) {
+            if (value == null || value === '') return '—';
+            const num = Number(value);
+            return Number.isNaN(num) ? '—' : num.toFixed(digits);
+        }
+
+        function formatBaseInfoTableHtml(baseInfo) {
+            const bases = (baseInfo && baseInfo.bases) ? baseInfo.bases : [];
+            if (!bases.length) {
+                return '<div class="agent-env-empty">暂无基地信息。</div>';
+            }
+            const rows = bases.map(b =>
+                '<tr>' +
+                `<td class="col-base">${escapeHtml(b.base_id || '—')}</td>` +
+                `<td class="col-base">${escapeHtml(b.base_name || '—')}</td>` +
+                `<td class="col-num">${escapeHtml(b.pigsty_id != null ? String(b.pigsty_id) : '—')}</td>` +
+                `<td class="col-base">${escapeHtml(b.province_name || '—')}</td>` +
+                `<td class="col-base">${escapeHtml(b.city_name || '—')}</td>` +
+                `<td class="col-num">${formatEnvNum(b.longitude, 4)}</td>` +
+                `<td class="col-num">${formatEnvNum(b.latitude, 4)}</td>` +
+                '</tr>'
+            ).join('');
+            return '<div class="agent-env-table-wrap"><table class="agent-env-table">' +
+                '<thead><tr>' +
+                '<th scope="col">基地编号</th>' +
+                '<th scope="col">基地名称</th>' +
+                '<th scope="col">库房ID</th>' +
+                '<th scope="col">省份</th>' +
+                '<th scope="col">城市</th>' +
+                '<th scope="col">经度</th>' +
+                '<th scope="col">纬度</th>' +
+                '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+        }
+
+        function formatRecentEnvRecordsTableHtml(records) {
+            if (!records || !records.length) {
+                return '<div class="agent-env-empty">暂无环境数据。</div>';
+            }
+            const rows = records.map(r =>
+                '<tr>' +
+                `<td class="col-base">${escapeHtml(r.base_name || r.base_id || '—')}</td>` +
+                `<td class="col-time">${escapeHtml(r.collected_time || '—')}</td>` +
+                `<td class="col-num">${formatEnvNum(r.temperature, 1)}</td>` +
+                `<td class="col-num">${formatEnvNum(r.humidity, 0)}</td>` +
+                `<td class="col-num">${formatEnvNum(r.CO2, 1)}</td>` +
+                '</tr>'
+            ).join('');
+            return '<div class="agent-env-table-wrap"><table class="agent-env-table">' +
+                '<thead><tr>' +
+                '<th class="col-base">基地</th>' +
+                '<th class="col-time">采集时间</th>' +
+                '<th class="col-num">温度(°C)</th>' +
+                '<th class="col-num">湿度(%)</th>' +
+                '<th class="col-num">CO2</th>' +
+                '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+        }
+
+        function buildBaseEnvLoadHtml(data) {
+            return '<div class="agent-env-load">' +
+                `<div class="agent-env-load-summary">✅ 已加载 ${data.base_count} 个基地信息，` +
+                `近 ${data.days} 天共 ${data.record_count} 条环境记录。</div>` +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">基地信息：</div>' +
+                formatBaseInfoTableHtml(data.base_info) +
+                '</div>' +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">最近 30 条环境数据：</div>' +
+                formatRecentEnvRecordsTableHtml(data.recent_records || []) +
+                '</div>' +
+                '</div>';
+        }
+
+        function formatDeviceImagesGridHtml(deviceImages) {
+            const items = (deviceImages && deviceImages.items) ? deviceImages.items : [];
+            if (!items.length) {
+                return '<div class="agent-env-empty">暂无设备监控图片。</div>';
+            }
+            const cells = items.map(item => {
+                const url = item.image_url || '';
+                const title = escapeHtml(item.device_name || (`设备${item.device_id || ''}`));
+                const baseName = escapeHtml(item.base_name || item.base_id || '—');
+                const time = escapeHtml(item.collected_time || '—');
+                if (!url) {
+                    return '<div class="agent-monitor-cell agent-monitor-cell--empty">暂无图片</div>';
+                }
+                return '<div class="agent-monitor-cell">' +
+                    `<img src="${escapeHtml(url)}" alt="${title}" loading="lazy">` +
+                    `<div class="agent-monitor-meta">${title}<br>${baseName} · ${time}</div>` +
+                    '</div>';
+            }).join('');
+            return `<div class="agent-monitor-grid">${cells}</div>`;
+        }
+
+        function buildRunAnalysisLoadHtml(data) {
+            const deviceCount = data.device_count != null ? data.device_count : 0;
+            const imageCount = data.image_count != null ? data.image_count : 0;
+            const displayLimit = data.display_limit != null ? data.display_limit : 10;
+            const displayRecords = data.display_record_count != null ? data.display_record_count : (data.recent_records || []).length;
+            const displayImages = data.display_image_count != null ? data.display_image_count : displayLimit;
+            return '<div class="agent-env-load">' +
+                `<div class="agent-env-load-summary">✅ 已加载 ${data.base_count} 个基地，近 ${data.days} 天共 ${data.record_count} 条环境记录（展示最近 ${displayRecords} 条），` +
+                `${deviceCount} 台设备，${imageCount} 张最新监控图（展示最近 ${displayImages} 张）。</div>` +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">基地信息：</div>' +
+                formatBaseInfoTableHtml(data.base_info) +
+                '</div>' +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">最近 ' + displayRecords + ' 条环境数据（共 ' + (data.record_count || 0) + ' 条）：</div>' +
+                formatRecentEnvRecordsTableHtml(data.recent_records || []) +
+                '</div>' +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">最近 ' + displayImages + ' 张监控图片：</div>' +
+                formatDeviceImagesGridHtml(data.device_images) +
+                '</div>' +
+                '</div>';
+        }
+
+        function addBotHtmlMessage(html) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'bot-content';
+            contentDiv.innerHTML = html;
+
+            messageDiv.appendChild(contentDiv);
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return messageDiv;
+        }
+
+        function getCheckedBasesFromDashboard() {
+            try {
+                const raw = localStorage.getItem(BASE_CHECKED_STORAGE_KEY);
+                const list = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(list)) return [];
+                return list.filter(item => item && item.base_id);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function setStorageAnalysisInputMode(active) {
+            if (questionInput) {
+                questionInput.placeholder = active ? STORAGE_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
+            }
+        }
+
+        function startStorageAnalysis() {
+            if (isProcessing) return;
+
+            const btn = document.getElementById('storage-analysis-btn');
+            const checkedBases = getCheckedBasesFromDashboard();
+            if (!checkedBases.length) {
+                addMessage('bot', '请先在主页地图或大屏总览矩阵中勾选至少一个基地，再点击「贮藏环境分析」。');
+                return;
+            }
+
+            const baseIds = checkedBases.map(item => String(item.base_id));
+            const baseNames = checkedBases.map(item => item.base_name || item.base_id).join('、');
+
+            if (btn) btn.disabled = true;
+            addMessage('bot', '📊 正在准备贮藏环境分析数据：' + baseNames + ' …');
+
+            fetch(agentStoragePrepareUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({ base_ids: baseIds, days: 3 })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    agentBaseInfoData = data.base_info || null;
+                    agentBaseEnvData = data.env_data || null;
+                    addBotHtmlMessage(buildBaseEnvLoadHtml(data));
+                    storageAnalysisMode = true;
+                    setStorageAnalysisInputMode(true);
+                    addMessage('bot', '🍊 数据已就绪。请在输入框补充贮藏的柑橘品种（可说明关注点），然后点击「发送」开始分析。');
+                } else {
+                    addMessage('bot', '❌ 准备失败：' + (data.error || '未知错误'));
+                }
+            })
+            .catch(err => {
+                addMessage('bot', '❌ 准备失败：' + (err.message || '网络错误'));
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+        }
+
+        function startRunAnalysis() {
+            if (isProcessing) return;
+
+            const btn = document.getElementById('run-analysis-btn');
+            const checkedBases = getCheckedBasesFromDashboard();
+            if (!checkedBases.length) {
+                addMessage('bot', '请先在主页地图或大屏总览矩阵中勾选至少一个基地，再点击「运行情况分析」。');
+                return;
+            }
+
+            const baseIds = checkedBases.map(item => String(item.base_id));
+            const baseNames = checkedBases.map(item => item.base_name || item.base_id).join('、');
+
+            if (btn) btn.disabled = true;
+            storageAnalysisMode = false;
+            setStorageAnalysisInputMode(false);
+            addMessage('bot', '📈 正在准备运行情况分析数据：' + baseNames + ' …');
+
+            fetch(agentRunAnalysisPrepareUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({ base_ids: baseIds, days: 3 })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    agentBaseInfoData = data.base_info || null;
+                    agentBaseEnvData = data.env_data || null;
+                    addBotHtmlMessage(buildRunAnalysisLoadHtml(data));
+                    if (!agentSessionId) {
+                        addMessage('bot', '❌ 会话未就绪，请刷新页面后重试。');
+                        return;
+                    }
+                    addMessage('bot', '📈 正在生成运行情况判断与趋势分析…');
+                    streamAgentFromUrl(agentRunAnalysisRunUrl, '', { enableSpeechListening: true });
+                } else {
+                    addMessage('bot', '❌ 准备失败：' + (data.error || '未知错误'));
+                }
+            })
+            .catch(err => {
+                addMessage('bot', '❌ 准备失败：' + (err.message || '网络错误'));
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+        }
+
+        function loadSelectedBaseData() {
+            if (isProcessing) return;
+
+            const btn = document.getElementById('load-base-btn');
+            const checkedBases = getCheckedBasesFromDashboard();
+            if (!checkedBases.length) {
+                addMessage('bot', '请先在「总览矩阵」中勾选至少一个基地，再点击「加载基地数据」。');
+                return;
+            }
+
+            const baseIds = checkedBases.map(item => String(item.base_id));
+            const baseNames = checkedBases.map(item => item.base_name || item.base_id).join('、');
+
+            if (btn) btn.disabled = true;
+            addMessage('bot', '📥 正在加载基地数据：' + baseNames + ' …');
+
+            fetch(agentLoadBaseDataUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({ base_ids: baseIds, days: 3 })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    agentBaseInfoData = data.base_info || null;
+                    agentBaseEnvData = data.env_data || null;
+                    addBotHtmlMessage(buildBaseEnvLoadHtml(data));
+                } else {
+                    addMessage('bot', '❌ 加载失败：' + (data.error || '未知错误'));
+                }
+            })
+            .catch(err => {
+                addMessage('bot', '❌ 加载失败：' + (err.message || '网络错误'));
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+        }
+
+        function getSelectedOpencodeModelConfig() {
+            const modelID = modelSelect ? modelSelect.value : OPENCODE_DEFAULT_MODEL_ID;
+            return OPENCODE_MODELS.find(m => m.modelID === modelID) || OPENCODE_MODELS[0];
+        }
+
+        function getOpencodeModelRequestPayload() {
+            const cfg = getSelectedOpencodeModelConfig();
+            return {
+                model_id: cfg.modelID,
+                model: {
+                    model: cfg.model,
+                    modelID: cfg.modelID,
+                    providerID: cfg.providerID
+                }
+            };
+        }
+
+        function setModelSelectDisabled(disabled) {
+            if (modelSelect) modelSelect.disabled = !!disabled;
+        }
+
+        function initOpencodeModelSelector() {
+            if (!modelSelect || !OPENCODE_MODELS.length) return;
+
+            modelSelect.innerHTML = '';
+            OPENCODE_MODELS.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.modelID;
+                opt.textContent = m.label || m.model;
+                modelSelect.appendChild(opt);
+            });
+
+            const saved = localStorage.getItem(AGENT_MODEL_STORAGE_KEY);
+            if (saved && OPENCODE_MODELS.some(m => m.modelID === saved)) {
+                modelSelect.value = saved;
+            } else if (OPENCODE_DEFAULT_MODEL_ID) {
+                modelSelect.value = OPENCODE_DEFAULT_MODEL_ID;
+            }
+
+            modelSelect.addEventListener('change', () => {
+                localStorage.setItem(AGENT_MODEL_STORAGE_KEY, modelSelect.value);
+            });
+        }
 
         // ========== 全局状态变量 ==========
         let isProcessing = false;            // 是否正在处理回答
@@ -1389,6 +2024,7 @@
             
             questionInput.disabled = false;
             sendBtn.disabled = false;
+            setModelSelectDisabled(false);
             questionInput.focus();
             
             isProcessing = false;
@@ -1559,6 +2195,7 @@
             
             questionInput.disabled = false;
             sendBtn.disabled = false;
+            setModelSelectDisabled(false);
             questionInput.focus();
             
             updateVoiceBtn();
@@ -1572,6 +2209,24 @@
 
         // ========== Agent会话管理 ==========
         /**
+         * 在欢迎区提示 Agent 已就绪
+         */
+        function appendAgentLoadedHint() {
+            const existing = chatBox.querySelector('.agent-session-loaded-hint');
+            if (existing) existing.remove();
+            const welcomeDiv = chatBox.querySelector('.welcome-message .bot-content');
+            if (welcomeDiv) {
+                const hint = document.createElement('p');
+                hint.className = 'agent-session-loaded-hint';
+                hint.textContent = '✅ Agent 已加载，可以开始提问。';
+                welcomeDiv.appendChild(hint);
+            } else {
+                addMessage('bot', '✅ Agent 已加载，可以开始提问。');
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        /**
          * 创建Agent会话
          */
         function createAgentSession() {
@@ -1581,7 +2236,10 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken') || ''
                 },
-                body: JSON.stringify({ title: '智能体问答会话' })
+                body: JSON.stringify(Object.assign(
+                    { title: '智能体问答会话' },
+                    getOpencodeModelRequestPayload()
+                ))
             })
             .then(response => response.json())
             .then(data => {
@@ -1635,8 +2293,8 @@
                 messageDiv.innerHTML = content;
             } else {
                 const contentDiv = document.createElement('div');
-                contentDiv.className = sender === 'bot' ? 'bot-content' : '';
-                contentDiv.innerHTML = sender === 'bot' ? formatResponse(content) : content;
+                contentDiv.className = sender === 'bot' ? 'bot-content markdown-body' : '';
+                contentDiv.innerHTML = sender === 'bot' ? renderMarkdown(content) : content;
                 messageDiv.appendChild(contentDiv);
             }
 
@@ -1758,86 +2416,67 @@
         }
 
         /**
-         * 发送问题到Agent并处理回复
+         * 流式 SSE 请求（发送问题 / 运行情况分析等复用）
          */
-        function sendQuestion() {
-            const question = questionInput.value.trim();
-            if (!question) return;
-
-            if (!agentSessionId) {
-                addMessage('bot', '❌ 会话未就绪，请稍候...');
-                createAgentSession().then(() => {
-                    sendQuestion();
-                }).catch(error => {
-                    addMessage('bot', '❌ 创建会话失败: ' + error.message);
-                });
-                return;
-            }
+        function streamAgentFromUrl(sendUrl, sendMessage, options) {
+            options = options || {};
 
             isProcessing = true;
-
             questionInput.disabled = true;
             sendBtn.disabled = true;
-            
+            setModelSelectDisabled(true);
             stopBtn.style.display = 'inline-block';
-
-            addMessage('user', question);
-            questionInput.value = '';
 
             const thinkingId = 'thinking-' + Date.now();
             currentThinkingId = thinkingId;
             addMessage('bot', '🤔 思考中<span class="loading-dots"></span>', thinkingId, true);
-
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            if (speechEnabled && hasRecognition) {
+            if (options.enableSpeechListening && speechEnabled && hasRecognition) {
                 startCommandListening();
             }
 
             currentAbortController = new AbortController();
 
-            // 创建消息气泡用于显示流式内容
             const thinkingElement = document.getElementById(thinkingId);
             let botMessageId = 'bot-msg-' + Date.now();
             let botMessageEl = null;
             let reasoningContent = '';
             let textContent = '';
 
-            fetch('{% url "agent_session_send" %}', {
+            fetch(sendUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken') || ''
                 },
-                body: JSON.stringify({ 
-                    session_id: agentSessionId,
-                    message: question 
-                }),
+                body: JSON.stringify(Object.assign(
+                    {
+                        session_id: agentSessionId,
+                        message: sendMessage
+                    },
+                    getOpencodeModelRequestPayload()
+                )),
                 signal: currentAbortController.signal
             })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
-                // 移除思考中消息
+
                 if (thinkingElement) {
                     thinkingElement.remove();
                 }
-                
-                // 创建新的消息气泡
+
                 botMessageEl = addMessage('bot', '', botMessageId);
                 const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
-                
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
-                
-                // ========== 结束判定优化 ==========
-                // 后端可能先发 finish/finished，再补发少量 text/reasoning；这里改为“待结束”状态，直到内容稳定不再增长才真正结束，避免截断。
-                const END_STABLE_MS = 700;      // 多久无增长判定稳定
+                const END_STABLE_MS = 700;
                 const END_CHECK_INTERVAL_MS = 200;
-                const END_MAX_WAIT_MS = 10000;  // 最长等待，避免流异常不结束
+                const END_MAX_WAIT_MS = 10000;
                 let pendingEnd = false;
                 let finalized = false;
                 let finishDeadlineAt = 0;
@@ -1909,7 +2548,6 @@
                 function readStream() {
                     return reader.read().then(({ done, value }) => {
                         if (done) {
-                            // 流已结束：若已进入待结束但仍未 finalize，直接 finalize
                             if (pendingEnd && !finalized) {
                                 finalizeStream();
                             }
@@ -1924,7 +2562,7 @@
                             if (line.startsWith('data: ')) {
                                 try {
                                     const data = JSON.parse(line.slice(6));
-                                    
+
                                     if (data.type === 'reasoning') {
                                         reasoningContent += data.content;
                                         noteGrowth();
@@ -1943,7 +2581,6 @@
                                         }
                                         chatBox.scrollTop = chatBox.scrollHeight;
                                     } else if (data.type === 'finish' || data.type === 'finished') {
-                                        // 不再立刻结束：进入“待结束”并继续读取，直到内容稳定不再增长
                                         pendingEnd = true;
                                         finishPayload = data || finishPayload;
                                         finishDeadlineAt = Date.now() + END_MAX_WAIT_MS;
@@ -2000,17 +2637,51 @@
                 isProcessing = false;
                 currentAbortController = null;
                 currentThinkingId = null;
-                
+
                 stopCommandListening();
-                
+
                 stopBtn.style.display = 'none';
-                
+
                 questionInput.disabled = false;
                 sendBtn.disabled = false;
+                setModelSelectDisabled(false);
                 questionInput.focus();
-                
+
                 updateVoiceBtn();
             });
+        }
+
+        /**
+         * 发送问题到Agent并处理回复
+         */
+        function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            if (!agentSessionId) {
+                addMessage('bot', '❌ 会话未就绪，请稍候...');
+                createAgentSession()
+                    .then(appendAgentLoadedHint)
+                    .then(() => {
+                        sendQuestion();
+                    })
+                    .catch(error => {
+                        addMessage('bot', '❌ 创建会话失败: ' + error.message);
+                    });
+                return;
+            }
+
+            addMessage('user', question);
+            questionInput.value = '';
+
+            const isStorageRun = storageAnalysisMode;
+            if (isStorageRun) {
+                storageAnalysisMode = false;
+                setStorageAnalysisInputMode(false);
+            }
+
+            const sendUrl = isStorageRun ? agentStorageRunUrl : '{% url "agent_session_send" %}';
+            streamAgentFromUrl(sendUrl, question, { enableSpeechListening: true });
         }
 
         /**
@@ -2039,11 +2710,14 @@
         });
 
         // ========== 页面初始化 ==========
+        initOpencodeModelSelector();
         // 页面加载时创建Agent会话
-        createAgentSession().catch(error => {
-            console.error('创建Agent会话失败:', error);
-            addMessage('bot', '❌ 初始化失败: ' + error.message);
-        });
+        createAgentSession()
+            .then(appendAgentLoadedHint)
+            .catch(error => {
+                console.error('创建Agent会话失败:', error);
+                addMessage('bot', '❌ 初始化失败: ' + error.message);
+            });
 
         // 页面卸载时删除Agent会话
         window.addEventListener('beforeunload', function() {

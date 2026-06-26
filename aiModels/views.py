@@ -1,4 +1,8 @@
+import json
+
 from django.shortcuts import render
+
+from aiModels.ollama_config import OPENCODE_MODEL, OPENCODE_MODELS
 
 
 # 问答系统
@@ -29,13 +33,20 @@ def chatkg_view(request):
     return render(request, 'qaModel/editKnowledge.html')
 
 
+def _agent_page_context():
+    return {
+        'opencode_models_json': json.dumps(OPENCODE_MODELS, ensure_ascii=False),
+        'opencode_default_model_id': OPENCODE_MODEL.get('modelID', ''),
+    }
+
+
 # 智能体助手弹窗页面
 def agent_view(request):
-    return render(request, 'agent/agent.html')
+    return render(request, 'agent/agent.html', _agent_page_context())
 
 # 智能体助手单独页面
 def agent_view_page(request):
-    return render(request, 'agent/agent_view.html')
+    return render(request, 'agent/agent_view.html', _agent_page_context())
 
 
 # 模型库入口页面：提供选择并跳转到各模型系统

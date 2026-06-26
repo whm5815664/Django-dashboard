@@ -250,12 +250,26 @@
         gap:8px;
         margin-bottom:8px;
       }
+      .mi-name-row{
+        display:flex;
+        align-items:center;
+        gap:6px;
+        min-width:0;
+        flex:1;
+      }
       .mi-name{
         font-weight:900;
         font-size:13px;
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
+      }
+      .mi-check{
+        width:14px;
+        height:14px;
+        flex:0 0 14px;
+        accent-color: rgba(52,211,255,.95);
+        cursor:pointer;
       }
       .badge{
         font-size:12px;
@@ -1210,6 +1224,50 @@
 
       // 预警阈值配置：持久化到 localStorage（默认与后端一致）
       const ALARM_SETTINGS_KEY = "base_dashboard_alarm_thresholds_v1";
+      const BASE_CHECKED_STORAGE_KEY = "base_dashboard_checked_bases";
+
+      function loadCheckedBaseMap(){
+        try{
+          const raw = localStorage.getItem(BASE_CHECKED_STORAGE_KEY);
+          const list = raw ? JSON.parse(raw) : [];
+          const map = {};
+          if(Array.isArray(list)){
+            list.forEach((item)=>{
+              if(item && item.base_id){
+                map[String(item.base_id)] = {
+                  base_id: String(item.base_id),
+                  base_name: String(item.base_name || item.base_id),
+                };
+              }
+            });
+          }
+          return map;
+        }catch(e){
+          return {};
+        }
+      }
+
+      function saveCheckedBaseMap(map){
+        const list = Object.values(map || {});
+        localStorage.setItem(BASE_CHECKED_STORAGE_KEY, JSON.stringify(list));
+      }
+
+      function setBaseChecked(baseId, baseName, checked){
+        const key = String(baseId || "");
+        if(!key) return;
+        const map = loadCheckedBaseMap();
+        if(checked){
+          map[key] = { base_id: key, base_name: String(baseName || key) };
+        }else{
+          delete map[key];
+        }
+        saveCheckedBaseMap(map);
+      }
+
+      function isBaseChecked(baseId){
+        const map = loadCheckedBaseMap();
+        return !!map[String(baseId || "")];
+      }
       const DEFAULT_ALARM_SETTINGS = {
         temp_min: 0,
         temp_max: 45,
@@ -1344,7 +1402,10 @@
 
           div.innerHTML = `
             <div class="mi-top">
-              <div class="mi-name" title="${(it.base_name ?? it.base_id ?? "-")}">${(it.base_name ?? it.base_id ?? "-")}</div>
+              <div class="mi-name-row">
+                <div class="mi-name" title="${(it.base_name ?? it.base_id ?? "-")}">${(it.base_name ?? it.base_id ?? "-")}</div>
+                <input type="checkbox" class="mi-check" aria-label="勾选基地 ${(it.base_name ?? it.base_id ?? "-")}" ${isBaseChecked(it.base_id) ? "checked" : ""}>
+              </div>
               <div class="badge ${bc}">${status}</div>
             </div>
             <div class="mi-metrics">
@@ -1359,6 +1420,17 @@
             </div>
             <div class="mi-time">最新：${fmtFull(it.collected_time)}</div>
           `;
+
+          const checkbox = div.querySelector(".mi-check");
+          if(checkbox){
+            checkbox.addEventListener("click", (ev)=>{
+              ev.stopPropagation();
+            });
+            checkbox.addEventListener("change", (ev)=>{
+              ev.stopPropagation();
+              setBaseChecked(it.base_id, it.base_name, checkbox.checked);
+            });
+          }
 
           div.addEventListener("click", async ()=>{
             const prevBaseId = String(state.selectedBaseId || "");

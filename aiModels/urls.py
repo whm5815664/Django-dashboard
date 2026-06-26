@@ -33,6 +33,11 @@ urlpatterns = [
     path('agent/session/create', db_agent.agent_create_session_view, name='agent_session_create'),
     path('agent/session/send', db_agent.agent_send_message_view, name='agent_session_send'),
     path('agent/session/delete', db_agent.agent_delete_session_view, name='agent_session_delete'),
+    path('agent/base/load_data', db_agent.agent_load_base_data_view, name='agent_load_base_data'),
+    path('agent/storage/analysis/prepare', db_agent.agent_storage_analysis_prepare_view, name='agent_storage_analysis_prepare'),
+    path('agent/storage/analysis/run', db_agent.agent_storage_analysis_run_view, name='agent_storage_analysis_run'),
+    path('agent/run/analysis/prepare', db_agent.agent_run_analysis_prepare_view, name='agent_run_analysis_prepare'),
+    path('agent/run/analysis/run', db_agent.agent_run_analysis_run_view, name='agent_run_analysis_run'),
     # RAG知识库增强系统
     path('initialize_rag', RAG.initialize_rag_view, name='initialize_rag'),
     path('get_answer_rag', RAG.get_answer_rag_view, name='get_answer_rag'),

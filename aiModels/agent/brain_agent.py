@@ -7,10 +7,32 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
-from aiModels.ollama_config import OPENCODE_BASE_URL, OPENCODE_MODEL
+from aiModels.ollama_config import OPENCODE_BASE_URL, OPENCODE_MODEL, OPENCODE_MODELS
 
 OPENCODE_BASE_URL = OPENCODE_BASE_URL
 model = OPENCODE_MODEL
+
+
+def resolve_model_config(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """从请求体解析 model 配置，支持 model_id / modelID 或完整 model 对象。"""
+    if not payload:
+        return model
+
+    model_id = payload.get("model_id") or payload.get("modelID")
+    if model_id:
+        for item in OPENCODE_MODELS:
+            if item.get("modelID") == model_id:
+                return {
+                    "model": item["model"],
+                    "modelID": item["modelID"],
+                    "providerID": item["providerID"],
+                }
+
+    model_obj = payload.get("model")
+    if isinstance(model_obj, dict) and model_obj.get("modelID"):
+        return model_obj
+
+    return model
 
 #model = {'model': 'Big Pickle', 'modelID': 'big-pickle', 'providerID': 'opencode'}
 #model = {'model': 'glm-4.7-flash:latest', 'modelID': 'glm-4.7-flash:latest', 'providerID': 'ollama'}
@@ -41,17 +63,23 @@ AGENT_SYSTEM_TEMP = r"Django-dashboard\aiModels\agent\temp"
 
 
 # 创建会话
-def creat_session(base_url: str, title: str = "智能体助手") -> Dict[str, Any]:
+def creat_session(
+    base_url: str,
+    title: str = "智能体助手",
+    model_config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     r = requests.post(f"{base_url}/session", json={"title": title})
     session = r.json()
     session_id = session.get("id")
     print('agent创建会话id:', session_id)
-    
+
+    active_model = model_config or model
+
     # 创建会话后立即加载角色设定
     if session_id:
         init_msg = f"""请加载以下角色设定：\n{AGENT_SYSTEM_PROMPT}"""
-        send_async_message(init_msg, base_url, session_id, model_config=model, no_reply=True)
-    
+        send_async_message(init_msg, base_url, session_id, model_config=active_model, no_reply=True)
+
     return session
 
 
@@ -65,7 +93,8 @@ def agent_create_session_view(request):
     try:
         data = json.loads(request.body) if request.body else {}
         title = data.get("title", "智能体助手")
-        session = creat_session(OPENCODE_BASE_URL, title=title)
+        model_config = resolve_model_config(data)
+        session = creat_session(OPENCODE_BASE_URL, title=title, model_config=model_config)
         # session_id 取自 opencode 返回的 json['id']
         session_id = session.get("id") if isinstance(session, dict) else None
         if not session_id:
@@ -292,6 +321,76 @@ def stream_output(
         time.sleep(interval)
 
 
+def _resolve_parent_message_id(session_id: str) -> Optional[str]:
+    """获取最近一次 user 消息 id，用于 SSE 过滤。"""
+    target_parent_id: Optional[str] = None
+    try:
+        for _ in range(5):
+            msgs_resp = requests.get(
+                f"{OPENCODE_BASE_URL}/session/{session_id}/message",
+                timeout=10,
+            )
+            msgs = msgs_resp.json()
+            for m in reversed(msgs):
+                info = m.get("info", {})
+                if info.get("role") == "user":
+                    target_parent_id = info.get("id")
+                    break
+            if target_parent_id:
+                break
+            time.sleep(0.2)
+    except Exception as e:
+        print("获取当前 user message 失败：", e)
+    return target_parent_id
+
+
+def create_agent_sse_response(
+    session_id: str,
+    message: str,
+    model_config: Optional[Dict[str, Any]] = None,
+) -> StreamingHttpResponse:
+    """发送消息到 opencode 并返回 SSE 流式响应。"""
+    active_model = model_config or model
+    send_async_message(message, OPENCODE_BASE_URL, session_id, model_config=active_model)
+    target_parent_id = _resolve_parent_message_id(session_id)
+
+    def event_stream():
+        reasoning_content = ""
+        text_content = ""
+
+        for chunk in stream_output(
+            OPENCODE_BASE_URL,
+            session_id,
+            interval=0.5,
+            parent_message_id=target_parent_id,
+        ):
+            if chunk["type"] == "reasoning":
+                reasoning_content += chunk["content"]
+                yield f"data: {json.dumps({'type': 'reasoning', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
+
+            elif chunk["type"] == "text":
+                text_content += chunk["content"]
+                yield f"data: {json.dumps({'type': 'text', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
+
+            elif chunk["type"] == "finished":
+                if not text_content.strip():
+                    if reasoning_content:
+                        text_content = "（本轮已完成推理与工具调用，未生成额外文字回复；详见上方推理过程。）"
+                    else:
+                        text_content = "（本轮仅执行了工具调用，无文字回复。）"
+                yield f"data: {json.dumps({'type': 'finished', 'reasoning': reasoning_content, 'text': text_content}, ensure_ascii=False)}\n\n"
+                break
+
+            elif chunk["type"] == "error":
+                yield f"data: {json.dumps({'type': 'error', 'error': chunk['content']}, ensure_ascii=False)}\n\n"
+                break
+
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
+
+
 @csrf_exempt
 @require_POST
 def agent_send_message_view(request):
@@ -304,69 +403,156 @@ def agent_send_message_view(request):
             return JsonResponse({"success": False, "error": "缺少 session_id"})
         if not message:
             return JsonResponse({"success": False, "error": "消息不能为空"})
-        
-        # 发送异步消息
-        send_async_message(message, OPENCODE_BASE_URL, session_id, model_config=model)
 
-        # 获取当前这次用户提问对应的 user message id，用于过滤之前的历史回复
-        target_parent_id: Optional[str] = None
-        try:
-            # 简单轮询几次，确保新 user 消息已经写入 session
-            for _ in range(5):
-                msgs_resp = requests.get(
-                    f"{OPENCODE_BASE_URL}/session/{session_id}/message",
-                    timeout=10,
-                )
-                msgs = msgs_resp.json()
-                # 从后往前找最近的 user 消息
-                for m in reversed(msgs):
-                    info = m.get("info", {})
-                    if info.get("role") == "user":
-                        target_parent_id = info.get("id")
-                        break
-                if target_parent_id:
-                    break
-                time.sleep(0.2)
-        except Exception as e:
-            print("获取当前 user message 失败：", e)
+        model_config = resolve_model_config(data)
+        return create_agent_sse_response(session_id, message, model_config=model_config)
 
-        # 创建 SSE 流式响应
-        def event_stream():
-            reasoning_content = ""
-            text_content = ""
-            
-            for chunk in stream_output(
-                OPENCODE_BASE_URL,
-                session_id,
-                interval=0.5,
-                parent_message_id=target_parent_id,
-            ):
-                if chunk["type"] == "reasoning":
-                    reasoning_content += chunk["content"]
-                    yield f"data: {json.dumps({'type': 'reasoning', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
-                
-                elif chunk["type"] == "text":
-                    text_content += chunk["content"]
-                    yield f"data: {json.dumps({'type': 'text', 'content': chunk['content']}, ensure_ascii=False)}\n\n"
-                
-                elif chunk["type"] == "finished":
-                    # 若模型只做了推理/工具调用而无最终文字，给用户一个占位说明
-                    if not text_content.strip():
-                        if reasoning_content:
-                            text_content = "（本轮已完成推理与工具调用，未生成额外文字回复；详见上方推理过程。）"
-                        else:
-                            text_content = "（本轮仅执行了工具调用，无文字回复。）"
-                    yield f"data: {json.dumps({'type': 'finished', 'reasoning': reasoning_content, 'text': text_content}, ensure_ascii=False)}\n\n"
-                    break
-                
-                elif chunk["type"] == "error":
-                    yield f"data: {json.dumps({'type': 'error', 'error': chunk['content']}, ensure_ascii=False)}\n\n"
-                    break
-        
-        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
-        response['Cache-Control'] = 'no-cache'
-        response['X-Accel-Buffering'] = 'no'
-        return response
-        
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+
+
+@csrf_exempt
+@require_POST
+def agent_load_base_data_view(request):
+    """根据勾选的基地编号，查询近 3 天环境数据并保存为内存 JSON。"""
+    try:
+        from aiModels.agent.tool.select_data import load_base_env_data
+
+        data = json.loads(request.body) if request.body else {}
+        base_ids = data.get("base_ids") or []
+        if not isinstance(base_ids, list):
+            return JsonResponse({"success": False, "error": "base_ids 格式无效"}, status=400)
+        base_ids = [str(item).strip() for item in base_ids if str(item).strip()]
+        if not base_ids:
+            return JsonResponse(
+                {"success": False, "error": "请先在总览矩阵中勾选至少一个基地"},
+                status=400,
+            )
+
+        days = int(data.get("days") or 3)
+        days = max(1, min(days, 30))
+        result = load_base_env_data(base_ids, days=days, recent_limit=30)
+        return JsonResponse(
+            {
+                "success": True,
+                "base_info": result["base_info"],
+                "env_data": result["env_data"],
+                "recent_records": result["recent_records"],
+                "base_count": result["base_count"],
+                "record_count": result["record_count"],
+                "days": result["days"],
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def agent_storage_analysis_prepare_view(request):
+    """贮藏环境分析步骤1：加载基地信息与近3天环境数据。"""
+    try:
+        from aiModels.agent.tool.storage_anylisis import prepare_storage_analysis_data
+
+        data = json.loads(request.body) if request.body else {}
+        base_ids = data.get("base_ids") or []
+        if not isinstance(base_ids, list):
+            return JsonResponse({"success": False, "error": "base_ids 格式无效"}, status=400)
+        base_ids = [str(item).strip() for item in base_ids if str(item).strip()]
+        if not base_ids:
+            return JsonResponse(
+                {"success": False, "error": "请先在主页或大屏勾选至少一个基地"},
+                status=400,
+            )
+
+        days = int(data.get("days") or 3)
+        days = max(1, min(days, 30))
+        result = prepare_storage_analysis_data(base_ids, days=days, recent_limit=30)
+        return JsonResponse(
+            {
+                "success": True,
+                "base_info": result["base_info"],
+                "env_data": result["env_data"],
+                "recent_records": result["recent_records"],
+                "base_count": result["base_count"],
+                "record_count": result["record_count"],
+                "days": result["days"],
+            }
+        )
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def agent_storage_analysis_run_view(request):
+    """贮藏环境分析步骤3：组合环境 JSON 与用户输入，调用 agent 分析。"""
+    try:
+        from aiModels.agent.tool.storage_anylisis import build_storage_analysis_prompt
+
+        data = json.loads(request.body) or {}
+        session_id = data.get("session_id")
+        user_input = (data.get("message") or data.get("user_input") or "").strip()
+        if not session_id:
+            return JsonResponse({"success": False, "error": "缺少 session_id"}, status=400)
+        if not user_input:
+            return JsonResponse({"success": False, "error": "请输入贮藏的柑橘品种及分析需求"}, status=400)
+
+        prompt = build_storage_analysis_prompt(user_input)
+        model_config = resolve_model_config(data)
+        return create_agent_sse_response(session_id, prompt, model_config=model_config)
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def agent_run_analysis_prepare_view(request):
+    """运行情况分析步骤1：加载基地、环境、device 数据。"""
+    try:
+        from aiModels.agent.tool.run_anlysis import prepare_run_analysis_data
+
+        data = json.loads(request.body) if request.body else {}
+        base_ids = data.get("base_ids") or []
+        if not isinstance(base_ids, list):
+            return JsonResponse({"success": False, "error": "base_ids 格式无效"}, status=400)
+        base_ids = [str(item).strip() for item in base_ids if str(item).strip()]
+        if not base_ids:
+            return JsonResponse(
+                {"success": False, "error": "请先在主页或大屏勾选至少一个基地"},
+                status=400,
+            )
+
+        days = int(data.get("days") or 3)
+        days = max(1, min(days, 30))
+        result = prepare_run_analysis_data(base_ids, days=days)
+        return JsonResponse({"success": True, **result})
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def agent_run_analysis_run_view(request):
+    """运行情况分析：将近3天环境数据交给 agent 生成运行情况判断与趋势分析。"""
+    try:
+        from aiModels.agent.tool.run_anlysis import build_run_analysis_prompt
+
+        data = json.loads(request.body) or {}
+        session_id = data.get("session_id")
+        if not session_id:
+            return JsonResponse({"success": False, "error": "缺少 session_id"}, status=400)
+
+        prompt = build_run_analysis_prompt()
+        model_config = resolve_model_config(data)
+        return create_agent_sse_response(session_id, prompt, model_config=model_config)
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
