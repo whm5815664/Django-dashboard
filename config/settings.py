@@ -106,14 +106,20 @@ WSGI_APPLICATION = "config.wsgi.application"
 # =========================
 # Database
 # =========================
+def _db_setting(env_key: str, default):
+    """启动器通过环境变量注入数据库配置。"""
+    value = os.environ.get(env_key)
+    return default if value is None or value == "" else value
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
-        'NAME': "web_database", # 数据库名称
-        'HOST': "127.0.0.1", # 数据库地址，本机 ip 地址 127.0.0.1
-        'PORT': 3306, # 端口
-        'USER': "root",  # 数据库用户名root
-        'PASSWORD': "", # 数据库密码
+        'NAME': _db_setting("DB_NAME", "web_database"), # 数据库名称
+        'HOST': _db_setting("DB_HOST", "127.0.0.1"), # 数据库地址，本机 ip 地址 127.0.0.1
+        'PORT': int(_db_setting("DB_PORT", "3306")), # 端口
+        'USER': _db_setting("DB_USER", "root"),  # 数据库用户名root
+        'PASSWORD': _db_setting("DB_PASSWORD", ""), # 数据库密码
         'OPTIONS': {
             'charset': 'utf8mb4',
         },
@@ -131,14 +137,14 @@ DATABASES = {
     #     },
     # },
 
-    # 远程 MySQL 数据库：pig
+    # 远程 MySQL 数据库：pig（冷库环境）
     "pig": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "pig",
-        "HOST": "47.99.61.189",
-        "PORT": 3307,
-        "USER": "zb25",
-        "PASSWORD": "zb123456",
+        "NAME": _db_setting("PIG_NAME", "pig"),
+        "HOST": _db_setting("PIG_HOST", "47.99.61.189"),
+        "PORT": int(_db_setting("PIG_PORT", "3307")),
+        "USER": _db_setting("PIG_USER", "zb25"),
+        "PASSWORD": _db_setting("PIG_PASSWORD", "zb123456"),
         "OPTIONS": {
             "charset": "utf8mb4",
         },

@@ -1070,7 +1070,7 @@
         priceIndices: "{% url 'base_dashboard_price_indices' %}",
       };
 
-      const PRICE_TICKER_SESSION_KEY = "base_dashboard_price_indices_v1";
+      const PRICE_TICKER_SESSION_KEY = "base_dashboard_price_indices_v2";
       function _priceClientDateISO(){
         return new Date().toISOString().slice(0, 10);
       }
@@ -1127,8 +1127,8 @@
           const raw = sessionStorage.getItem(PRICE_TICKER_SESSION_KEY);
           if(raw){
             const pack = JSON.parse(raw);
-            if(pack && pack.d === tKey && pack.data){
-              applyPriceTickerFromAPI(pack.data, !!pack.ok, pack.status);
+            if(pack && pack.ok && pack.d === tKey && pack.data){
+              applyPriceTickerFromAPI(pack.data, true, pack.status);
               return;
             }
           }
@@ -1141,20 +1141,21 @@
           }catch(_){
             data = {};
           }
-          try{
-            sessionStorage.setItem(PRICE_TICKER_SESSION_KEY, JSON.stringify({
-              d: data.cache_date || tKey,
-              ok: res.ok,
-              status: res.status,
-              data: {
-                url: data.url,
-                items: data.items,
-                error: data.error,
-                cache_date: data.cache_date,
-                cached: data.cached,
-              },
-            }));
-          }catch(_){}
+          if(res.ok && Array.isArray(data.items) && data.items.length){
+            try{
+              sessionStorage.setItem(PRICE_TICKER_SESSION_KEY, JSON.stringify({
+                d: data.cache_date || tKey,
+                ok: true,
+                status: res.status,
+                data: {
+                  url: data.url,
+                  items: data.items,
+                  cache_date: data.cache_date,
+                  cached: data.cached,
+                },
+              }));
+            }catch(_){}
+          }
           applyPriceTickerFromAPI(data, res.ok, res.status);
         }catch(e){
           root.className = "price-ticker price-ticker--empty";

@@ -705,8 +705,8 @@
       style="
         display: none;
         position: fixed;
-        width: 420px;
-        height: 510px;
+        width: 560px;
+        height: 560px;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         box-shadow: 0 14px 40px rgba(0,0,0,0.2);
@@ -723,7 +723,7 @@
       style="
         display:none;
         position: fixed;
-        width: 420px;
+        width: 560px;
         height: 38px;
         z-index: 4001;
         cursor: move;
@@ -775,7 +775,7 @@
       }
 
       function _clampAgentPos(left, top) {
-        var w = 420, h = 510;
+        var w = 560, h = 560;
         var pad = 12;
         var maxLeft = Math.max(pad, window.innerWidth - w - pad);
         var maxTop = Math.max(pad, window.innerHeight - h - pad);
@@ -790,7 +790,7 @@
         // 计算小窗位置：尽量贴近按钮，默认放在按钮右侧
         var btn = document.querySelector('.toolbox-button-agent');
         var rect = btn ? btn.getBoundingClientRect() : null;
-        var w = 420, h = 510, gap = 10;
+        var w = 560, h = 560, gap = 10;
         var left = 16, top = 16;
         if (rect) {
           // ✅ 默认放在按钮左侧
