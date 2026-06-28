@@ -86,11 +86,8 @@ def _fetch_rendered_html(url: str, timeout_s: float, headless: bool) -> str:
             ctx = browser.new_context(locale="zh-CN", user_agent=USER_AGENT)
             page = ctx.new_page()
             page.set_default_timeout(timeout_ms)
-            page.goto(url, wait_until="load", timeout=timeout_ms)
-            try:
-                page.wait_for_load_state("networkidle", timeout=min(20_000, timeout_ms))
-            except Exception:
-                pass
+            # agri.cn 存在长期挂起的资源，wait_until="load" 易在 45s 内无法触发 load 事件
+            page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
             try:
                 page.wait_for_function(wait_js, timeout=min(25_000, timeout_ms))
             except Exception:

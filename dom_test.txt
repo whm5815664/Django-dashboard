@@ -1,0 +1,3 @@
+﻿domcontentloaded in 0.65 s
+wait_for_function ok in 0.84 s
+html len 177472

@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ["*"]
 # 统一通过本项目同源接口 `/media-proxy/<path>` 转发。
 #
 # 只使用一个变量：直接填写 `http(s)://ip:port`
-REMOTE_MEDIA_BASE = "http://47.99.61.189:8175"
+REMOTE_MEDIA_BASE = "http://116.62.214.146:8081"
 
 
 # =========================
@@ -141,10 +141,10 @@ DATABASES = {
     "pig": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": _db_setting("PIG_NAME", "pig"),
-        "HOST": _db_setting("PIG_HOST", "47.99.61.189"),
-        "PORT": int(_db_setting("PIG_PORT", "3307")),
-        "USER": _db_setting("PIG_USER", "zb25"),
-        "PASSWORD": _db_setting("PIG_PASSWORD", "zb123456"),
+        "HOST": _db_setting("PIG_HOST", "116.62.214.146"),
+        "PORT": int(_db_setting("PIG_PORT", "3306")),
+        "USER": _db_setting("PIG_USER", "wyh22"),
+        "PASSWORD": _db_setting("PIG_PASSWORD", "wyh123456"),
         "OPTIONS": {
             "charset": "utf8mb4",
         },
