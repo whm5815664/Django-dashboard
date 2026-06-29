@@ -3,7 +3,7 @@
 <html>
 <head>
     <!-- 页面标题 -->
-    <title>智能体问答系统</title>
+    <title>柑橘采后生产智能体</title>
     <!-- 字符编码设置 -->
     <meta charset="UTF-8">
     <!-- 响应式设计：移动端适配 -->
@@ -385,6 +385,97 @@
         .run-analysis-btn:disabled {
             opacity: 0.55;
             cursor: not-allowed;
+        }
+
+        .harvest-analysis-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(249, 115, 22, 0.18);
+            color: #fed7aa;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .harvest-analysis-btn:hover:not(:disabled) {
+            border-color: rgba(251, 146, 60, 0.55);
+            background: rgba(249, 115, 22, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .harvest-analysis-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .agent-harvest-map-wrap {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .agent-harvest-map {
+            width: 100%;
+            height: 280px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .agent-harvest-map-meta {
+            margin-top: 10px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.82);
+            line-height: 1.5;
+        }
+
+        .agent-harvest-confirm-btn {
+            margin-top: 10px;
+            padding: 8px 14px;
+            border: 1px solid rgba(251, 146, 60, 0.55);
+            border-radius: 18px;
+            background: rgba(249, 115, 22, 0.18);
+            color: #fed7aa;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .agent-harvest-confirm-btn:hover:not(:disabled) {
+            background: rgba(249, 115, 22, 0.28);
+        }
+
+        .agent-harvest-confirm-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .agent-harvest-chart {
+            width: 100%;
+            height: 220px;
+            margin-top: 10px;
+        }
+
+        .agent-harvest-daily-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .agent-harvest-daily-table th,
+        .agent-harvest-daily-table td {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 6px 8px;
+            text-align: center;
+        }
+
+        .agent-harvest-daily-table th {
+            background: rgba(255, 255, 255, 0.06);
+            font-weight: 600;
         }
 
         /* ========== 基地环境数据表格 ========== */
@@ -1244,7 +1335,7 @@
                 <!-- 欢迎消息 -->
                 <div class="message bot-message welcome-message">
                     <div class="bot-content">
-                        <p>欢迎使用AIoT智能体系统！</p>
+                        <p>欢迎使用柑橘采后智能体系统！</p>
                     </div>
                 </div>
             </div>
@@ -1256,6 +1347,7 @@
                         <button type="button" class="load-base-btn" id="load-base-btn" onclick="loadSelectedBaseData()">加载基地数据</button>
                         <button type="button" class="storage-analysis-btn" id="storage-analysis-btn" onclick="startStorageAnalysis()">贮藏环境分析</button>
                         <button type="button" class="run-analysis-btn" id="run-analysis-btn" onclick="startRunAnalysis()">运行情况分析</button>
+                        <button type="button" class="harvest-analysis-btn" id="harvest-analysis-btn" onclick="startHarvestAnalysis()">采摘入库分析</button>
                     </div>
                     <div class="feature-bar-right">
                         <label class="model-switch-label" for="opencode-model-select">模型</label>
@@ -1289,6 +1381,13 @@
         </div>
     </div>
 
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "3411731d2cf8f23b624a8182a47626cd",
+        };
+    </script>
+    <script src="https://webapi.amap.com/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <script>
@@ -1316,11 +1415,18 @@
         const agentStorageRunUrl = "{% url 'agent_storage_analysis_run' %}";
         const agentRunAnalysisPrepareUrl = "{% url 'agent_run_analysis_prepare' %}";
         const agentRunAnalysisRunUrl = "{% url 'agent_run_analysis_run' %}";
+        const agentHarvestStartUrl = "{% url 'agent_harvest_analysis_start' %}";
+        const agentHarvestWeatherUrl = "{% url 'agent_harvest_analysis_weather' %}";
+        const agentHarvestRunUrl = "{% url 'agent_harvest_analysis_run' %}";
         const DEFAULT_AGENT_INPUT_PLACEHOLDER = '请输入您的问题...';
         const STORAGE_ANALYSIS_INPUT_PLACEHOLDER = '请输入贮藏的柑橘品种，如：纽霍尔脐橙（可补充关注点）';
+        const HARVEST_ANALYSIS_INPUT_PLACEHOLDER = '请输入种植品种、种植时间等，如：纽霍尔脐橙，2024年3月定植';
+        const AMAP_KEY = '9969ad3b8112bd56b65dc90191ab4753';
         let agentBaseInfoData = null;
         let agentBaseEnvData = null;
         let storageAnalysisMode = false;
+        let harvestAnalysisMode = false;
+        let harvestMapCounter = 0;
 
         function formatEnvNum(value, digits) {
             if (value == null || value === '') return '—';
@@ -1465,9 +1571,215 @@
         }
 
         function setStorageAnalysisInputMode(active) {
-            if (questionInput) {
+            if (questionInput && !harvestAnalysisMode) {
                 questionInput.placeholder = active ? STORAGE_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
             }
+        }
+
+        function setHarvestAnalysisInputMode(active) {
+            if (questionInput) {
+                questionInput.placeholder = active ? HARVEST_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
+            }
+        }
+
+        function buildHarvestMapHtml(mapId, coordId, btnId) {
+            return '<div class="agent-harvest-map-wrap">' +
+                `<div class="agent-harvest-map" id="${mapId}"></div>` +
+                `<div class="agent-harvest-map-meta" id="${coordId}">请在地图上点击选择种植地点</div>` +
+                `<button type="button" class="agent-harvest-confirm-btn" id="${btnId}" disabled>确认位置并查询天气</button>` +
+                '</div>';
+        }
+
+        function buildHarvestWeatherHtml(weather, prefix) {
+            const daily = (weather && weather.daily) ? weather.daily : [];
+            const rows = daily.map(d => {
+                const tRange = (d.temperature_min != null && d.temperature_max != null)
+                    ? `${d.temperature_min} ~ ${d.temperature_max}°C` : '—';
+                return '<tr>' +
+                    `<td>${escapeHtml(d.date || '—')}</td>` +
+                    `<td>${escapeHtml(d.weather_code_zh || '—')}</td>` +
+                    `<td>${escapeHtml(tRange)}</td>` +
+                    `<td>${escapeHtml(d.relative_humidity_avg != null ? String(d.relative_humidity_avg) + '%' : '—')}</td>` +
+                    `<td>${escapeHtml(d.evapotranspiration_sum != null ? String(d.evapotranspiration_sum) : '—')}</td>` +
+                    '</tr>';
+            }).join('');
+            return '<div class="agent-env-load">' +
+                `<div class="agent-env-load-summary">🌤 已加载过去 ${weather.past_days || 3} 天与未来 ${weather.forecast_days || 16} 天逐小时天气预报（Open-Meteo）。</div>` +
+                `<div id="${prefix}-temp" class="agent-harvest-chart"></div>` +
+                `<div id="${prefix}-rh" class="agent-harvest-chart"></div>` +
+                `<div id="${prefix}-et" class="agent-harvest-chart"></div>` +
+                `<div id="${prefix}-cloud" class="agent-harvest-chart"></div>` +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">日汇总：</div>' +
+                '<div class="agent-env-table-wrap"><table class="agent-harvest-daily-table">' +
+                '<thead><tr><th>日期</th><th>天气</th><th>温度</th><th>湿度</th><th>蒸散量</th></tr></thead>' +
+                `<tbody>${rows || '<tr><td colspan="5">暂无数据</td></tr>'}</tbody></table></div>` +
+                '</div></div>';
+        }
+
+        function renderHarvestWeatherCharts(prefix, weather) {
+            if (typeof echarts === 'undefined' || !weather || !weather.hourly) return;
+            const hourly = weather.hourly;
+            const labels = (hourly.time || []).map(t => String(t).replace('T', '\n'));
+
+            function makeLineChart(elId, title, seriesData, unit, color) {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                const chart = echarts.init(el);
+                chart.setOption({
+                    title: { text: title, left: 'center', textStyle: { fontSize: 12, color: '#e5e7eb' } },
+                    grid: { left: 48, right: 16, top: 36, bottom: 52 },
+                    tooltip: { trigger: 'axis' },
+                    dataZoom: [{ type: 'inside' }, { type: 'slider', height: 16, bottom: 6 }],
+                    xAxis: { type: 'category', data: labels, axisLabel: { fontSize: 10, color: '#9ca3af' } },
+                    yAxis: { type: 'value', name: unit, axisLabel: { fontSize: 10, color: '#9ca3af' } },
+                    series: [{ type: 'line', data: seriesData, smooth: true, showSymbol: false, lineStyle: { color }, areaStyle: { opacity: 0.08 } }]
+                });
+                window.addEventListener('resize', () => chart.resize());
+            }
+
+            makeLineChart(`${prefix}-temp`, '气温 (°C)', hourly.temperature_2m || [], '°C', '#ef4444');
+            makeLineChart(`${prefix}-rh`, '相对湿度 (%)', hourly.relative_humidity_2m || [], '%', '#3b82f6');
+            makeLineChart(`${prefix}-et`, '蒸散量 (mm)', hourly.evapotranspiration || [], 'mm', '#f97316');
+            makeLineChart(`${prefix}-cloud`, '云量 (%)', hourly.cloud_cover || [], '%', '#6b7280');
+        }
+
+        function initHarvestMapPicker(mapId, coordId, btnId) {
+            let selectedLng = null;
+            let selectedLat = null;
+            let mapInstance = null;
+            let marker = null;
+
+            function updateCoordText() {
+                const el = document.getElementById(coordId);
+                if (!el) return;
+                if (selectedLng == null || selectedLat == null) {
+                    el.textContent = '请在地图上点击选择种植地点';
+                    return;
+                }
+                el.textContent = `已选坐标：经度 ${selectedLng.toFixed(6)}，纬度 ${selectedLat.toFixed(6)}`;
+            }
+
+            if (!window.AMapLoader) {
+                addMessage('bot', '❌ 高德地图脚本未加载，请刷新页面后重试。');
+                return;
+            }
+
+            AMapLoader.load({
+                key: AMAP_KEY,
+                version: '2.0',
+                plugins: ['AMap.Marker']
+            }).then(AMap => {
+                mapInstance = new AMap.Map(mapId, {
+                    zoom: 6,
+                    center: [112.938814, 30.937196],
+                    animateEnable: false
+                });
+                marker = new AMap.Marker({ position: mapInstance.getCenter(), anchor: 'bottom-center' });
+                mapInstance.add(marker);
+
+                mapInstance.on('click', ev => {
+                    if (!ev || !ev.lnglat) return;
+                    selectedLng = ev.lnglat.getLng();
+                    selectedLat = ev.lnglat.getLat();
+                    marker.setPosition([selectedLng, selectedLat]);
+                    updateCoordText();
+                    const btn = document.getElementById(btnId);
+                    if (btn) btn.disabled = false;
+                });
+
+                const confirmBtn = document.getElementById(btnId);
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', () => {
+                        if (selectedLng == null || selectedLat == null) return;
+                        confirmBtn.disabled = true;
+                        confirmBtn.textContent = '正在查询天气…';
+                        fetch(agentHarvestWeatherUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken') || ''
+                            },
+                            body: JSON.stringify({ latitude: selectedLat, longitude: selectedLng })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                addMessage('bot', '❌ 天气查询失败：' + (data.error || '未知错误'));
+                                confirmBtn.disabled = false;
+                                confirmBtn.textContent = '确认位置并查询天气';
+                                return;
+                            }
+                            const prefix = `harvest-chart-${harvestMapCounter}`;
+                            const msgEl = addBotHtmlMessage(buildHarvestWeatherHtml(data.weather, prefix));
+                            setTimeout(() => {
+                                renderHarvestWeatherCharts(prefix, data.weather);
+                                if (msgEl && msgEl.querySelectorAll) {
+                                    msgEl.querySelectorAll('.agent-harvest-chart').forEach(node => {
+                                        const inst = echarts.getInstanceByDom(node);
+                                        if (inst) inst.resize();
+                                    });
+                                }
+                            }, 120);
+                            harvestAnalysisMode = true;
+                            storageAnalysisMode = false;
+                            setStorageAnalysisInputMode(false);
+                            setHarvestAnalysisInputMode(true);
+                            addMessage('bot', '🍊 天气数据已就绪。请在输入框补充种植品种、种植时间、当前成熟度等信息，然后点击「发送」生成采摘入库分析报告。');
+                        })
+                        .catch(err => {
+                            addMessage('bot', '❌ 天气查询失败：' + (err.message || '网络错误'));
+                            confirmBtn.disabled = false;
+                            confirmBtn.textContent = '确认位置并查询天气';
+                        });
+                    });
+                }
+
+                setTimeout(() => { if (mapInstance) mapInstance.resize(); }, 200);
+            }).catch(err => {
+                addMessage('bot', '❌ 地图初始化失败：' + (err.message || '未知错误'));
+            });
+        }
+
+        function startHarvestAnalysis() {
+            if (isProcessing) return;
+
+            const btn = document.getElementById('harvest-analysis-btn');
+            if (btn) btn.disabled = true;
+
+            harvestAnalysisMode = false;
+            storageAnalysisMode = false;
+            setStorageAnalysisInputMode(false);
+            setHarvestAnalysisInputMode(false);
+
+            fetch(agentHarvestStartUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: '{}'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    addMessage('bot', '❌ 启动失败：' + (data.error || '未知错误'));
+                    return;
+                }
+                harvestMapCounter += 1;
+                const mapId = `agent-harvest-map-${harvestMapCounter}`;
+                const coordId = `agent-harvest-coord-${harvestMapCounter}`;
+                const btnId = `agent-harvest-btn-${harvestMapCounter}`;
+                addMessage('bot', '📍 请在下方高德地图上点击选择您的种植地点，然后点击「确认位置并查询天气」。');
+                addBotHtmlMessage(buildHarvestMapHtml(mapId, coordId, btnId));
+                setTimeout(() => initHarvestMapPicker(mapId, coordId, btnId), 80);
+            })
+            .catch(err => {
+                addMessage('bot', '❌ 启动失败：' + (err.message || '网络错误'));
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
         }
 
         function startStorageAnalysis() {
@@ -1485,6 +1797,8 @@
 
             if (btn) btn.disabled = true;
             addMessage('bot', '📊 正在准备贮藏环境分析数据：' + baseNames + ' …');
+            harvestAnalysisMode = false;
+            setHarvestAnalysisInputMode(false);
 
             fetch(agentStoragePrepareUrl, {
                 method: 'POST',
@@ -2675,12 +2989,17 @@
             questionInput.value = '';
 
             const isStorageRun = storageAnalysisMode;
+            const isHarvestRun = harvestAnalysisMode;
             if (isStorageRun) {
                 storageAnalysisMode = false;
                 setStorageAnalysisInputMode(false);
             }
+            if (isHarvestRun) {
+                harvestAnalysisMode = false;
+                setHarvestAnalysisInputMode(false);
+            }
 
-            const sendUrl = isStorageRun ? agentStorageRunUrl : '{% url "agent_session_send" %}';
+            const sendUrl = isHarvestRun ? agentHarvestRunUrl : (isStorageRun ? agentStorageRunUrl : '{% url "agent_session_send" %}');
             streamAgentFromUrl(sendUrl, question, { enableSpeechListening: true });
         }
 

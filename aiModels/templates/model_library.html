@@ -208,6 +208,7 @@
                     <option value="{% url 'chat' %}">农业大模型问答系统</option>
                     <option value="{% url 'graph' %}">农业文本知识图谱抽取系统</option>
                     <option value="{% url 'upload' %}">病虫害识别系统</option>
+                    <option value="{% url 'knowledge' %}">农业知识库</option>
                 </select>
                 <button class="action-btn" type="button" onclick="jumpToModel()">进入</button>
             </div>
@@ -230,6 +231,12 @@
                 <a class="model-card" href="{% url 'upload' %}">
                     <div class="name">病虫害识别</div>
                     <div class="desc">上传图片进行病虫害识别与结果展示。</div>
+                    <div class="enter">进入</div>
+                </a>
+
+                <a class="model-card" href="{% url 'knowledge' %}">
+                    <div class="name">农业知识库</div>
+                    <div class="desc">浏览、编辑与管理农业问答知识库数据。</div>
                     <div class="enter">进入</div>
                 </a>
             </div>

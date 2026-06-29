@@ -7,6 +7,10 @@ from aiModels.qaModel import spark_api
 from aiModels.qaModel import deepseek_r1_api
 # 智能体系统（大脑）
 from aiModels.agent import brain_agent as db_agent
+from aiModels.agent.tool import farmdata_anlysis as harvest_tool
+from aiModels.agent.tool import run_anlysis as run_tool
+from aiModels.agent.tool import select_data as base_data_tool
+from aiModels.agent.tool import storage_anylisis as storage_tool
 
 # 工具功能
 from aiModels.diseaseModel import diseaseRecognition
@@ -33,11 +37,14 @@ urlpatterns = [
     path('agent/session/create', db_agent.agent_create_session_view, name='agent_session_create'),
     path('agent/session/send', db_agent.agent_send_message_view, name='agent_session_send'),
     path('agent/session/delete', db_agent.agent_delete_session_view, name='agent_session_delete'),
-    path('agent/base/load_data', db_agent.agent_load_base_data_view, name='agent_load_base_data'),
-    path('agent/storage/analysis/prepare', db_agent.agent_storage_analysis_prepare_view, name='agent_storage_analysis_prepare'),
-    path('agent/storage/analysis/run', db_agent.agent_storage_analysis_run_view, name='agent_storage_analysis_run'),
-    path('agent/run/analysis/prepare', db_agent.agent_run_analysis_prepare_view, name='agent_run_analysis_prepare'),
-    path('agent/run/analysis/run', db_agent.agent_run_analysis_run_view, name='agent_run_analysis_run'),
+    path('agent/base/load_data', base_data_tool.agent_load_base_data_view, name='agent_load_base_data'),
+    path('agent/storage/analysis/prepare', storage_tool.agent_storage_analysis_prepare_view, name='agent_storage_analysis_prepare'),
+    path('agent/storage/analysis/run', storage_tool.agent_storage_analysis_run_view, name='agent_storage_analysis_run'),
+    path('agent/run/analysis/prepare', run_tool.agent_run_analysis_prepare_view, name='agent_run_analysis_prepare'),
+    path('agent/run/analysis/run', run_tool.agent_run_analysis_run_view, name='agent_run_analysis_run'),
+    path('agent/harvest/analysis/start', harvest_tool.agent_harvest_analysis_start_view, name='agent_harvest_analysis_start'),
+    path('agent/harvest/analysis/weather', harvest_tool.agent_harvest_analysis_weather_view, name='agent_harvest_analysis_weather'),
+    path('agent/harvest/analysis/run', harvest_tool.agent_harvest_analysis_run_view, name='agent_harvest_analysis_run'),
     # RAG知识库增强系统
     path('initialize_rag', RAG.initialize_rag_view, name='initialize_rag'),
     path('get_answer_rag', RAG.get_answer_rag_view, name='get_answer_rag'),
@@ -61,4 +68,3 @@ urlpatterns = [
     # 模型库入口：选择并跳转到各模型页面
     path('tool/model_library/', views.model_library_view, name='model_library'),
 ]
-

@@ -1,10 +1,14 @@
+import json
 import re
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from django.http import JsonResponse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from screen.models import Base, EnvironmentData
 
@@ -303,3 +307,68 @@ def load_base_env_data(
         "record_count": env_data.get("record_count", 0),
         "days": days,
     }
+
+
+# ---------------------------------------------------------------------------
+# 公共 HTTP 辅助（各工具视图共用）
+# ---------------------------------------------------------------------------
+
+def parse_agent_request_json(request) -> Dict[str, Any]:
+    return json.loads(request.body) if request.body else {}
+
+
+def parse_agent_base_ids(
+    data: Dict[str, Any], empty_error: str
+) -> Tuple[Optional[List[str]], Optional[JsonResponse]]:
+    base_ids = data.get("base_ids") or []
+    if not isinstance(base_ids, list):
+        return None, JsonResponse({"success": False, "error": "base_ids 格式无效"}, status=400)
+    base_ids = [str(item).strip() for item in base_ids if str(item).strip()]
+    if not base_ids:
+        return None, JsonResponse({"success": False, "error": empty_error}, status=400)
+    return base_ids, None
+
+
+def parse_agent_days(data: Dict[str, Any], default: int = 3, max_days: int = 30) -> int:
+    days = int(data.get("days") or default)
+    return max(1, min(days, max_days))
+
+
+# ---------------------------------------------------------------------------
+# 工具：加载基地数据
+# 步骤1（唯一）：根据勾选基地编号加载 base 信息与近 N 天环境数据
+# ---------------------------------------------------------------------------
+
+def load_base_data_step(
+    base_ids: List[str],
+    days: int = 3,
+    recent_limit: int = 30,
+) -> Dict[str, Any]:
+    """【加载基地数据 · 步骤1】查询并缓存基地信息与近 N 天环境记录。"""
+    return load_base_env_data(base_ids, days=days, recent_limit=recent_limit)
+
+
+@csrf_exempt
+@require_POST
+def agent_load_base_data_view(request):
+    """【加载基地数据 · 步骤1】HTTP 入口。"""
+    try:
+        data = parse_agent_request_json(request)
+        base_ids, err = parse_agent_base_ids(data, "请先在总览矩阵中勾选至少一个基地")
+        if err:
+            return err
+
+        result = load_base_data_step(base_ids, days=parse_agent_days(data), recent_limit=30)
+        return JsonResponse(
+            {
+                "success": True,
+                "base_info": result["base_info"],
+                "env_data": result["env_data"],
+                "recent_records": result["recent_records"],
+                "base_count": result["base_count"],
+                "record_count": result["record_count"],
+                "days": result["days"],
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

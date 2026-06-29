@@ -603,6 +603,95 @@
             cursor: not-allowed;
         }
 
+        .agent-harvest-analysis-btn {
+            padding: 5px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff7ed;
+            color: #c2410c;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .agent-harvest-analysis-btn:hover:not(:disabled) {
+            border-color: #f97316;
+            background: #ffedd5;
+        }
+
+        .agent-harvest-analysis-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .agent-harvest-map-wrap {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .agent-harvest-map {
+            width: 100%;
+            height: 220px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .agent-harvest-map-meta {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        .agent-harvest-confirm-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            border: 1px solid #f97316;
+            border-radius: 8px;
+            background: #fff7ed;
+            color: #c2410c;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .agent-harvest-confirm-btn:hover:not(:disabled) {
+            background: #ffedd5;
+        }
+
+        .agent-harvest-confirm-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .agent-harvest-chart {
+            width: 100%;
+            height: 180px;
+            margin-top: 8px;
+        }
+
+        .agent-harvest-daily-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-top: 8px;
+        }
+
+        .agent-harvest-daily-table th,
+        .agent-harvest-daily-table td {
+            border: 1px solid #e5e7eb;
+            padding: 4px 6px;
+            text-align: center;
+        }
+
+        .agent-harvest-daily-table th {
+            background: #f3f4f6;
+            font-weight: 600;
+        }
+
         /* ========== 基地环境数据表格 ========== */
         .agent-env-load {
             width: 100%;
@@ -888,7 +977,7 @@
                         <div class="agent-message-avatar">🤖</div>
                         <div class="agent-message-content agent-bot-content">
                             <div class="agent-welcome-message">
-                                <p>🌱 欢迎使用AIoT实验室的智能体助手，\n<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a></p>
+                                <p>🌱 欢迎使用AIoT实验室的柑橘采后智能体助手，\n<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a></p>
                             </div>
                         </div>
                     </div>
@@ -901,6 +990,7 @@
                             <button type="button" class="agent-load-base-btn" id="agent-load-base-btn" onclick="loadSelectedBaseData()">加载基地数据</button>
                             <button type="button" class="agent-storage-analysis-btn" id="agent-storage-analysis-btn" onclick="startStorageAnalysis()">贮藏环境分析</button>
                             <button type="button" class="agent-run-analysis-btn" id="agent-run-analysis-btn" onclick="startRunAnalysis()">运行情况分析</button>
+                            <button type="button" class="agent-harvest-analysis-btn" id="agent-harvest-analysis-btn" onclick="startHarvestAnalysis()">采摘入库分析</button>
                         </div>
                         <div class="agent-feature-bar-right">
                             <label class="agent-model-label" for="agent-model-select">模型</label>
@@ -925,6 +1015,13 @@
         </div>
     </div>
 
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "3411731d2cf8f23b624a8182a47626cd",
+        };
+    </script>
+    <script src="https://webapi.amap.com/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <script>
@@ -950,11 +1047,18 @@
         const agentStorageRunUrl = "{% url 'agent_storage_analysis_run' %}";
         const agentRunAnalysisPrepareUrl = "{% url 'agent_run_analysis_prepare' %}";
         const agentRunAnalysisRunUrl = "{% url 'agent_run_analysis_run' %}";
+        const agentHarvestStartUrl = "{% url 'agent_harvest_analysis_start' %}";
+        const agentHarvestWeatherUrl = "{% url 'agent_harvest_analysis_weather' %}";
+        const agentHarvestRunUrl = "{% url 'agent_harvest_analysis_run' %}";
         const DEFAULT_AGENT_INPUT_PLACEHOLDER = '请输入您的问题...';
         const STORAGE_ANALYSIS_INPUT_PLACEHOLDER = '请输入贮藏的柑橘品种，如：纽霍尔脐橙（可补充关注点）';
+        const HARVEST_ANALYSIS_INPUT_PLACEHOLDER = '请输入种植品种、种植时间等，如：纽霍尔脐橙，2024年3月定植';
+        const AMAP_KEY = '9969ad3b8112bd56b65dc90191ab4753';
         let agentBaseInfoData = null;
         let agentBaseEnvData = null;
         let storageAnalysisMode = false;
+        let harvestAnalysisMode = false;
+        let harvestMapCounter = 0;
 
         function formatEnvNum(value, digits) {
             if (value == null || value === '') return '—';
@@ -1109,9 +1213,246 @@
 
         function setStorageAnalysisInputMode(active) {
             var input = document.getElementById('agent-question-input');
-            if (input) {
+            if (input && !harvestAnalysisMode) {
                 input.placeholder = active ? STORAGE_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
             }
+        }
+
+        function setHarvestAnalysisInputMode(active) {
+            var input = document.getElementById('agent-question-input');
+            if (input) {
+                input.placeholder = active ? HARVEST_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
+            }
+        }
+
+        function wmoCodeToZh(code) {
+            if (code == null || isNaN(Number(code))) return '—';
+            var c = Number(code);
+            var map = {
+                0: '晴', 1: '晴', 2: '多云', 3: '阴',
+                45: '雾', 48: '雾凇',
+                51: '小毛毛雨', 53: '中毛毛雨', 55: '大毛毛雨',
+                56: '冻毛毛雨', 57: '冻毛毛雨',
+                61: '小雨', 63: '中雨', 65: '大雨', 66: '冻雨', 67: '冻雨',
+                71: '小雪', 73: '中雪', 75: '大雪', 77: '雪粒',
+                80: '小阵雨', 81: '阵雨', 82: '强阵雨',
+                85: '小阵雪', 86: '阵雪',
+                95: '雷阵雨', 96: '雷阵雨伴冰雹', 97: '强雷阵雨', 99: '强雷阵雨伴冰雹'
+            };
+            if (map[c] !== undefined) return map[c];
+            if (c >= 51 && c <= 55) return '毛毛雨';
+            if (c >= 61 && c <= 67) return '雨';
+            if (c >= 71 && c <= 77) return '雪';
+            if (c >= 80 && c <= 82) return '阵雨';
+            if (c >= 85 && c <= 86) return '阵雪';
+            if (c >= 95 && c <= 99) return '雷暴';
+            return '未知';
+        }
+
+        function buildHarvestMapHtml(mapId, coordId, btnId) {
+            return '<div class="agent-harvest-map-wrap">' +
+                '<div class="agent-harvest-map" id="' + mapId + '"></div>' +
+                '<div class="agent-harvest-map-meta" id="' + coordId + '">请在地图上点击选择种植地点</div>' +
+                '<button type="button" class="agent-harvest-confirm-btn" id="' + btnId + '" disabled>确认位置并查询天气</button>' +
+                '</div>';
+        }
+
+        function buildHarvestWeatherHtml(weather, prefix) {
+            var daily = (weather && weather.daily) ? weather.daily : [];
+            var rows = daily.map(function(d) {
+                var tRange = (d.temperature_min != null && d.temperature_max != null)
+                    ? (d.temperature_min + ' ~ ' + d.temperature_max + '°C') : '—';
+                return '<tr>' +
+                    '<td>' + escapeHtml(d.date || '—') + '</td>' +
+                    '<td>' + escapeHtml(d.weather_code_zh || '—') + '</td>' +
+                    '<td>' + escapeHtml(tRange) + '</td>' +
+                    '<td>' + escapeHtml(d.relative_humidity_avg != null ? String(d.relative_humidity_avg) + '%' : '—') + '</td>' +
+                    '<td>' + escapeHtml(d.evapotranspiration_sum != null ? String(d.evapotranspiration_sum) : '—') + '</td>' +
+                    '</tr>';
+            }).join('');
+            return '<div class="agent-env-load">' +
+                '<div class="agent-env-load-summary">🌤 已加载过去 ' + (weather.past_days || 3) + ' 天与未来 ' +
+                (weather.forecast_days || 16) + ' 天逐小时天气预报（Open-Meteo）。</div>' +
+                '<div id="' + prefix + '-temp" class="agent-harvest-chart"></div>' +
+                '<div id="' + prefix + '-rh" class="agent-harvest-chart"></div>' +
+                '<div id="' + prefix + '-et" class="agent-harvest-chart"></div>' +
+                '<div id="' + prefix + '-cloud" class="agent-harvest-chart"></div>' +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">日汇总：</div>' +
+                '<div class="agent-env-table-wrap"><table class="agent-harvest-daily-table">' +
+                '<thead><tr><th>日期</th><th>天气</th><th>温度</th><th>湿度</th><th>蒸散量</th></tr></thead>' +
+                '<tbody>' + (rows || '<tr><td colspan="5">暂无数据</td></tr>') + '</tbody></table></div>' +
+                '</div></div>';
+        }
+
+        function renderHarvestWeatherCharts(prefix, weather) {
+            if (typeof echarts === 'undefined' || !weather || !weather.hourly) return;
+            var hourly = weather.hourly;
+            var times = hourly.time || [];
+            var labels = times.map(function(t) { return String(t).replace('T', '\n'); });
+
+            function makeLineChart(elId, title, seriesData, unit, color) {
+                var el = document.getElementById(elId);
+                if (!el) return;
+                var chart = echarts.init(el);
+                chart.setOption({
+                    title: { text: title, left: 'center', textStyle: { fontSize: 11 } },
+                    grid: { left: 42, right: 12, top: 32, bottom: 48 },
+                    tooltip: { trigger: 'axis' },
+                    dataZoom: [{ type: 'inside' }, { type: 'slider', height: 14, bottom: 4 }],
+                    xAxis: { type: 'category', data: labels, axisLabel: { fontSize: 9 } },
+                    yAxis: { type: 'value', name: unit, axisLabel: { fontSize: 9 } },
+                    series: [{ type: 'line', data: seriesData, smooth: true, showSymbol: false, lineStyle: { color: color }, areaStyle: { opacity: 0.08 } }]
+                });
+                window.addEventListener('resize', function() { chart.resize(); });
+            }
+
+            makeLineChart(prefix + '-temp', '气温 (°C)', hourly.temperature_2m || [], '°C', '#ef4444');
+            makeLineChart(prefix + '-rh', '相对湿度 (%)', hourly.relative_humidity_2m || [], '%', '#3b82f6');
+            makeLineChart(prefix + '-et', '蒸散量 (mm)', hourly.evapotranspiration || [], 'mm', '#f97316');
+            makeLineChart(prefix + '-cloud', '云量 (%)', hourly.cloud_cover || [], '%', '#6b7280');
+        }
+
+        function initHarvestMapPicker(mapId, coordId, btnId) {
+            var selectedLng = null;
+            var selectedLat = null;
+            var mapInstance = null;
+            var marker = null;
+
+            function updateCoordText() {
+                var el = document.getElementById(coordId);
+                if (!el) return;
+                if (selectedLng == null || selectedLat == null) {
+                    el.textContent = '请在地图上点击选择种植地点';
+                    return;
+                }
+                el.textContent = '已选坐标：经度 ' + selectedLng.toFixed(6) + '，纬度 ' + selectedLat.toFixed(6);
+            }
+
+            if (!window.AMapLoader) {
+                addAgentMessage('bot', '❌ 高德地图脚本未加载，请刷新页面后重试。');
+                return;
+            }
+
+            AMapLoader.load({
+                key: AMAP_KEY,
+                version: '2.0',
+                plugins: ['AMap.Marker']
+            }).then(function(AMap) {
+                mapInstance = new AMap.Map(mapId, {
+                    zoom: 6,
+                    center: [112.938814, 30.937196],
+                    animateEnable: false
+                });
+                marker = new AMap.Marker({ position: mapInstance.getCenter(), anchor: 'bottom-center' });
+                mapInstance.add(marker);
+
+                mapInstance.on('click', function(ev) {
+                    if (!ev || !ev.lnglat) return;
+                    selectedLng = ev.lnglat.getLng();
+                    selectedLat = ev.lnglat.getLat();
+                    marker.setPosition([selectedLng, selectedLat]);
+                    updateCoordText();
+                    var btn = document.getElementById(btnId);
+                    if (btn) btn.disabled = false;
+                });
+
+                var confirmBtn = document.getElementById(btnId);
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', function() {
+                        if (selectedLng == null || selectedLat == null) return;
+                        confirmBtn.disabled = true;
+                        confirmBtn.textContent = '正在查询天气…';
+                        fetch(agentHarvestWeatherUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken') || ''
+                            },
+                            body: JSON.stringify({ latitude: selectedLat, longitude: selectedLng })
+                        })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (!data.success) {
+                                addAgentMessage('bot', '❌ 天气查询失败：' + (data.error || '未知错误'));
+                                confirmBtn.disabled = false;
+                                confirmBtn.textContent = '确认位置并查询天气';
+                                return;
+                            }
+                            var prefix = 'harvest-chart-' + harvestMapCounter;
+                            var msgEl = addAgentBotHtml(buildHarvestWeatherHtml(data.weather, prefix));
+                            setTimeout(function() {
+                                renderHarvestWeatherCharts(prefix, data.weather);
+                                if (msgEl && msgEl.querySelector) {
+                                    msgEl.querySelectorAll('.agent-harvest-chart').forEach(function(node) {
+                                        if (window.echarts) {
+                                            var inst = echarts.getInstanceByDom(node);
+                                            if (inst) inst.resize();
+                                        }
+                                    });
+                                }
+                            }, 120);
+                            harvestAnalysisMode = true;
+                            storageAnalysisMode = false;
+                            setStorageAnalysisInputMode(false);
+                            setHarvestAnalysisInputMode(true);
+                            addAgentMessage('bot',
+                                '🍊 天气数据已就绪。请在输入框补充**种植品种、种植时间、当前成熟度**等信息，然后点击「发送」生成采摘入库分析报告。'
+                            );
+                        })
+                        .catch(function(err) {
+                            addAgentMessage('bot', '❌ 天气查询失败：' + (err.message || '网络错误'));
+                            confirmBtn.disabled = false;
+                            confirmBtn.textContent = '确认位置并查询天气';
+                        });
+                    });
+                }
+
+                setTimeout(function() { if (mapInstance) mapInstance.resize(); }, 200);
+            }).catch(function(err) {
+                addAgentMessage('bot', '❌ 地图初始化失败：' + (err.message || '未知错误'));
+            });
+        }
+
+        function startHarvestAnalysis() {
+            if (isAgentProcessing || isAgentRefreshing) return;
+
+            var btn = document.getElementById('agent-harvest-analysis-btn');
+            if (btn) btn.disabled = true;
+
+            harvestAnalysisMode = false;
+            storageAnalysisMode = false;
+            setStorageAnalysisInputMode(false);
+            setHarvestAnalysisInputMode(false);
+
+            fetch(agentHarvestStartUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: '{}'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    addAgentMessage('bot', '❌ 启动失败：' + (data.error || '未知错误'));
+                    return;
+                }
+                harvestMapCounter += 1;
+                var mapId = 'agent-harvest-map-' + harvestMapCounter;
+                var coordId = 'agent-harvest-coord-' + harvestMapCounter;
+                var btnId = 'agent-harvest-btn-' + harvestMapCounter;
+                addAgentMessage('bot', '📍 请在下方高德地图上**点击**选择您的种植地点，然后点击「确认位置并查询天气」。');
+                addAgentBotHtml(buildHarvestMapHtml(mapId, coordId, btnId));
+                setTimeout(function() { initHarvestMapPicker(mapId, coordId, btnId); }, 80);
+            })
+            .catch(function(err) {
+                addAgentMessage('bot', '❌ 启动失败：' + (err.message || '网络错误'));
+            })
+            .finally(function() {
+                if (btn) btn.disabled = false;
+            });
         }
 
         function startStorageAnalysis() {
@@ -1131,6 +1472,8 @@
 
             if (btn) btn.disabled = true;
             addAgentMessage('bot', '📊 正在准备贮藏环境分析数据：' + baseNames + ' …');
+            harvestAnalysisMode = false;
+            setHarvestAnalysisInputMode(false);
 
             fetch(agentStoragePrepareUrl, {
                 method: 'POST',
@@ -1678,12 +2021,17 @@
             input.value = '';
 
             var isStorageRun = storageAnalysisMode;
+            var isHarvestRun = harvestAnalysisMode;
             if (isStorageRun) {
                 storageAnalysisMode = false;
                 setStorageAnalysisInputMode(false);
             }
+            if (isHarvestRun) {
+                harvestAnalysisMode = false;
+                setHarvestAnalysisInputMode(false);
+            }
 
-            var sendUrl = isStorageRun ? agentStorageRunUrl : (agentApiBase + '/send');
+            var sendUrl = isHarvestRun ? agentHarvestRunUrl : (isStorageRun ? agentStorageRunUrl : (agentApiBase + '/send'));
             streamAgentFromUrl(sendUrl, question, { historyUserContent: question });
         }
 

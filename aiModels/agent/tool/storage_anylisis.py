@@ -1,13 +1,20 @@
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
+from django.http import JsonResponse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
+from aiModels.agent.brain_agent import create_agent_sse_response, resolve_model_config
 from aiModels.agent.tool.select_data import (
     _unique_base_keys,
     get_base_env_data,
     get_base_info_data,
     load_base_env_data,
+    parse_agent_base_ids,
+    parse_agent_days,
+    parse_agent_request_json,
     resolve_base_pigsty_mapping,
 )
 from screen.models import EnvironmentData
@@ -251,3 +258,78 @@ def get_device_data() -> Optional[Dict[str, Any]]:
 def get_device_images() -> Optional[Dict[str, Any]]:
     """获取内存中的设备最新监控图 JSON。"""
     return BASE_DEVICE_IMAGES
+
+
+def _run_agent_with_prompt(session_id: str, prompt: str, data: Dict[str, Any]):
+    model_config = resolve_model_config(data)
+    return create_agent_sse_response(session_id, prompt, model_config=model_config)
+
+
+# ---------------------------------------------------------------------------
+# 工具：贮藏环境分析
+# 步骤1：加载基地信息与近 3 天环境数据
+# 步骤2：（前端）用户在输入框补充贮藏柑橘品种
+# 步骤3：组合环境 JSON 与用户输入，调用 agent 生成分析报告
+# ---------------------------------------------------------------------------
+
+def storage_analysis_step1_prepare(
+    base_ids: List[str],
+    days: int = 3,
+    recent_limit: int = 30,
+) -> Dict[str, Any]:
+    """【贮藏环境分析 · 步骤1】加载选中基地的 base 信息与近 N 天环境数据。"""
+    return prepare_storage_analysis_data(base_ids, days=days, recent_limit=recent_limit)
+
+
+def storage_analysis_step3_run(user_input: str) -> str:
+    """【贮藏环境分析 · 步骤3】将环境 JSON 与用户输入组合为 agent 分析提示词。"""
+    return build_storage_analysis_prompt(user_input)
+
+
+@csrf_exempt
+@require_POST
+def agent_storage_analysis_prepare_view(request):
+    """【贮藏环境分析 · 步骤1】HTTP 入口。"""
+    try:
+        data = parse_agent_request_json(request)
+        base_ids, err = parse_agent_base_ids(data, "请先在主页或大屏勾选至少一个基地")
+        if err:
+            return err
+
+        result = storage_analysis_step1_prepare(base_ids, days=parse_agent_days(data), recent_limit=30)
+        return JsonResponse(
+            {
+                "success": True,
+                "base_info": result["base_info"],
+                "env_data": result["env_data"],
+                "recent_records": result["recent_records"],
+                "base_count": result["base_count"],
+                "record_count": result["record_count"],
+                "days": result["days"],
+            }
+        )
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def agent_storage_analysis_run_view(request):
+    """【贮藏环境分析 · 步骤3】HTTP 入口。"""
+    try:
+        data = parse_agent_request_json(request)
+        session_id = data.get("session_id")
+        user_input = (data.get("message") or data.get("user_input") or "").strip()
+        if not session_id:
+            return JsonResponse({"success": False, "error": "缺少 session_id"}, status=400)
+        if not user_input:
+            return JsonResponse({"success": False, "error": "请输入贮藏的柑橘品种及分析需求"}, status=400)
+
+        prompt = storage_analysis_step3_run(user_input)
+        return _run_agent_with_prompt(session_id, prompt, data)
+    except ValueError as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
