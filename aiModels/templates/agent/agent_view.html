@@ -478,6 +478,22 @@
             font-weight: 600;
         }
 
+        .agent-harvest-price-source {
+            margin-top: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .agent-harvest-price-source a {
+            color: #c7d2fe;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .agent-harvest-price-chart {
+            margin-top: 10px;
+        }
+
         /* ========== 基地环境数据表格 ========== */
         .agent-env-load {
             width: 100%;
@@ -1417,6 +1433,7 @@
         const agentRunAnalysisRunUrl = "{% url 'agent_run_analysis_run' %}";
         const agentHarvestStartUrl = "{% url 'agent_harvest_analysis_start' %}";
         const agentHarvestWeatherUrl = "{% url 'agent_harvest_analysis_weather' %}";
+        const agentHarvestPriceUrl = "{% url 'agent_harvest_analysis_price' %}";
         const agentHarvestRunUrl = "{% url 'agent_harvest_analysis_run' %}";
         const DEFAULT_AGENT_INPUT_PLACEHOLDER = '请输入您的问题...';
         const STORAGE_ANALYSIS_INPUT_PLACEHOLDER = '请输入贮藏的柑橘品种，如：纽霍尔脐橙（可补充关注点）';
@@ -1590,6 +1607,115 @@
                 '</div>';
         }
 
+        function buildHarvestPriceHtml(price, chartId) {
+            const title = (price && price.title) ? price.title : '柑橘价格走势';
+            const name = (price && price.name) ? price.name : '柑橘';
+            const unit = (price && price.unit) ? price.unit : '元/公斤';
+            const rows = (price && price.display_rows) ? price.display_rows : [];
+            const latest = price && price.latest;
+            const latestText = latest
+                ? `最新：${escapeHtml(latest.date)} · ${escapeHtml(String(latest.price))} ${escapeHtml(unit)}`
+                : '暂无最新价格';
+            const tableRows = rows.map(row =>
+                `<tr><td>${escapeHtml(row.date || '—')}</td><td>${escapeHtml(row.price != null ? String(row.price) : '—')}</td></tr>`
+            ).join('');
+            const sourceUrl = (price && price.source_url) ? price.source_url : '';
+            const sourceLink = sourceUrl
+                ? `中华人民共和国商务部-商务预报 <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(sourceUrl)}</a>`
+                : '—';
+            return '<div class="agent-env-load">' +
+                `<div class="agent-env-load-summary">💰 已加载${escapeHtml(name)}价格（${escapeHtml(unit)}）· ${latestText}</div>` +
+                `<div id="${chartId}" class="agent-harvest-chart agent-harvest-price-chart"></div>` +
+                '<div class="agent-env-load-section">' +
+                `<div class="agent-env-load-title">${escapeHtml(title)}（最近 ${rows.length} 条）</div>` +
+                '<div class="agent-env-table-wrap"><table class="agent-harvest-daily-table">' +
+                `<thead><tr><th>时间</th><th>价格(${escapeHtml(unit)})</th></tr></thead>` +
+                `<tbody>${tableRows || '<tr><td colspan="2">暂无数据</td></tr>'}</tbody></table></div>` +
+                `<div class="agent-harvest-price-source">价格出处：${sourceLink}</div>` +
+                '</div></div>';
+        }
+
+        function renderHarvestPriceChart(chartId, price) {
+            if (typeof echarts === 'undefined' || !price) return;
+            const el = document.getElementById(chartId);
+            if (!el) return;
+            const unit = price.unit || '元/公斤';
+            const chartRows = (price.rows && price.rows.length) ? price.rows : (price.display_rows || []).slice().reverse();
+            if (!chartRows.length) return;
+            const labels = chartRows.map(row => String(row.date || '').slice(5));
+            const values = chartRows.map(row => row.price);
+            const chart = echarts.init(el);
+            chart.setOption({
+                title: { text: `柑橘价格走势 (${unit})`, left: 'center', textStyle: { fontSize: 12, color: '#e5e7eb' } },
+                grid: { left: 48, right: 16, top: 36, bottom: 52 },
+                tooltip: { trigger: 'axis' },
+                dataZoom: [{ type: 'inside' }, { type: 'slider', height: 16, bottom: 6 }],
+                xAxis: { type: 'category', data: labels, axisLabel: { fontSize: 10, rotate: 45, color: '#9ca3af' } },
+                yAxis: { type: 'value', name: unit, scale: true, axisLabel: { fontSize: 10, color: '#9ca3af' } },
+                series: [{
+                    type: 'line',
+                    data: values,
+                    smooth: true,
+                    showSymbol: false,
+                    lineStyle: { color: '#f59e0b', width: 2 },
+                    areaStyle: { color: 'rgba(245, 158, 11, 0.12)' }
+                }]
+            });
+            window.addEventListener('resize', () => chart.resize());
+        }
+
+        const HARVEST_DATA_DISPLAY_DELAY_MS = 2000;
+
+        function delayHarvestDataDisplay(loadingStartMs, callback) {
+            const elapsed = Date.now() - loadingStartMs;
+            const delay = Math.max(0, HARVEST_DATA_DISPLAY_DELAY_MS - elapsed);
+            setTimeout(callback, delay);
+        }
+
+        function fetchHarvestCitrusPriceAfterWeather(confirmBtn) {
+            const priceLoadStart = Date.now();
+            addMessage('bot', '💰 正在查询商务部柑橘价格…');
+            return fetch(agentHarvestPriceUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: '{}'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    addMessage('bot', '❌ 柑橘价格查询失败：' + (data.error || '未知错误'));
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = '确认位置并查询天气';
+                    }
+                    return false;
+                }
+                delayHarvestDataDisplay(priceLoadStart, () => {
+                    addBotHtmlMessage(buildHarvestPriceHtml(data.price, `harvest-price-chart-${harvestMapCounter}`));
+                    setTimeout(() => {
+                        renderHarvestPriceChart(`harvest-price-chart-${harvestMapCounter}`, data.price);
+                    }, 120);
+                    harvestAnalysisMode = true;
+                    storageAnalysisMode = false;
+                    setStorageAnalysisInputMode(false);
+                    setHarvestAnalysisInputMode(true);
+                    addMessage('bot', '🍊 天气与价格数据已就绪。请在输入框补充种植品种、种植时间、当前成熟度等信息，然后点击「发送」生成采摘入库分析报告。');
+                });
+                return true;
+            })
+            .catch(err => {
+                addMessage('bot', '❌ 柑橘价格查询失败：' + (err.message || '网络错误'));
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '确认位置并查询天气';
+                }
+                return false;
+            });
+        }
+
         function buildHarvestWeatherHtml(weather, prefix) {
             const daily = (weather && weather.daily) ? weather.daily : [];
             const rows = daily.map(d => {
@@ -1694,6 +1820,8 @@
                         if (selectedLng == null || selectedLat == null) return;
                         confirmBtn.disabled = true;
                         confirmBtn.textContent = '正在查询天气…';
+                        const weatherLoadStart = Date.now();
+                        addMessage('bot', '🌤 正在获取天气数据…');
                         fetch(agentHarvestWeatherUrl, {
                             method: 'POST',
                             headers: {
@@ -1710,22 +1838,20 @@
                                 confirmBtn.textContent = '确认位置并查询天气';
                                 return;
                             }
-                            const prefix = `harvest-chart-${harvestMapCounter}`;
-                            const msgEl = addBotHtmlMessage(buildHarvestWeatherHtml(data.weather, prefix));
-                            setTimeout(() => {
-                                renderHarvestWeatherCharts(prefix, data.weather);
-                                if (msgEl && msgEl.querySelectorAll) {
-                                    msgEl.querySelectorAll('.agent-harvest-chart').forEach(node => {
-                                        const inst = echarts.getInstanceByDom(node);
-                                        if (inst) inst.resize();
-                                    });
-                                }
-                            }, 120);
-                            harvestAnalysisMode = true;
-                            storageAnalysisMode = false;
-                            setStorageAnalysisInputMode(false);
-                            setHarvestAnalysisInputMode(true);
-                            addMessage('bot', '🍊 天气数据已就绪。请在输入框补充种植品种、种植时间、当前成熟度等信息，然后点击「发送」生成采摘入库分析报告。');
+                            delayHarvestDataDisplay(weatherLoadStart, () => {
+                                const prefix = `harvest-chart-${harvestMapCounter}`;
+                                const msgEl = addBotHtmlMessage(buildHarvestWeatherHtml(data.weather, prefix));
+                                setTimeout(() => {
+                                    renderHarvestWeatherCharts(prefix, data.weather);
+                                    if (msgEl && msgEl.querySelectorAll) {
+                                        msgEl.querySelectorAll('.agent-harvest-chart').forEach(node => {
+                                            const inst = echarts.getInstanceByDom(node);
+                                            if (inst) inst.resize();
+                                        });
+                                    }
+                                }, 120);
+                                fetchHarvestCitrusPriceAfterWeather(confirmBtn);
+                            });
                         })
                         .catch(err => {
                             addMessage('bot', '❌ 天气查询失败：' + (err.message || '网络错误'));

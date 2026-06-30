@@ -44,6 +44,7 @@ urlpatterns = [
     path('agent/run/analysis/run', run_tool.agent_run_analysis_run_view, name='agent_run_analysis_run'),
     path('agent/harvest/analysis/start', harvest_tool.agent_harvest_analysis_start_view, name='agent_harvest_analysis_start'),
     path('agent/harvest/analysis/weather', harvest_tool.agent_harvest_analysis_weather_view, name='agent_harvest_analysis_weather'),
+    path('agent/harvest/analysis/price', harvest_tool.agent_harvest_analysis_price_view, name='agent_harvest_analysis_price'),
     path('agent/harvest/analysis/run', harvest_tool.agent_harvest_analysis_run_view, name='agent_harvest_analysis_run'),
     # RAG知识库增强系统
     path('initialize_rag', RAG.initialize_rag_view, name='initialize_rag'),
