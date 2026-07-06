@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ["*"]
 # 统一通过本项目同源接口 `/media-proxy/<path>` 转发。
 #
 # 只使用一个变量：直接填写 `http(s)://ip:port`
-REMOTE_MEDIA_BASE = "http://116.62.214.146:8081"
+REMOTE_MEDIA_BASE = "http://116.62.214.146:8175"
 
 
 # =========================

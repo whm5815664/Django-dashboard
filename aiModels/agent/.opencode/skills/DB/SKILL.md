@@ -18,7 +18,7 @@ python scripts/db_query.py <数据库> <查询>
 | 数据库 | HOST | PORT | NAME | USER | PASSWORD |
 |--------|------|------|------|------|----------|
 | default | 127.0.0.1 | 3306 | web_database | root | (空) |
-| pig | 47.99.61.189 | 3307 | pig | zb25 | zb123456 |
+| pig | 116.62.214.146 | 3306 | pig | wyh22 | wyh123456 |
 
 ## 预设查询(直接使用)
 
