@@ -64,6 +64,17 @@
         display:flex;
         flex-direction:column;
         gap:12px;
+        overflow-x:hidden;
+        overflow-y:auto;
+        overscroll-behavior-y:contain;
+        scrollbar-width:thin;
+        scrollbar-color:rgba(52,211,255,.42) rgba(9,22,36,.55);
+      }
+      .main-area::-webkit-scrollbar{width:6px;}
+      .main-area::-webkit-scrollbar-track{background:rgba(0,0,0,.22);border-radius:999px;}
+      .main-area::-webkit-scrollbar-thumb{
+        border-radius:999px;
+        background:linear-gradient(180deg,rgba(52,211,255,.42),rgba(43,155,255,.52));
       }
       .price-ticker-bar{
         flex-shrink:0;
@@ -159,6 +170,7 @@
         display:grid;
         grid-template-columns: repeat(3, 1fr);
         gap:12px;
+        flex-shrink:0;
       }
 
       .card{
@@ -233,6 +245,7 @@
         cursor:pointer;
         transition: transform .12s ease, border-color .12s ease, background .12s ease;
         user-select:none;
+        min-height:118px;
       }
       .matrix-item:hover{
         transform: translateY(-2px);
@@ -419,6 +432,39 @@
         background:linear-gradient(180deg,rgba(52,211,255,.62),rgba(43,155,255,.75));
       }
 
+      /* 协同预警 / 总览矩阵 / 运行情况：区域被压缩时内部可纵向滚动 */
+      .panel-scroll-card{
+        display:flex;
+        flex-direction:column;
+        flex:1;
+        min-height:0;
+        overflow:hidden;
+      }
+      .panel-scroll-card > .card-bd{
+        flex:1;
+        min-height:0;
+        padding:10px 12px;
+        display:flex;
+        flex-direction:column;
+      }
+      .panel-scroll-card .panel-scroll-body{
+        flex:1;
+        min-height:0;
+      }
+
+      /* 总览矩阵：至少保留一行基地卡片可见，超出部分内部滚动 */
+      .matrix-panel-card{
+        flex:1 1 auto;
+        flex-shrink:0;
+        min-height:186px;
+      }
+      .matrix-panel-card > .card-bd{
+        min-height:118px;
+      }
+      .matrix-panel-card .panel-scroll-body{
+        min-height:118px;
+      }
+
       /* 左侧「基地环境数据」：占满剩余高度，内部表格区域可纵向滚动 */
       .env-panel-card{
         display:flex;
@@ -504,6 +550,11 @@
         gap:8px;
         flex:1;
         min-height:0;
+      }
+      .panel-scroll-body .monitor-grid{
+        flex:none;
+        height:auto;
+        grid-template-rows:auto auto;
       }
       .monitor-cell{
         border:1px solid rgba(27,58,91,.55);
@@ -646,6 +697,25 @@
         color: var(--text);
         border-color: rgba(52,211,255,.55);
       }
+      .hd-text-btn{
+        font-size:11px;
+        font-weight:800;
+        color: rgba(143,177,212,.92);
+        padding:4px 10px;
+        border-radius:8px;
+        border:1px solid rgba(27,58,91,.55);
+        background: rgba(52,211,255,.08);
+        white-space:nowrap;
+        cursor:pointer;
+        letter-spacing:1px;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease, color .12s ease;
+      }
+      .hd-text-btn:hover{
+        color: var(--text);
+        border-color: rgba(52,211,255,.55);
+        background: rgba(52,211,255,.14);
+        transform: translateY(-1px);
+      }
 
       .modal-mask{
         position:fixed;
@@ -753,6 +823,42 @@
         background: rgba(52,211,255,.16);
       }
 
+      .today-chart-card{
+        height:210px;
+        flex-shrink:0;
+        display:flex;
+        flex-direction:column;
+      }
+      .today-chart-card > .card-hd{
+        flex-shrink:0;
+        padding:8px 12px;
+      }
+      .today-chart-card > .card-hd .title{
+        gap:12px;
+      }
+      .today-chart-axis-tags{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        margin-left:4px;
+        font-size:10px;
+        font-weight:700;
+        letter-spacing:0;
+      }
+      .today-chart-axis-tags .tag-temp{ color:#34d3ff; }
+      .today-chart-axis-tags .tag-hum{ color:#2b9bff; }
+      .today-chart-card > .card-bd{
+        flex:1;
+        min-height:0;
+        padding:0 4px 2px;
+        overflow:hidden;
+      }
+      #todayChart{
+        width:100%;
+        height:100%;
+        min-height:0;
+      }
+
       .chartBoxTall{height:320px;}
       @media (max-width: 1280px){
         .page{grid-template-columns: 320px 1fr 320px;}
@@ -820,17 +926,22 @@
           </div>
         </div>
 
-        <div class="card" style="height: 180px; display:flex; flex-direction:column;">
+        <div class="card today-chart-card">
           <div class="card-hd">
-            <div class="title">基地温湿度</div>
-            <div class="chip" id="todayChip">—</div>
+            <div class="title">
+              基地温湿度
+              <span class="today-chart-axis-tags" aria-hidden="true">
+                <span class="tag-temp">温度(°C)</span>
+                <span class="tag-hum">湿度(%)</span>
+              </span>
+            </div>
           </div>
-          <div class="card-bd" style="flex:1; padding:0;">
-            <div id="todayChart" style="height: 100%; width: 100%;"></div>
+          <div class="card-bd">
+            <div id="todayChart"></div>
           </div>
         </div>
 
-        <div class="card" style="height: 270px;">
+        <div class="card panel-scroll-card">
           <div class="card-hd">
             <div class="title">协同预警中心</div>
             <div class="hd-actions">
@@ -843,7 +954,7 @@
             </div>
           </div>
           <div class="card-bd">
-            <div class="scroll" style="height: 210px;">
+            <div class="panel-scroll-body scroll scroll-y-themed" role="region" aria-label="协同预警列表，可上下滚动">
               <div id="alarmList" style="display:flex;flex-direction:column;gap:10px;">
                 <div class="alarm-item">
                   <div class="left">
@@ -881,22 +992,25 @@
           </div>
         </div>
 
-        <div class="card" style="flex:1; min-height:0;">
+        <div class="card panel-scroll-card matrix-panel-card">
           <div class="card-hd">
             <div class="title">总览矩阵</div>
             <div class="chip" id="matrixChip">点击切换基地</div>
           </div>
           <div class="card-bd">
-            <div class="scroll scroll-y-themed" style="height: 310px;" role="region" aria-label="总览矩阵，可上下滚动">
+            <div class="panel-scroll-body scroll scroll-y-themed" role="region" aria-label="总览矩阵，可上下滚动">
               <div class="matrix" id="matrixGrid"></div>
             </div>
           </div>
         </div>
 
-        <div class="card" style="height: 320px;">
+        <div class="card" style="height: 320px; flex-shrink:0;">
           <div class="card-hd">
             <div class="title">天气预报</div>
             <div class="hd-actions">
+              <button type="button" class="hd-text-btn" id="openWeatherProvinceMapBtn"
+                data-embed-title="全国省份气象地图"
+                data-embed-url="{% url 'weather_province' %}">气象地图</button>
               <button type="button" class="icon-btn" id="weatherRefreshBtn" title="刷新天气" aria-label="刷新天气">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -946,13 +1060,15 @@
           </div>
         </div>
 
-        <div class="card" style="flex:1; min-height:0; display:flex; flex-direction:column;">
+        <div class="card panel-scroll-card">
           <div class="card-hd">
             <div class="title">运行情况</div>
             <div class="chip">设备监控</div>
           </div>
-          <div class="card-bd" style="display:flex; flex-direction:column; gap:8px; flex:1; min-height:0; padding:10px;">
-            <div id="monitorImagesGrid" class="monitor-grid" aria-label="基地最新设备监控图"></div>
+          <div class="card-bd">
+            <div class="panel-scroll-body scroll scroll-y-themed" role="region" aria-label="设备监控，可上下滚动">
+              <div id="monitorImagesGrid" class="monitor-grid" aria-label="基地最新设备监控图"></div>
+            </div>
           </div>
         </div>
 
@@ -1902,49 +2018,143 @@
         }
       }
 
-      // 初始化“今日温湿度”折线图
+      // 温湿度折线图：时间轴标签（跨天时带日期）
+      function fmtChartAxisTime(t, multiDay){
+        if(!t) return "";
+        if(typeof t === "string"){
+          const m = t.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+          if(m) return multiDay ? `${m[1].slice(5)} ${m[2]}` : m[2];
+        }
+        return fmtTime(t);
+      }
+      function chartSeriesSpansDays(items){
+        if(!Array.isArray(items) || items.length < 2) return false;
+        const days = new Set();
+        for(const it of items){
+          const t = it && it.collected_time;
+          if(!t) continue;
+          const m = String(t).match(/^(\d{4}-\d{2}-\d{2})/);
+          if(m) days.add(m[1]);
+          if(days.size > 1) return true;
+        }
+        return false;
+      }
+      function buildTodayChartZoom(count){
+        if(count <= 12){
+          return [{ type: "inside", xAxisIndex: 0, filterMode: "filter" }];
+        }
+        const start = Math.max(0, 100 - Math.round(12 / count * 100));
+        const sliderStyle = {
+          height: 10,
+          bottom: 1,
+          showDetail: false,
+          showDataShadow: false,
+          brushSelect: false,
+          borderColor: "rgba(27,58,91,.55)",
+          fillerColor: "rgba(52,211,255,.18)",
+          handleSize: "80%",
+          handleStyle: { color: "#34d3ff", borderColor: "#34d3ff" },
+          textStyle: { color: "#8fb1d4", fontSize: 10 },
+          dataBackground: {
+            lineStyle: { color: "rgba(52,211,255,.35)" },
+            areaStyle: { color: "rgba(52,211,255,.08)" },
+          },
+        };
+        return [
+          { type: "inside", xAxisIndex: 0, start, end: 100, filterMode: "filter" },
+          { type: "slider", xAxisIndex: 0, start, end: 100, ...sliderStyle },
+        ];
+      }
+
+      // 初始化基地温湿度折线图
       function initTodayChart(){
         const el = document.getElementById("todayChart");
         state.todayChart = echarts.init(el);
         window.addEventListener("resize", ()=>state.todayChart && state.todayChart.resize());
       }
-      // 拉取并渲染“今日温湿度”折线图
+      // 拉取并渲染基地温湿度折线图（有数据即显示，支持拖动/滚轮缩放查看）
       async function loadTodaySeries(baseId){
         if(!state.todayChart) initTodayChart();
-        const chip = document.getElementById("todayChip");
         if(!baseId){
-          chip.textContent = "未选择基地";
           state.todayChart.clear();
           return;
         }
-        chip.textContent = `${baseId}`;
         try{
           const data = await getJSON(API.today, { base_id: baseId });
-          const items = (data && data.items) ? data.items : [];
-          const x = items.map(it=>fmtTime(it.collected_time));
+          const items = (data && data.success && Array.isArray(data.items)) ? data.items : [];
+          if(!items.length){
+            state.todayChart.setOption({
+              backgroundColor: "transparent",
+              title: { text: "暂无温湿度数据", left: "center", top: "middle", textStyle: { color: "#8fb1d4", fontSize: 12 } },
+              xAxis: { show: false },
+              yAxis: [{ show: false }, { show: false }],
+              series: [],
+            }, true);
+            return;
+          }
+
+          const multiDay = chartSeriesSpansDays(items);
+          const x = items.map(it=>fmtChartAxisTime(it.collected_time, multiDay));
           const t = items.map(it=>it.temperature);
           const h = items.map(it=>it.humidity);
+          const hasZoom = items.length > 12;
           state.todayChart.setOption({
             backgroundColor: "transparent",
-            tooltip: { trigger: "axis", confine: true },
-            grid: { left: 42, right: 14, top: 18, bottom: 24, containLabel: true },
+            title: { show: false },
+            tooltip: {
+              trigger: "axis",
+              confine: true,
+              formatter(params){
+                if(!Array.isArray(params) || !params.length) return "";
+                const idx = params[0].dataIndex;
+                const raw = items[idx];
+                const head = raw ? fmtFull(raw.collected_time) : params[0].axisValue;
+                let out = head + "<br/>";
+                params.forEach(p=>{
+                  const val = p.value == null ? "—" : p.value;
+                  const unit = p.seriesName === "温度" ? "°C" : "%";
+                  out += `${p.marker}${p.seriesName}：${val}${unit}<br/>`;
+                });
+                return out;
+              },
+            },
+            grid: {
+              left: 34,
+              right: 34,
+              top: 6,
+              bottom: hasZoom ? 30 : 12,
+              containLabel: false,
+            },
+            dataZoom: buildTodayChartZoom(items.length),
             xAxis: {
               type: "category",
               data: x,
-              axisLabel: { color: "#8fb1d4", fontSize: 10, hideOverlap: true },
-              axisLine: { lineStyle: { color: "rgba(27,58,91,.55)" } }
+              boundaryGap: false,
+              axisLabel: { color: "#8fb1d4", fontSize: 9, hideOverlap: true, margin: 6 },
+              axisLine: { lineStyle: { color: "rgba(27,58,91,.55)" } },
+              axisTick: { show: false },
             },
             yAxis: [
               {
                 type: "value",
-                axisLabel: { color: "#8fb1d4", fontSize: 10 },
-                splitLine: { lineStyle: { color: "rgba(27,58,91,.20)" } }
+                axisLabel: {
+                  color: "#8fb1d4",
+                  fontSize: 9,
+                  margin: 6,
+                  formatter: (v)=> String(v),
+                },
+                splitLine: { lineStyle: { color: "rgba(27,58,91,.20)" } },
               },
               {
                 type: "value",
-                axisLabel: { color: "#8fb1d4", fontSize: 10 },
-                splitLine: { show: false }
-              }
+                axisLabel: {
+                  color: "#8fb1d4",
+                  fontSize: 9,
+                  margin: 6,
+                  formatter: (v)=> String(v),
+                },
+                splitLine: { show: false },
+              },
             ],
             series: [
               {
@@ -1967,12 +2177,13 @@
                 clip: true,
                 lineStyle: { width: 2, color: "#2b9bff" },
                 areaStyle: { color: "rgba(43,155,255,.06)" },
-              }
-            ]
+              },
+            ],
           }, true);
+          state.todayChart.resize();
         }catch(e){
           state.todayChart.setOption({
-            title: { text: "今日数据加载失败", left: "center", top: "middle", textStyle: { color: "#8fb1d4", fontSize: 12 } }
+            title: { text: "温湿度数据加载失败", left: "center", top: "middle", textStyle: { color: "#8fb1d4", fontSize: 12 } },
           }, true);
         }
       }
@@ -2188,6 +2399,7 @@
         }
         bindOpen("openAgentEmbedBtn");
         bindOpen("openModelLibEmbedBtn");
+        bindOpen("openWeatherProvinceMapBtn");
         const priceRoot = document.getElementById("priceTickerRoot");
         priceRoot && priceRoot.addEventListener("click", (e)=>{
           const item = e.target.closest(".price-marquee-item");

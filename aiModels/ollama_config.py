@@ -24,4 +24,5 @@ OPENCODE_MODELS = [
     {'label': 'GPT-OSS', 'model': 'gpt-oss:latest', 'modelID': 'gpt-oss:latest', 'providerID': 'ollama'},
     {'label': 'Qwen3.5 0.8B', 'model': 'qwen3.5:0.8b', 'modelID': 'qwen3.5:0.8b', 'providerID': 'ollama'},
     {'label': 'Qwen3.5 Plus', 'model': 'qwen3.5-plus', 'modelID': 'qwen3.5-plus', 'providerID': 'WenModel'},
+    {'label': 'deepseek-v4-pro', 'model': 'deepseek-v4-pro', 'modelID': 'qwen3.5-plus', 'providerID': 'WenModel'},
 ]

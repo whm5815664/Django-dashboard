@@ -243,7 +243,7 @@ def dashboard_base_env(request):
 
 @require_GET
 def dashboard_today_series(request):
-    """今日温湿度折线图：返回选中基地当日 00:00~24:00 的温湿度序列。"""
+    """基地温湿度折线图：优先返回当日序列；当日无数据时返回最近一批历史序列。"""
     base_id = (request.GET.get("base_id") or "").strip()
     pigsty_id = _base_id_to_pigsty_id(base_id)
     if pigsty_id is None:
@@ -254,14 +254,35 @@ def dashboard_today_series(request):
     start_local = timezone.make_aware(datetime.combine(today, time.min), now_local.tzinfo)
     end_local = start_local + timedelta(days=1)
 
-    qs = (
+    qs_today = (
         EnvironmentData.objects.using("pig")
         .filter(pigsty_id=pigsty_id, collected_time__gte=start_local, collected_time__lt=end_local)
         .order_by("collected_time", "id")
         .values("collected_time", "temperature", "humidity")[:8000]
     )
+    items = list(qs_today)
+    scope = "today"
 
-    return JsonResponse({"success": True, "base_id": base_id, "pigsty_id": pigsty_id, "date": str(today), "items": list(qs)})
+    if not items:
+        qs_recent = (
+            EnvironmentData.objects.using("pig")
+            .filter(pigsty_id=pigsty_id)
+            .order_by("-collected_time", "-id")
+            .values("collected_time", "temperature", "humidity")[:8000]
+        )
+        items = list(reversed(list(qs_recent)))
+        scope = "recent"
+
+    return JsonResponse(
+        {
+            "success": True,
+            "base_id": base_id,
+            "pigsty_id": pigsty_id,
+            "date": str(today),
+            "scope": scope,
+            "items": items,
+        }
+    )
 
 
 @require_GET

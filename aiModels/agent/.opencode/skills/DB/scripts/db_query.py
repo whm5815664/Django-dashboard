@@ -16,10 +16,10 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 def get_db_config(db_name):
     if db_name == 'pig':
         return {
-            'host': '47.99.61.189',
-            'port': 3307,
-            'user': 'zb25',
-            'password': 'zb123456',
+            'host': '116.62.214.146',
+            'port': 3306,
+            'user': 'wyh22',
+            'password': 'wyh123456',
             'database': 'pig',
             'charset': 'utf8mb4',
             'connect_timeout': 10,

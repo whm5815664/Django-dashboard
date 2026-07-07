@@ -46,6 +46,11 @@ def base_dashboard(request):
     return render(request, "screen/base_dashboard.html")
 
 
+# 全国省份气象监测大屏
+def weather_province(request):
+    return render(request, "screen/weather_province.html")
+
+
 @require_GET
 def base_dashboard_price_indices(request):
     """价格指数：无头爬取耗时较长，供大屏异步拉取。"""

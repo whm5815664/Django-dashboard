@@ -532,3 +532,13 @@ def agent_harvest_analysis_run_view(request):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+
+'''
+智能体页面增加“采摘入库分析”功能，业务逻辑放在 @aiModels/agent/tool/farmdata_anlysis.py 中，流程如下：
+1.询问用户种植的地点（智能体显示框出现高德地图，用户点击地图，出现地图丁并获取经纬度坐标）
+2.根据经纬度，去Open-Meteo API查询未来16天以及过去3天（past_days=3&forecast_days=16）的天气（hourly=temperature_2m,relative_humidity_2m,evapotranspiration,cloud_cover,weather_code），并以图表的形式显示，其中天气代码参考（@base_dashboard.html (1754-1771) ）
+3.询问用户种植品种、种植时间等信息
+4.将上述信息汇聚到智能体opencode，生成分析报告，报告包含推荐采摘时间、推荐入库时间、贮藏环境设置
+'''

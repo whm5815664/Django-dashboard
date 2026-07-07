@@ -33,6 +33,9 @@
       "models": {
         "qwen3.5-plus": {
           "name": "qwen3.5-plus"
+        },
+        "deepseek-v4-pro": {
+          "name": "deepseek-v4-pro"
         }
       }
     }

@@ -18,6 +18,7 @@ from .tool import video
 
 # 添加天气API路由
 from .tool import weather_api
+from .tool import weather_province
 
 urlpatterns = [
     # 视图主页
@@ -30,6 +31,9 @@ urlpatterns = [
 
     # 基地数据大屏页面
     path('base_dashboard', views.base_dashboard, name='base_dashboard'),
+
+    # 全国省份气象监测大屏
+    path('weather_province', views.weather_province, name='weather_province'),
 
     # 基地数据大屏接口
     path('api/base_dashboard/summary', baseDashboard.dashboard_summary, name='base_dashboard_summary'),
@@ -68,6 +72,11 @@ urlpatterns = [
     path('weather/province_temperature/', weather_api.get_province_temperature_view, name='get_province_temperature'),
     path('weather/start_province_monitoring/', weather_api.start_province_monitoring_view, name='start_province_monitoring'),
     path('weather/stop_province_monitoring/', weather_api.stop_province_monitoring_view, name='stop_province_monitoring'),
+
+    # 省份气象监测 API（OpenWeatherMap）
+    path('weather/province/', weather_province.get_province_weather_view, name='weather_province_detail'),
+    path('weather/provinces/', weather_province.get_all_provinces_weather_view, name='weather_provinces_overview'),
+    path('weather/province_list/', weather_province.get_province_list_view, name='weather_province_list'),
 
     # 外部网页接入测试
     path('test', RedirectView.as_view(url='https://www.deepseek.com')),

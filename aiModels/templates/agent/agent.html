@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能体助手</title>
+    <title>柑橘采后生产智能体</title>
     <style>
         /* ========== 弹窗遮罩层 ========== */
         .agent-modal-overlay {
@@ -557,6 +557,30 @@
             cursor: not-allowed;
         }
 
+        .agent-knowledge-btn {
+            padding: 5px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+            color: #374151;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .agent-knowledge-btn:hover:not(:disabled) {
+            border-color: #6366f1;
+            color: #4338ca;
+            background: #eef2ff;
+        }
+
+        .agent-knowledge-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .agent-storage-analysis-btn {
             padding: 5px 10px;
             border: 1px solid #e5e7eb;
@@ -624,6 +648,259 @@
         .agent-harvest-analysis-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .agent-tuilv-analysis-btn {
+            padding: 5px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fef3c7;
+            color: #b45309;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .agent-tuilv-analysis-btn:hover:not(:disabled) {
+            border-color: #f59e0b;
+            background: #fde68a;
+        }
+
+        .agent-tuilv-analysis-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .agent-tuilv-form {
+            margin-top: 8px;
+            padding: 10px;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            background: #fffbeb;
+        }
+
+        .agent-tuilv-form-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .agent-tuilv-form-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .agent-tuilv-form-btn {
+            padding: 6px 12px;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #b45309;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .agent-tuilv-form-btn:hover:not(:disabled) {
+            background: #fef3c7;
+        }
+
+        .agent-tuilv-form-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .agent-tuilv-scheme-input {
+            width: 100%;
+            min-height: 88px;
+            padding: 8px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .agent-tuilv-chart {
+            width: 100%;
+            height: 180px;
+            margin: 8px 0;
+        }
+
+        .agent-tuilv-pipeline {
+            margin: 8px 0;
+            padding: 10px 12px;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            background: #fffbeb;
+        }
+
+        .agent-tuilv-pipeline-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .agent-tuilv-pipeline-bar-wrap {
+            height: 8px;
+            background: #fef3c7;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .agent-tuilv-pipeline-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            border-radius: 999px;
+            transition: width 0.35s ease;
+        }
+
+        .agent-tuilv-pipeline-status {
+            font-size: 11px;
+            color: #b45309;
+        }
+
+        .agent-tuilv-step-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #92400e;
+            margin: 6px 0 8px;
+        }
+
+        .agent-tuilv-rag-result {
+            margin-top: 6px;
+        }
+
+        .agent-tuilv-rag-query {
+            font-size: 11px;
+            color: #78716c;
+            margin-top: 6px;
+        }
+
+        .agent-tuilv-rag-segments {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .agent-tuilv-rag-segment {
+            padding: 8px 10px;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .agent-tuilv-rag-segment-head {
+            font-size: 11px;
+            font-weight: 600;
+            color: #b45309;
+            margin-bottom: 4px;
+        }
+
+        .agent-tuilv-rag-segment-body {
+            font-size: 12px;
+            line-height: 1.55;
+            color: #374151;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* ========== 分析工具气泡菜单 ========== */
+        .agent-analysis-menu-wrap {
+            position: relative;
+            display: inline-flex;
+            flex-shrink: 0;
+        }
+
+        .agent-analysis-trigger {
+            padding: 5px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #eef2ff 0%, #ecfdf5 100%);
+            color: #4338ca;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .agent-analysis-trigger:hover:not(:disabled) {
+            border-color: #6366f1;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+
+        .agent-analysis-trigger.open {
+            border-color: #6366f1;
+            background: #e0e7ff;
+        }
+
+        .agent-analysis-trigger:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .agent-analysis-popover {
+            position: absolute;
+            left: 0;
+            bottom: calc(100% + 6px);
+            min-width: 152px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            padding: 6px;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            animation: agentAnalysisMenuIn 0.15s ease;
+        }
+
+        .agent-analysis-popover.show {
+            display: flex;
+        }
+
+        @keyframes agentAnalysisMenuIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .agent-analysis-popover::after {
+            content: '';
+            position: absolute;
+            left: 18px;
+            bottom: -5px;
+            width: 10px;
+            height: 10px;
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            transform: rotate(45deg);
+        }
+
+        .agent-analysis-popover .agent-harvest-analysis-btn,
+        .agent-analysis-popover .agent-storage-analysis-btn,
+        .agent-analysis-popover .agent-run-analysis-btn,
+        .agent-analysis-popover .agent-tuilv-analysis-btn {
+            width: 100%;
+            text-align: left;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 10px;
         }
 
         .agent-harvest-map-wrap {
@@ -974,7 +1251,7 @@
             <div class="agent-modal-header">
                 <div class="agent-modal-title">
                     <span>🤖</span>
-                    <span>智能体助手</span>
+                    <span>柑橘采后生产智能体</span>
                 </div>
                 <div class="agent-modal-actions">
                     <button class="agent-modal-refresh" id="agent-refresh-btn" type="button" onclick="refreshAgentSession()">
@@ -993,7 +1270,7 @@
                         <div class="agent-message-avatar">🤖</div>
                         <div class="agent-message-content agent-bot-content">
                             <div class="agent-welcome-message">
-                                <p>🌱 欢迎使用AIoT实验室的柑橘采后智能体助手，\n<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a></p>
+                                <p>🌱 欢迎使用AIoT实验室的柑橘采后生产智能体，\n<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a></p>
                             </div>
                         </div>
                     </div>
@@ -1004,9 +1281,18 @@
                     <div class="agent-feature-bar">
                         <div class="agent-feature-bar-left">
                             <button type="button" class="agent-load-base-btn" id="agent-load-base-btn" onclick="loadSelectedBaseData()">加载基地数据</button>
-                            <button type="button" class="agent-storage-analysis-btn" id="agent-storage-analysis-btn" onclick="startStorageAnalysis()">贮藏环境分析</button>
-                            <button type="button" class="agent-run-analysis-btn" id="agent-run-analysis-btn" onclick="startRunAnalysis()">运行情况分析</button>
-                            <button type="button" class="agent-harvest-analysis-btn" id="agent-harvest-analysis-btn" onclick="startHarvestAnalysis()">采摘入库分析</button>
+                            <button type="button" class="agent-knowledge-btn" id="agent-knowledge-btn" onclick="navigateToKnowledge(event)">知识库</button>
+                            <div class="agent-analysis-menu-wrap">
+                                <button type="button" class="agent-analysis-trigger" id="agent-analysis-trigger" onclick="toggleAgentAnalysisMenu(event)" title="选择分析类型">
+                                    <span>分析工具</span><span>▾</span>
+                                </button>
+                                <div class="agent-analysis-popover" id="agent-analysis-popover" role="menu">
+                                    <button type="button" class="agent-harvest-analysis-btn" id="agent-harvest-analysis-btn" role="menuitem" onclick="closeAgentAnalysisMenu(); startHarvestAnalysis()">采摘入库分析</button>
+                                    <button type="button" class="agent-storage-analysis-btn" id="agent-storage-analysis-btn" role="menuitem" onclick="closeAgentAnalysisMenu(); startStorageAnalysis()">贮藏环境分析</button>
+                                    <button type="button" class="agent-run-analysis-btn" id="agent-run-analysis-btn" role="menuitem" onclick="closeAgentAnalysisMenu(); startRunAnalysis()">运行情况分析</button>
+                                    <button type="button" class="agent-tuilv-analysis-btn" id="agent-tuilv-analysis-btn" role="menuitem" onclick="closeAgentAnalysisMenu(); startTuilvAnalysis()">品种褪绿分析</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="agent-feature-bar-right">
                             <label class="agent-model-label" for="agent-model-select">模型</label>
@@ -1054,6 +1340,7 @@
         const agentApiBase = "{% url 'agent_session_create' %}".replace(/\/create\/?$/, '');
         /** 智能体后台页面URL */
         const agentViewUrl = "{% url 'agent_view' %}";
+        const knowledgeUrl = "{% url 'knowledge' %}";
         const OPENCODE_MODELS = {{ opencode_models_json|safe }};
         const OPENCODE_DEFAULT_MODEL_ID = "{{ opencode_default_model_id }}";
         const AGENT_MODEL_STORAGE_KEY = 'agent_opencode_model_id';
@@ -1067,15 +1354,27 @@
         const agentHarvestWeatherUrl = "{% url 'agent_harvest_analysis_weather' %}";
         const agentHarvestPriceUrl = "{% url 'agent_harvest_analysis_price' %}";
         const agentHarvestRunUrl = "{% url 'agent_harvest_analysis_run' %}";
+        const agentTuilvPrepareUrl = "{% url 'agent_tuilv_analysis_prepare' %}";
+        const agentTuilvRunUrl = "{% url 'agent_tuilv_analysis_run' %}";
         const DEFAULT_AGENT_INPUT_PLACEHOLDER = '请输入您的问题...';
         const STORAGE_ANALYSIS_INPUT_PLACEHOLDER = '请输入贮藏的柑橘品种，如：纽霍尔脐橙（可补充关注点）';
         const HARVEST_ANALYSIS_INPUT_PLACEHOLDER = '请输入种植品种、种植时间等，如：纽霍尔脐橙，2024年3月定植';
+        const TUILV_ANALYSIS_VARIETY_PLACEHOLDER = '请输入要褪绿的柑橘品种，如：纽霍尔脐橙';
+        const TUILV_ANALYSIS_SCHEME_PLACEHOLDER = '请描述您的褪绿方案（乙烯浓度、通风、温湿度等）';
         const AMAP_KEY = '9969ad3b8112bd56b65dc90191ab4753';
         let agentBaseInfoData = null;
         let agentBaseEnvData = null;
         let storageAnalysisMode = false;
         let harvestAnalysisMode = false;
         let harvestMapCounter = 0;
+        let tuilvAnalysisCounter = 0;
+        let tuilvAnalysisState = {
+            active: false,
+            stage: null,
+            variety: null
+        };
+        let tuilvGeneratePipeline = null;
+        let tuilvProgressTimer = null;
 
         function formatEnvNum(value, digits) {
             if (value == null || value === '') return '—';
@@ -1228,18 +1527,565 @@
             }
         }
 
+        function resetTuilvAnalysisState() {
+            tuilvAnalysisState = { active: false, stage: null, variety: null };
+        }
+
         function setStorageAnalysisInputMode(active) {
             var input = document.getElementById('agent-question-input');
-            if (input && !harvestAnalysisMode) {
+            if (input && !harvestAnalysisMode && !tuilvAnalysisState.active) {
                 input.placeholder = active ? STORAGE_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
             }
         }
 
         function setHarvestAnalysisInputMode(active) {
             var input = document.getElementById('agent-question-input');
-            if (input) {
+            if (input && !tuilvAnalysisState.active) {
                 input.placeholder = active ? HARVEST_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
             }
+        }
+
+        function setTuilvAnalysisInputMode(stage) {
+            var input = document.getElementById('agent-question-input');
+            if (!input) return;
+            if (stage === 'variety') {
+                input.placeholder = TUILV_ANALYSIS_VARIETY_PLACEHOLDER;
+            } else if (stage === 'scheme_input') {
+                input.placeholder = TUILV_ANALYSIS_SCHEME_PLACEHOLDER;
+            } else {
+                input.placeholder = DEFAULT_AGENT_INPUT_PLACEHOLDER;
+            }
+        }
+
+        function formatTuilvEnvRecordsTableHtml(records) {
+            if (!records || !records.length) {
+                return '<div class="agent-env-empty">暂无环境数据。</div>';
+            }
+            var rows = records.map(function(r) {
+                return '<tr>' +
+                    '<td class="col-base">' + escapeHtml(r.base_name || r.base_id || '—') + '</td>' +
+                    '<td class="col-time">' + escapeHtml(r.collected_time || '—') + '</td>' +
+                    '<td class="col-num">' + formatEnvNum(r.temperature, 1) + '</td>' +
+                    '<td class="col-num">' + formatEnvNum(r.humidity, 0) + '</td>' +
+                    '<td class="col-num">' + formatEnvNum(r.C2H4, 2) + '</td>' +
+                    '<td class="col-num">' + formatEnvNum(r.CO2, 1) + '</td>' +
+                    '</tr>';
+            }).join('');
+            return '<div class="agent-env-table-wrap"><table class="agent-env-table">' +
+                '<thead><tr>' +
+                '<th scope="col">基地</th>' +
+                '<th scope="col">采集时间</th>' +
+                '<th scope="col">温度(°C)</th>' +
+                '<th scope="col">湿度(%)</th>' +
+                '<th scope="col">乙烯(C2H4)</th>' +
+                '<th scope="col">CO2</th>' +
+                '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+        }
+
+        function buildTuilvEnvHtml(data, prefix) {
+            var displayCount = data.display_record_count != null ? data.display_record_count : (data.recent_records || []).length;
+            return '<div class="agent-env-load">' +
+                '<div class="agent-env-load-summary">🍊 已加载 ' + data.base_count + ' 个基地，近 ' + data.days +
+                ' 天共 ' + data.record_count + ' 条环境记录（表格展示最近 ' + displayCount + ' 条）。</div>' +
+                '<div id="' + prefix + '-temp" class="agent-tuilv-chart"></div>' +
+                '<div id="' + prefix + '-rh" class="agent-tuilv-chart"></div>' +
+                '<div id="' + prefix + '-c2h4" class="agent-tuilv-chart"></div>' +
+                '<div class="agent-env-load-section">' +
+                '<div class="agent-env-load-title">最近 ' + displayCount + ' 条环境数据：</div>' +
+                formatTuilvEnvRecordsTableHtml(data.recent_records || []) +
+                '</div></div>';
+        }
+
+        function renderTuilvEnvCharts(prefix, records) {
+            if (typeof echarts === 'undefined' || !records || !records.length) return;
+            var sorted = records.slice().sort(function(a, b) {
+                return String(a.collected_time || '').localeCompare(String(b.collected_time || ''));
+            });
+            var labels = sorted.map(function(r) {
+                return String(r.collected_time || '—').replace('T', '\n');
+            });
+
+            function makeLineChart(elId, title, values, unit, color) {
+                var el = document.getElementById(elId);
+                if (!el) return;
+                var chart = echarts.init(el);
+                chart.setOption({
+                    title: { text: title, left: 'center', textStyle: { fontSize: 11 } },
+                    grid: { left: 42, right: 12, top: 32, bottom: 48 },
+                    tooltip: { trigger: 'axis' },
+                    dataZoom: [{ type: 'inside' }, { type: 'slider', height: 14, bottom: 4 }],
+                    xAxis: { type: 'category', data: labels, axisLabel: { fontSize: 9 } },
+                    yAxis: { type: 'value', name: unit, axisLabel: { fontSize: 9 } },
+                    series: [{
+                        type: 'line',
+                        data: values,
+                        smooth: true,
+                        showSymbol: false,
+                        lineStyle: { color: color, width: 2 },
+                        areaStyle: { opacity: 0.08 }
+                    }]
+                });
+                window.addEventListener('resize', function() { chart.resize(); });
+            }
+
+            makeLineChart(prefix + '-temp', '温度 (°C)', sorted.map(function(r) { return r.temperature; }), '°C', '#ef4444');
+            makeLineChart(prefix + '-rh', '相对湿度 (%)', sorted.map(function(r) { return r.humidity; }), '%', '#3b82f6');
+            makeLineChart(prefix + '-c2h4', '乙烯 C2H4', sorted.map(function(r) { return r.C2H4; }), 'ppm', '#f59e0b');
+        }
+
+        function buildTuilvSchemeQuestionHtml(formId) {
+            return '<div class="agent-tuilv-form" id="' + formId + '">' +
+                '<div class="agent-tuilv-form-title">是否已有「' + escapeHtml(tuilvAnalysisState.variety || '') + '」的褪绿方案？</div>' +
+                '<div class="agent-tuilv-form-options">' +
+                '<button type="button" class="agent-tuilv-form-btn" data-choice="no">无，智能体生成方案</button>' +
+                '<button type="button" class="agent-tuilv-form-btn" data-choice="yes">有，输入方案</button>' +
+                '</div></div>';
+        }
+
+        function buildTuilvSchemeInputHtml(formId, textareaId, btnId) {
+            return '<div class="agent-tuilv-form" id="' + formId + '">' +
+                '<div class="agent-tuilv-form-title">请输入您的褪绿方案</div>' +
+                '<textarea class="agent-tuilv-scheme-input" id="' + textareaId + '" placeholder="请描述乙烯浓度、处理时长、通风与温湿度控制等要点…"></textarea>' +
+                '<div class="agent-tuilv-form-options" style="margin-top:8px;">' +
+                '<button type="button" class="agent-tuilv-form-btn" id="' + btnId + '">提交方案并评价可行性</button>' +
+                '</div></div>';
+        }
+
+        function buildTuilvAlgorithmChoiceHtml(formId, variety) {
+            return '<div class="agent-tuilv-form" id="' + formId + '">' +
+                '<div class="agent-tuilv-form-title">请选择知识库检索算法（' + escapeHtml(variety || '') + '）</div>' +
+                '<div class="agent-tuilv-form-options">' +
+                '<button type="button" class="agent-tuilv-form-btn" data-algo="skill">算法1：OpenCode Skill 检索</button>' +
+                '<button type="button" class="agent-tuilv-form-btn" data-algo="hybrid">算法2：JSON 知识库 RAG 检索</button>' +
+                '</div></div>';
+        }
+
+        function bindTuilvAlgorithmChoiceForm(formId, variety) {
+            var formEl = document.getElementById(formId);
+            if (!formEl) return;
+            formEl.querySelectorAll('[data-algo]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    if (isAgentProcessing || isAgentRefreshing) return;
+                    var algorithm = btn.getAttribute('data-algo') || 'hybrid';
+                    formEl.querySelectorAll('[data-algo]').forEach(function(b) { b.disabled = true; });
+                    resetTuilvAnalysisState();
+                    setTuilvAnalysisInputMode(null);
+                    addAgentMessage('user', algorithm === 'skill'
+                        ? '使用算法1：OpenCode Skill 检索'
+                        : '使用算法2：JSON 知识库 RAG 检索');
+                    startTuilvGeneratePipeline(variety, algorithm);
+                });
+            });
+        }
+
+        function buildTuilvRagAlgoLabel(ragData) {
+            if (ragData && ragData.algorithm_label) return ragData.algorithm_label;
+            if (ragData && ragData.algorithm === 'skill') return 'OpenCode Skill 检索';
+            return 'JSON 知识库 RAG 检索';
+        }
+
+        function stopTuilvProgressSimulation() {
+            if (tuilvProgressTimer) {
+                clearInterval(tuilvProgressTimer);
+                tuilvProgressTimer = null;
+            }
+        }
+
+        function updateTuilvPipelineProgress(percent, label) {
+            if (!tuilvGeneratePipeline || !tuilvGeneratePipeline.barEl) return;
+            var pct = Math.max(0, Math.min(100, percent));
+            tuilvGeneratePipeline.progress = pct;
+            tuilvGeneratePipeline.barEl.style.width = pct + '%';
+            if (tuilvGeneratePipeline.statusEl && label) {
+                tuilvGeneratePipeline.statusEl.textContent = label;
+            }
+        }
+
+        function startTuilvProgressSimulation(from, to, label, durationMs) {
+            stopTuilvProgressSimulation();
+            var start = Date.now();
+            updateTuilvPipelineProgress(from, label);
+            tuilvProgressTimer = setInterval(function() {
+                if (!tuilvGeneratePipeline || tuilvGeneratePipeline.aborted) {
+                    stopTuilvProgressSimulation();
+                    return;
+                }
+                var ratio = Math.min(1, (Date.now() - start) / durationMs);
+                updateTuilvPipelineProgress(from + (to - from) * ratio, label);
+                if (ratio >= 1) stopTuilvProgressSimulation();
+            }, 120);
+        }
+
+        function streamTuilvHybridRagSearch(variety, signal) {
+            return new Promise(function(resolve, reject) {
+                var finished = false;
+                var readerRef = null;
+
+                function fail(err) {
+                    if (finished) return;
+                    finished = true;
+                    if (readerRef) {
+                        try { readerRef.cancel(); } catch (e) {}
+                    }
+                    reject(err);
+                }
+
+                fetch(agentTuilvRunUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    body: JSON.stringify({ variety: variety, mode: 'rag_search_hybrid' }),
+                    signal: signal
+                })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    readerRef = response.body.getReader();
+                    var decoder = new TextDecoder();
+                    var buffer = '';
+
+                    function finalize(data) {
+                        if (finished) return;
+                        finished = true;
+                        try { readerRef.cancel(); } catch (e) {}
+                        resolve(data);
+                    }
+
+                    function pump() {
+                        return readerRef.read().then(function(result) {
+                            if (finished) return;
+                            if (result.done) {
+                                if (!finished) fail(new Error('混合 RAG 检索未完成'));
+                                return;
+                            }
+                            buffer += decoder.decode(result.value, { stream: true });
+                            var lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+                            for (var i = 0; i < lines.length; i++) {
+                                var line = lines[i];
+                                if (!line.startsWith('data: ')) continue;
+                                try {
+                                    var data = JSON.parse(line.slice(6));
+                                    if (data.type === 'status') {
+                                        updateTuilvPipelineProgress(
+                                            data.progress != null ? data.progress : (tuilvGeneratePipeline ? tuilvGeneratePipeline.progress : 3),
+                                            data.content || 'JSON 知识库 RAG 检索中…'
+                                        );
+                                    } else if (data.type === 'finished' && data.rag_data) {
+                                        finalize(Object.assign({ success: true }, data.rag_data));
+                                        return;
+                                    } else if (data.type === 'error') {
+                                        fail(new Error(data.error || '混合 RAG 检索失败'));
+                                        return;
+                                    }
+                                } catch (e) {
+                                    console.error('解析混合 RAG SSE 失败:', e);
+                                }
+                            }
+                            return pump();
+                        });
+                    }
+                    return pump().catch(fail);
+                })
+                .catch(fail);
+            });
+        }
+
+        function buildTuilvPipelineProgressHtml(pipelineId) {
+            return '<div class="agent-tuilv-pipeline" id="' + pipelineId + '">' +
+                '<div class="agent-tuilv-pipeline-title">🍊 褪绿方案生成进度</div>' +
+                '<div class="agent-tuilv-pipeline-bar-wrap">' +
+                '<div class="agent-tuilv-pipeline-bar" id="' + pipelineId + '-bar"></div></div>' +
+                '<div class="agent-tuilv-pipeline-status" id="' + pipelineId + '-status">准备中…</div></div>';
+        }
+
+        function initTuilvPipelineProgress(pipelineId) {
+            var barEl = document.getElementById(pipelineId + '-bar');
+            var statusEl = document.getElementById(pipelineId + '-status');
+            tuilvGeneratePipeline = {
+                active: true,
+                aborted: false,
+                progress: 0,
+                barEl: barEl,
+                statusEl: statusEl,
+                ragAbort: null
+            };
+            updateTuilvPipelineProgress(0, '准备中…');
+        }
+
+        function finishTuilvPipeline(success) {
+            stopTuilvProgressSimulation();
+            if (tuilvGeneratePipeline && !tuilvGeneratePipeline.aborted) {
+                updateTuilvPipelineProgress(success ? 100 : tuilvGeneratePipeline.progress,
+                    success ? '✅ 褪绿方案生成完成' : '⏹ 流程已终止');
+            }
+            if (tuilvGeneratePipeline) tuilvGeneratePipeline.active = false;
+        }
+
+        function buildTuilvRagResultsHtml(ragData) {
+            var variety = escapeHtml(ragData.variety || '—');
+            var query = escapeHtml(ragData.query || '—');
+            var algoLabel = escapeHtml(buildTuilvRagAlgoLabel(ragData));
+            var items = (ragData.items || []).slice(0, 3);
+            if (!ragData.found || !items.length) {
+                return '<div class="agent-tuilv-rag-result">' +
+                    '<div class="agent-tuilv-step-title">📚 知识库检索结果（' + algoLabel + '）</div>' +
+                    '<div class="agent-env-empty">未找到「' + variety + '」专用褪绿方案，将跳过知识库直接生成。</div>' +
+                    '<div class="agent-tuilv-rag-query">检索词：' + query + '</div></div>';
+            }
+            var segments = items.map(function(item, idx) {
+                var text = String(item.output || item.instruction || '—');
+                return '<div class="agent-tuilv-rag-segment">' +
+                    '<div class="agent-tuilv-rag-segment-head">文本段 ' + (idx + 1) +
+                    ' · 相关度 ' + formatEnvNum(item.score, 2) + '</div>' +
+                    '<div class="agent-tuilv-rag-segment-body">' + escapeHtml(text) + '</div></div>';
+            }).join('');
+            return '<div class="agent-tuilv-rag-result">' +
+                '<div class="agent-tuilv-step-title">📚 知识库检索结果（' + algoLabel + ' · 最相关 ' + items.length + ' 条）</div>' +
+                '<div class="agent-tuilv-rag-segments">' + segments + '</div>' +
+                '<div class="agent-tuilv-rag-query">检索词：' + query + '</div></div>';
+        }
+
+        function startTuilvGeneratePipeline(variety, algorithm) {
+            algorithm = algorithm || 'hybrid';
+            if (isAgentProcessing || isAgentRefreshing) return;
+            if (!agentSessionId) {
+                addAgentMessage('bot', '❌ 会话未就绪，请刷新页面后重试。');
+                return;
+            }
+
+            tuilvAnalysisCounter += 1;
+            var pipelineId = 'agent-tuilv-pipeline-' + tuilvAnalysisCounter;
+            addAgentMessage('bot', '🤖 开始为「' + variety + '」分步生成褪绿方案…');
+            addAgentBotHtml(buildTuilvPipelineProgressHtml(pipelineId));
+            initTuilvPipelineProgress(pipelineId);
+
+            var planText = '';
+            var sendBtn = document.getElementById('agent-send-btn');
+            var stopBtn = document.getElementById('agent-stop-btn');
+            isAgentProcessing = true;
+            if (sendBtn) sendBtn.disabled = true;
+            setAgentModelSelectDisabled(true);
+            if (stopBtn) stopBtn.style.display = 'inline-block';
+
+            function assertPipelineActive() {
+                if (!tuilvGeneratePipeline || tuilvGeneratePipeline.aborted) {
+                    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+                }
+            }
+
+            function runPlanStep() {
+                stopTuilvProgressSimulation();
+                updateTuilvPipelineProgress(35, '生成褪绿方案…');
+                startTuilvProgressSimulation(35, 62, '生成褪绿方案…', 12000);
+                return streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: '生成褪绿方案：' + variety,
+                    extraBody: { mode: 'plan', variety: variety },
+                    stepPrefix: '**褪绿方案**\n\n',
+                    keepBusy: true
+                });
+            }
+
+            var ragStepPromise;
+            if (algorithm === 'skill') {
+                updateTuilvPipelineProgress(3, 'OpenCode Skill 检索知识库…');
+                startTuilvProgressSimulation(3, 32, 'OpenCode Skill 检索中…', 120000);
+                ragStepPromise = streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: '本地知识库检索+' + variety,
+                    extraBody: { mode: 'rag_search_skill', variety: variety },
+                    stepPrefix: '**Skill 检索过程**\n\n',
+                    keepBusy: true
+                }).then(function(result) {
+                    return assertPipelineActive() || result;
+                }).then(function(result) {
+                    stopTuilvProgressSimulation();
+                    var ragData = result && result.ragData;
+                    if (!ragData) throw new Error('Skill 检索未返回结构化结果');
+                    addAgentBotHtml(buildTuilvRagResultsHtml(ragData));
+                    updateTuilvPipelineProgress(32, '✅ Skill 检索完成');
+                    return runPlanStep();
+                });
+            } else {
+                updateTuilvPipelineProgress(3, 'JSON 知识库 RAG 检索中…');
+                var ragAbort = new AbortController();
+                tuilvGeneratePipeline.ragAbort = ragAbort;
+                ragStepPromise = streamTuilvHybridRagSearch(variety, ragAbort.signal)
+                .then(function(ragData) {
+                    return assertPipelineActive() || ragData;
+                })
+                .then(function(ragData) {
+                    if (!ragData.success) throw new Error(ragData.error || '知识库检索失败');
+                    addAgentBotHtml(buildTuilvRagResultsHtml(ragData));
+                    updateTuilvPipelineProgress(32, '✅ JSON 检索完成，生成褪绿方案…');
+                    return runPlanStep();
+                });
+            }
+
+            ragStepPromise
+            .then(function(result) {
+                return assertPipelineActive() || result;
+            })
+            .then(function(result) {
+                planText = (result && result.text) ? result.text : '';
+                stopTuilvProgressSimulation();
+                updateTuilvPipelineProgress(65, '生成环境调控建议…');
+                startTuilvProgressSimulation(65, 92, '生成环境调控建议…', 10000);
+                return streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: '环境调控建议：' + variety,
+                    extraBody: { mode: 'env', variety: variety, plan_text: planText },
+                    stepPrefix: '**环境调控建议**\n\n'
+                });
+            })
+            .then(function() {
+                finishTuilvPipeline(true);
+                isAgentProcessing = false;
+                var sendBtn = document.getElementById('agent-send-btn');
+                var stopBtn = document.getElementById('agent-stop-btn');
+                if (!isAgentRefreshing) {
+                    if (sendBtn) sendBtn.disabled = false;
+                    setAgentModelSelectDisabled(false);
+                    if (stopBtn) stopBtn.style.display = 'none';
+                }
+            })
+            .catch(function(err) {
+                stopTuilvProgressSimulation();
+                isAgentProcessing = false;
+                var sendBtn = document.getElementById('agent-send-btn');
+                var stopBtn = document.getElementById('agent-stop-btn');
+                if (!isAgentRefreshing) {
+                    if (sendBtn) sendBtn.disabled = false;
+                    setAgentModelSelectDisabled(false);
+                    if (stopBtn) stopBtn.style.display = 'none';
+                }
+                if (err && err.name === 'AbortError') {
+                    finishTuilvPipeline(false);
+                    return;
+                }
+                finishTuilvPipeline(false);
+                addAgentMessage('bot', '❌ 褪绿方案生成失败：' + ((err && err.message) || '未知错误'));
+            });
+        }
+
+        function bindTuilvSchemeQuestionForm(formId) {
+            var formEl = document.getElementById(formId);
+            if (!formEl) return;
+            formEl.querySelectorAll('[data-choice]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    if (isAgentProcessing || isAgentRefreshing) return;
+                    var choice = btn.getAttribute('data-choice');
+                    formEl.querySelectorAll('[data-choice]').forEach(function(b) { b.disabled = true; });
+                    if (choice === 'no') {
+                        var varietyForGenerate = tuilvAnalysisState.variety;
+                        tuilvAnalysisCounter += 1;
+                        var algoFormId = 'agent-tuilv-algo-form-' + tuilvAnalysisCounter;
+                        addAgentBotHtml(buildTuilvAlgorithmChoiceHtml(algoFormId, varietyForGenerate));
+                        bindTuilvAlgorithmChoiceForm(algoFormId, varietyForGenerate);
+                        return;
+                    }
+                    tuilvAnalysisCounter += 1;
+                    var inputFormId = 'agent-tuilv-scheme-form-' + tuilvAnalysisCounter;
+                    var textareaId = 'agent-tuilv-scheme-text-' + tuilvAnalysisCounter;
+                    var submitId = 'agent-tuilv-scheme-submit-' + tuilvAnalysisCounter;
+                    tuilvAnalysisState.stage = 'scheme_input';
+                    setTuilvAnalysisInputMode('scheme_input');
+                    addAgentBotHtml(buildTuilvSchemeInputHtml(inputFormId, textareaId, submitId));
+                    bindTuilvSchemeInputForm(textareaId, submitId);
+                });
+            });
+        }
+
+        function bindTuilvSchemeInputForm(textareaId, submitId) {
+            var submitBtn = document.getElementById(submitId);
+            var textarea = document.getElementById(textareaId);
+            if (!submitBtn || !textarea) return;
+            submitBtn.addEventListener('click', function() {
+                if (isAgentProcessing || isAgentRefreshing) return;
+                var scheme = (textarea.value || '').trim();
+                if (!scheme) {
+                    addAgentMessage('bot', '❌ 请先输入您的褪绿方案。');
+                    return;
+                }
+                submitBtn.disabled = true;
+                textarea.disabled = true;
+                var variety = tuilvAnalysisState.variety;
+                resetTuilvAnalysisState();
+                setTuilvAnalysisInputMode(null);
+                addAgentMessage('user', '我的褪绿方案：' + scheme);
+                addAgentMessage('bot', '🤖 正在从方案专业角度评价可行性（不结合基地环境数据）…');
+                streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: '评价褪绿方案：' + variety,
+                    extraBody: { mode: 'evaluate', variety: variety, user_scheme: scheme }
+                });
+            });
+        }
+
+        function startTuilvAnalysis() {
+            if (isAgentProcessing || isAgentRefreshing) return;
+
+            var btn = document.getElementById('agent-tuilv-analysis-btn');
+            var checkedBases = getCheckedBasesFromDashboard();
+            if (!checkedBases.length) {
+                addAgentMessage('bot', '请先在主页地图或大屏总览矩阵中勾选至少一个基地，再点击「品种褪绿分析」。');
+                return;
+            }
+
+            var baseIds = checkedBases.map(function(item) { return String(item.base_id); });
+            var baseNames = checkedBases.map(function(item) {
+                return item.base_name || item.base_id;
+            }).join('、');
+
+            if (btn) btn.disabled = true;
+            resetTuilvAnalysisState();
+            harvestAnalysisMode = false;
+            storageAnalysisMode = false;
+            setHarvestAnalysisInputMode(false);
+            setStorageAnalysisInputMode(false);
+
+            addAgentMessage('bot', '🍊 正在加载基地环境数据：' + baseNames + ' …');
+
+            fetch(agentTuilvPrepareUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({ base_ids: baseIds, days: 3 })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    addAgentMessage('bot', '❌ 准备失败：' + (data.error || '未知错误'));
+                    return;
+                }
+                agentBaseInfoData = data.base_info || null;
+                agentBaseEnvData = data.env_data || null;
+                tuilvAnalysisCounter += 1;
+                var prefix = 'tuilv-chart-' + tuilvAnalysisCounter;
+                var msgEl = addAgentBotHtml(buildTuilvEnvHtml(data, prefix));
+                setTimeout(function() {
+                    renderTuilvEnvCharts(prefix, data.chart_records || data.recent_records || []);
+                    if (msgEl && msgEl.querySelector) {
+                        msgEl.querySelectorAll('.agent-tuilv-chart').forEach(function(node) {
+                            if (window.echarts) {
+                                var inst = echarts.getInstanceByDom(node);
+                                if (inst) inst.resize();
+                            }
+                        });
+                    }
+                }, 120);
+                tuilvAnalysisState = { active: true, stage: 'variety', variety: null };
+                setTuilvAnalysisInputMode('variety');
+                addAgentMessage('bot', '🍊 环境数据已就绪。请在输入框输入**要褪绿的柑橘品种**，然后点击「发送」。');
+            })
+            .catch(function(err) {
+                addAgentMessage('bot', '❌ 准备失败：' + (err.message || '网络错误'));
+            })
+            .finally(function() {
+                if (btn) btn.disabled = false;
+            });
         }
 
         function wmoCodeToZh(code) {
@@ -1549,8 +2395,10 @@
 
             harvestAnalysisMode = false;
             storageAnalysisMode = false;
+            resetTuilvAnalysisState();
             setStorageAnalysisInputMode(false);
             setHarvestAnalysisInputMode(false);
+            setTuilvAnalysisInputMode(null);
 
             fetch(agentHarvestStartUrl, {
                 method: 'POST',
@@ -1600,6 +2448,8 @@
             if (btn) btn.disabled = true;
             addAgentMessage('bot', '📊 正在准备贮藏环境分析数据：' + baseNames + ' …');
             harvestAnalysisMode = false;
+            resetTuilvAnalysisState();
+            setTuilvAnalysisInputMode(null);
             setHarvestAnalysisInputMode(false);
 
             fetch(agentStoragePrepareUrl, {
@@ -1650,6 +2500,8 @@
 
             if (btn) btn.disabled = true;
             storageAnalysisMode = false;
+            resetTuilvAnalysisState();
+            setTuilvAnalysisInputMode(null);
             setStorageAnalysisInputMode(false);
             addAgentMessage('bot', '📈 正在准备运行情况分析数据：' + baseNames + ' …');
 
@@ -1794,6 +2646,42 @@
             window.location.href = url;
         }
 
+        /**
+         * 跳转到知识库编辑页
+         * @param {Event=} e
+         */
+        function navigateToKnowledge(e) {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            const url = knowledgeUrl;
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.location.href = url;
+                    return;
+                }
+            } catch (err) {}
+            window.location.href = url;
+        }
+
+        function toggleAgentAnalysisMenu(e) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            var popover = document.getElementById('agent-analysis-popover');
+            var trigger = document.getElementById('agent-analysis-trigger');
+            if (!popover || !trigger) return;
+            var willOpen = !popover.classList.contains('show');
+            closeAgentAnalysisMenu();
+            if (willOpen) {
+                popover.classList.add('show');
+                trigger.classList.add('open');
+            }
+        }
+
+        function closeAgentAnalysisMenu() {
+            var popover = document.getElementById('agent-analysis-popover');
+            var trigger = document.getElementById('agent-analysis-trigger');
+            if (popover) popover.classList.remove('show');
+            if (trigger) trigger.classList.remove('open');
+        }
+
         // ========== 工具函数 ==========
         function getCookie(name) {
             let cookieValue = null;
@@ -1909,225 +2797,243 @@
         function streamAgentFromUrl(sendUrl, sendMessage, options) {
             options = options || {};
             var historyUserContent = options.historyUserContent || sendMessage || '';
+            var stepPrefix = options.stepPrefix || '';
+            var keepBusy = !!options.keepBusy;
             var sendBtn = document.getElementById('agent-send-btn');
             var stopBtn = document.getElementById('agent-stop-btn');
 
-            sendBtn.disabled = true;
-            setAgentModelSelectDisabled(true);
-            if (stopBtn) stopBtn.style.display = 'inline-block';
+            return new Promise(function(resolve, reject) {
+                sendBtn.disabled = true;
+                setAgentModelSelectDisabled(true);
+                if (stopBtn) stopBtn.style.display = 'inline-block';
 
-            var thinkingId = 'thinking-' + Date.now();
-            addAgentMessage('bot', '🤔 思考中<span class="agent-loading-dots"></span>', thinkingId, true);
-            isAgentProcessing = true;
+                var thinkingId = 'thinking-' + Date.now();
+                addAgentMessage('bot', '🤔 思考中<span class="agent-loading-dots"></span>', thinkingId, true);
+                isAgentProcessing = true;
 
-            var thinkingElement = document.getElementById(thinkingId);
-            var botMessageId = 'bot-msg-' + Date.now();
-            var botMessageEl = null;
-            var reasoningContent = '';
-            var textContent = '';
+                var thinkingElement = document.getElementById(thinkingId);
+                var botMessageId = 'bot-msg-' + Date.now();
+                var botMessageEl = null;
+                var reasoningContent = '';
+                var textContent = '';
 
-            currentAgentAbortController = new AbortController();
+                currentAgentAbortController = new AbortController();
 
-            fetch(sendUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') || ''
-                },
-                body: JSON.stringify(Object.assign(
-                    { session_id: agentSessionId, message: sendMessage },
-                    getOpencodeModelRequestPayload()
-                )),
-                signal: currentAgentAbortController.signal
-            })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                }
-
-                if (thinkingElement) {
-                    thinkingElement.remove();
-                }
-
-                botMessageEl = addAgentMessage('bot', '', botMessageId);
-                var contentDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
-
-                var reader = response.body.getReader();
-                var decoder = new TextDecoder();
-                var buffer = '';
-                var END_STABLE_MS = 700;
-                var END_CHECK_INTERVAL_MS = 200;
-                var END_MAX_WAIT_MS = 10000;
-                var pendingEnd = false;
-                var finalized = false;
-                var finishDeadlineAt = 0;
-                var lastTotalLen = 0;
-                var lastGrowthAt = Date.now();
-                var endCheckTimer = null;
-                var finishPayload = null;
-
-                function totalLen() {
-                    return (reasoningContent ? reasoningContent.length : 0) + (textContent ? textContent.length : 0);
-                }
-
-                function noteGrowth() {
-                    var nowLen = totalLen();
-                    if (nowLen !== lastTotalLen) {
-                        lastTotalLen = nowLen;
-                        lastGrowthAt = Date.now();
-                    }
-                }
-
-                function finalizeStream() {
-                    if (finalized) return;
-                    finalized = true;
-                    if (endCheckTimer) {
-                        try { clearTimeout(endCheckTimer); } catch (e) {}
-                        endCheckTimer = null;
+                fetch(sendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    body: JSON.stringify(Object.assign(
+                        { session_id: agentSessionId, message: sendMessage },
+                        getOpencodeModelRequestPayload(),
+                        options.extraBody || {}
+                    )),
+                    signal: currentAgentAbortController.signal
+                })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
                     }
 
-                    var finalReasoning = (finishPayload && finishPayload.reasoning != null) ? finishPayload.reasoning : reasoningContent;
-                    var finalText = (finishPayload && finishPayload.text != null) ? finishPayload.text : textContent;
-                    if (contentDiv) {
-                        contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, finalText);
-                    }
-
-                    agentChatHistory.push({ role: 'user', content: historyUserContent });
-                    agentChatHistory.push({ role: 'assistant', content: finalText });
-
-                    var chatBox = document.getElementById('agent-chat-box');
-                    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-
-                    try { reader.cancel(); } catch (e) {}
-                }
-
-                function scheduleEndCheck() {
-                    if (finalized) return;
-                    if (!pendingEnd) return;
-                    if (endCheckTimer) return;
-
-                    endCheckTimer = setTimeout(function tick() {
-                        endCheckTimer = null;
-                        if (finalized) return;
-                        if (!pendingEnd) return;
-
-                        noteGrowth();
-                        var now = Date.now();
-                        var stable = (now - lastGrowthAt) >= END_STABLE_MS;
-                        var deadlineHit = finishDeadlineAt > 0 && now >= finishDeadlineAt;
-                        if (stable || deadlineHit) {
-                            finalizeStream();
-                            return;
-                        }
-                        scheduleEndCheck();
-                    }, END_CHECK_INTERVAL_MS);
-                }
-
-                function readStream() {
-                    return reader.read().then(function(result) {
-                        if (result.done) {
-                            if (pendingEnd && !finalized) {
-                                finalizeStream();
-                            }
-                            return;
-                        }
-
-                        buffer += decoder.decode(result.value, { stream: true });
-                        var lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
-
-                        for (var i = 0; i < lines.length; i++) {
-                            var line = lines[i];
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    var data = JSON.parse(line.slice(6));
-
-                                    if (data.type === 'reasoning') {
-                                        reasoningContent += data.content;
-                                        noteGrowth();
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
-                                        }
-                                        var chatBox = document.getElementById('agent-chat-box');
-                                        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-                                    } else if (data.type === 'text') {
-                                        var delta = (data.content !== undefined && data.content !== null)
-                                            ? data.content
-                                            : (data.text || '');
-                                        textContent += delta;
-                                        noteGrowth();
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
-                                        }
-                                        var chatBox = document.getElementById('agent-chat-box');
-                                        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-                                    } else if (data.type === 'finish' || data.type === 'finished') {
-                                        pendingEnd = true;
-                                        finishPayload = data || finishPayload;
-                                        finishDeadlineAt = Date.now() + END_MAX_WAIT_MS;
-                                        noteGrowth();
-                                        scheduleEndCheck();
-                                    } else if (data.type === 'error') {
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = '❌ 错误: ' + escapeHtml(data.error);
-                                        }
-                                        throw new Error(data.error);
-                                    }
-                                } catch (e) {
-                                    console.error('解析SSE数据失败:', e);
-                                }
-                            }
-                        }
-
-                        return readStream();
-                    });
-                }
-
-                return readStream();
-            })
-            .then(function() {
-                isAgentProcessing = false;
-                if (!isAgentRefreshing) {
-                    sendBtn.disabled = false;
-                    setAgentModelSelectDisabled(false);
-                    if (stopBtn) stopBtn.style.display = 'none';
-                }
-            })
-            .catch(function(error) {
-                if (error.name === 'AbortError') {
-                    console.log('请求已被用户取消');
-                    if (thinkingElement && thinkingElement.parentNode) {
-                        var stoppedDiv = thinkingElement.querySelector('.agent-message-content');
-                        if (stoppedDiv) {
-                            stoppedDiv.innerHTML = '⏹ 回答已停止';
-                        }
-                    } else if (botMessageEl) {
-                        var stoppedDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
-                        if (stoppedDiv) {
-                            stoppedDiv.innerHTML = '⏹ 回答已停止';
-                        }
-                    }
-                } else {
-                    console.error('Error:', error);
-                    if (thinkingElement && thinkingElement.parentNode) {
+                    if (thinkingElement) {
                         thinkingElement.remove();
                     }
-                    if (botMessageEl) {
-                        var errDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
-                        if (errDiv) {
-                            errDiv.innerHTML = '❌ 请求失败: ' + escapeHtml(error.message || '网络错误');
-                        }
-                    } else {
-                        if (thinkingElement) thinkingElement.remove();
-                        addAgentMessage('bot', '❌ 请求失败: ' + (error.message || '网络错误'));
+
+                    botMessageEl = addAgentMessage('bot', '', botMessageId);
+                    var contentDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
+
+                    var reader = response.body.getReader();
+                    var decoder = new TextDecoder();
+                    var buffer = '';
+                    var END_STABLE_MS = 700;
+                    var END_CHECK_INTERVAL_MS = 200;
+                    var END_MAX_WAIT_MS = 10000;
+                    var pendingEnd = false;
+                    var finalized = false;
+                    var finishDeadlineAt = 0;
+                    var lastTotalLen = 0;
+                    var lastGrowthAt = Date.now();
+                    var endCheckTimer = null;
+                    var finishPayload = null;
+
+                    function totalLen() {
+                        return (reasoningContent ? reasoningContent.length : 0) + (textContent ? textContent.length : 0);
                     }
-                }
-                isAgentProcessing = false;
-                if (!isAgentRefreshing) {
-                    sendBtn.disabled = false;
-                    setAgentModelSelectDisabled(false);
-                    if (stopBtn) stopBtn.style.display = 'none';
-                }
+
+                    function noteGrowth() {
+                        var nowLen = totalLen();
+                        if (nowLen !== lastTotalLen) {
+                            lastTotalLen = nowLen;
+                            lastGrowthAt = Date.now();
+                        }
+                    }
+
+                    function renderStreamContent() {
+                        if (!contentDiv) return;
+                        var displayText = stepPrefix + textContent;
+                        contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, displayText);
+                    }
+
+                    function finalizeStream() {
+                        if (finalized) return;
+                        finalized = true;
+                        if (endCheckTimer) {
+                            try { clearTimeout(endCheckTimer); } catch (e) {}
+                            endCheckTimer = null;
+                        }
+
+                        var finalReasoning = (finishPayload && finishPayload.reasoning != null) ? finishPayload.reasoning : reasoningContent;
+                        var finalText = (finishPayload && finishPayload.text != null) ? finishPayload.text : textContent;
+                        if (contentDiv) {
+                            contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, stepPrefix + finalText);
+                        }
+
+                        agentChatHistory.push({ role: 'user', content: historyUserContent });
+                        agentChatHistory.push({ role: 'assistant', content: finalText });
+
+                        var chatBox = document.getElementById('agent-chat-box');
+                        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+                        try { reader.cancel(); } catch (e) {}
+                        resolve({
+                            reasoning: finalReasoning,
+                            text: finalText,
+                            ragData: finishPayload ? (finishPayload.rag_data || finishPayload.ragData) : null
+                        });
+                    }
+
+                    function scheduleEndCheck() {
+                        if (finalized) return;
+                        if (!pendingEnd) return;
+                        if (endCheckTimer) return;
+
+                        endCheckTimer = setTimeout(function tick() {
+                            endCheckTimer = null;
+                            if (finalized) return;
+                            if (!pendingEnd) return;
+
+                            noteGrowth();
+                            var now = Date.now();
+                            var stable = (now - lastGrowthAt) >= END_STABLE_MS;
+                            var deadlineHit = finishDeadlineAt > 0 && now >= finishDeadlineAt;
+                            if (stable || deadlineHit) {
+                                finalizeStream();
+                                return;
+                            }
+                            scheduleEndCheck();
+                        }, END_CHECK_INTERVAL_MS);
+                    }
+
+                    function readStream() {
+                        return reader.read().then(function(result) {
+                            if (result.done) {
+                                if (pendingEnd && !finalized) {
+                                    finalizeStream();
+                                } else if (!finalized) {
+                                    finalizeStream();
+                                }
+                                return;
+                            }
+
+                            buffer += decoder.decode(result.value, { stream: true });
+                            var lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+
+                            for (var i = 0; i < lines.length; i++) {
+                                var line = lines[i];
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        var data = JSON.parse(line.slice(6));
+
+                                        if (data.type === 'reasoning') {
+                                            reasoningContent += data.content;
+                                            noteGrowth();
+                                            renderStreamContent();
+                                            var chatBox = document.getElementById('agent-chat-box');
+                                            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+                                        } else if (data.type === 'text') {
+                                            var delta = (data.content !== undefined && data.content !== null)
+                                                ? data.content
+                                                : (data.text || '');
+                                            textContent += delta;
+                                            noteGrowth();
+                                            renderStreamContent();
+                                            var chatBox = document.getElementById('agent-chat-box');
+                                            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+                                        } else if (data.type === 'finish' || data.type === 'finished') {
+                                            pendingEnd = true;
+                                            finishPayload = data || finishPayload;
+                                            finishDeadlineAt = Date.now() + END_MAX_WAIT_MS;
+                                            noteGrowth();
+                                            scheduleEndCheck();
+                                        } else if (data.type === 'error') {
+                                            if (contentDiv) {
+                                                contentDiv.innerHTML = '❌ 错误: ' + escapeHtml(data.error);
+                                            }
+                                            reject(new Error(data.error || 'SSE 错误'));
+                                        }
+                                    } catch (e) {
+                                        console.error('解析SSE数据失败:', e);
+                                    }
+                                }
+                            }
+
+                            return readStream();
+                        });
+                    }
+
+                    return readStream();
+                })
+                .then(function() {
+                    if (!keepBusy) {
+                        isAgentProcessing = false;
+                        if (!isAgentRefreshing) {
+                            sendBtn.disabled = false;
+                            setAgentModelSelectDisabled(false);
+                            if (stopBtn) stopBtn.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(function(error) {
+                    if (error.name === 'AbortError') {
+                        console.log('请求已被用户取消');
+                        if (thinkingElement && thinkingElement.parentNode) {
+                            var stoppedDiv = thinkingElement.querySelector('.agent-message-content');
+                            if (stoppedDiv) {
+                                stoppedDiv.innerHTML = '⏹ 回答已停止';
+                            }
+                        } else if (botMessageEl) {
+                            var stoppedDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
+                            if (stoppedDiv) {
+                                stoppedDiv.innerHTML = '⏹ 回答已停止';
+                            }
+                        }
+                        reject(error);
+                    } else {
+                        console.error('Error:', error);
+                        if (thinkingElement && thinkingElement.parentNode) {
+                            thinkingElement.remove();
+                        }
+                        if (botMessageEl) {
+                            var errDiv = botMessageEl.querySelector('.agent-bot-content') || botMessageEl.querySelector('.agent-message-content');
+                            if (errDiv) {
+                                errDiv.innerHTML = '❌ 请求失败: ' + escapeHtml(error.message || '网络错误');
+                            }
+                        } else {
+                            if (thinkingElement) thinkingElement.remove();
+                            addAgentMessage('bot', '❌ 请求失败: ' + (error.message || '网络错误'));
+                        }
+                        reject(error);
+                    }
+                    isAgentProcessing = false;
+                    if (!isAgentRefreshing) {
+                        sendBtn.disabled = false;
+                        setAgentModelSelectDisabled(false);
+                        if (stopBtn) stopBtn.style.display = 'none';
+                    }
+                });
             });
         }
 
@@ -2147,6 +3053,23 @@
             addAgentMessage('user', question);
             input.value = '';
 
+            if (tuilvAnalysisState.active && tuilvAnalysisState.stage === 'scheme_choice') {
+                addAgentMessage('bot', '请在上方表单中选择「是否有褪绿方案」。');
+                input.value = '';
+                return;
+            }
+
+            if (tuilvAnalysisState.active && tuilvAnalysisState.stage === 'variety') {
+                tuilvAnalysisState.variety = question;
+                tuilvAnalysisState.stage = 'scheme_choice';
+                setTuilvAnalysisInputMode(null);
+                tuilvAnalysisCounter += 1;
+                var questionFormId = 'agent-tuilv-question-form-' + tuilvAnalysisCounter;
+                addAgentBotHtml(buildTuilvSchemeQuestionHtml(questionFormId));
+                bindTuilvSchemeQuestionForm(questionFormId);
+                return;
+            }
+
             var isStorageRun = storageAnalysisMode;
             var isHarvestRun = harvestAnalysisMode;
             if (isStorageRun) {
@@ -2156,6 +3079,10 @@
             if (isHarvestRun) {
                 harvestAnalysisMode = false;
                 setHarvestAnalysisInputMode(false);
+            }
+            if (tuilvAnalysisState.active) {
+                resetTuilvAnalysisState();
+                setTuilvAnalysisInputMode(null);
             }
 
             var sendUrl = isHarvestRun ? agentHarvestRunUrl : (isStorageRun ? agentStorageRunUrl : (agentApiBase + '/send'));
@@ -2232,6 +3159,17 @@
             const stopBtn = document.getElementById('agent-stop-btn');
             const sendBtn = document.getElementById('agent-send-btn');
 
+            if (tuilvGeneratePipeline && tuilvGeneratePipeline.active) {
+                tuilvGeneratePipeline.aborted = true;
+                stopTuilvProgressSimulation();
+                updateTuilvPipelineProgress(tuilvGeneratePipeline.progress || 0, '⏹ 流程已终止');
+                tuilvGeneratePipeline.active = false;
+                if (tuilvGeneratePipeline.ragAbort) {
+                    try { tuilvGeneratePipeline.ragAbort.abort(); } catch (e) {}
+                    tuilvGeneratePipeline.ragAbort = null;
+                }
+            }
+
             if (currentAgentAbortController) {
                 try { currentAgentAbortController.abort(); } catch (e) {}
                 currentAgentAbortController = null;
@@ -2252,7 +3190,7 @@
             chatBox.innerHTML = '';
             agentChatHistory = [];
             // 创建欢迎消息HTML
-            const welcomeHtml = '🌱 欢迎使用AIoT实验室的智能体助手，<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a>';
+            const welcomeHtml = '🌱 欢迎使用AIoT实验室的柑橘采后生产智能体，<a href="#" onclick="navigateToAgentView(event)">点击链接跳转智能体后台</a>';
             const messageDiv = document.createElement('div');
             messageDiv.className = 'agent-message agent-bot-message';
             const avatar = document.createElement('div');
@@ -2296,7 +3234,7 @@
                     'X-CSRFToken': getCookie('csrftoken') || ''
                 },
                 body: JSON.stringify(Object.assign(
-                    { title: '智能体助手' },
+                    { title: '柑橘采后生产智能体' },
                     getOpencodeModelRequestPayload()
                 ))
             })
@@ -2404,6 +3342,13 @@
                     if (e.target === overlay) closeAgentModal();
                 });
             }
+
+            document.addEventListener('click', function(e) {
+                var wrap = document.querySelector('.agent-analysis-menu-wrap');
+                if (wrap && !wrap.contains(e.target)) {
+                    closeAgentAnalysisMenu();
+                }
+            });
         });
 
         window.addEventListener('beforeunload', function() {

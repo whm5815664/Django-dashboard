@@ -11,6 +11,7 @@ from aiModels.agent.tool import farmdata_anlysis as harvest_tool
 from aiModels.agent.tool import run_anlysis as run_tool
 from aiModels.agent.tool import select_data as base_data_tool
 from aiModels.agent.tool import storage_anylisis as storage_tool
+from aiModels.agent.tool import tuilv_anlysis as tuilv_tool
 
 # 工具功能
 from aiModels.diseaseModel import diseaseRecognition
@@ -46,6 +47,8 @@ urlpatterns = [
     path('agent/harvest/analysis/weather', harvest_tool.agent_harvest_analysis_weather_view, name='agent_harvest_analysis_weather'),
     path('agent/harvest/analysis/price', harvest_tool.agent_harvest_analysis_price_view, name='agent_harvest_analysis_price'),
     path('agent/harvest/analysis/run', harvest_tool.agent_harvest_analysis_run_view, name='agent_harvest_analysis_run'),
+    path('agent/tuilv/analysis/prepare', tuilv_tool.agent_tuilv_analysis_prepare_view, name='agent_tuilv_analysis_prepare'),
+    path('agent/tuilv/analysis/run', tuilv_tool.agent_tuilv_analysis_run_view, name='agent_tuilv_analysis_run'),
     # RAG知识库增强系统
     path('initialize_rag', RAG.initialize_rag_view, name='initialize_rag'),
     path('get_answer_rag', RAG.get_answer_rag_view, name='get_answer_rag'),

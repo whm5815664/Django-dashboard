@@ -273,6 +273,10 @@
         .feature-bar-left {
             flex: 1;
             min-width: 0;
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 8px;
         }
 
         .feature-bar-right {
@@ -335,6 +339,30 @@
         .load-base-btn:disabled {
             opacity: 0.55;
             cursor: not-allowed;
+        }
+
+        .knowledge-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(120, 219, 255, 0.12);
+            color: #78dfff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .knowledge-btn:hover {
+            border-color: rgba(120, 219, 255, 0.45);
+            background: rgba(120, 219, 255, 0.18);
+            transform: translateY(-1px);
+            color: #78dfff;
         }
 
         .storage-analysis-btn {
@@ -410,6 +438,266 @@
         .harvest-analysis-btn:disabled {
             opacity: 0.55;
             cursor: not-allowed;
+        }
+
+        .tuilv-analysis-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: rgba(245, 158, 11, 0.18);
+            color: #fde68a;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .tuilv-analysis-btn:hover:not(:disabled) {
+            border-color: rgba(251, 191, 36, 0.55);
+            background: rgba(245, 158, 11, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .tuilv-analysis-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .agent-tuilv-form {
+            margin-top: 8px;
+            padding: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            border-radius: 12px;
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        .agent-tuilv-form-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fde68a;
+            margin-bottom: 8px;
+        }
+
+        .agent-tuilv-form-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .agent-tuilv-form-btn {
+            padding: 8px 14px;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            border-radius: 10px;
+            background: rgba(15, 15, 35, 0.65);
+            color: #fde68a;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .agent-tuilv-form-btn:hover:not(:disabled) {
+            background: rgba(245, 158, 11, 0.22);
+        }
+
+        .agent-tuilv-form-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .agent-tuilv-scheme-input {
+            width: 100%;
+            min-height: 96px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            background: rgba(15, 15, 35, 0.65);
+            color: #e5e7eb;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .agent-tuilv-chart {
+            width: 100%;
+            height: 190px;
+            margin: 8px 0;
+        }
+
+        .agent-tuilv-pipeline {
+            margin: 8px 0;
+            padding: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            border-radius: 12px;
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        .agent-tuilv-pipeline-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fde68a;
+            margin-bottom: 8px;
+        }
+
+        .agent-tuilv-pipeline-bar-wrap {
+            height: 8px;
+            background: rgba(251, 191, 36, 0.2);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .agent-tuilv-pipeline-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            border-radius: 999px;
+            transition: width 0.35s ease;
+        }
+
+        .agent-tuilv-pipeline-status {
+            font-size: 12px;
+            color: #fde68a;
+        }
+
+        .agent-tuilv-step-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fde68a;
+            margin: 6px 0 8px;
+        }
+
+        .agent-tuilv-rag-result {
+            margin-top: 6px;
+        }
+
+        .agent-tuilv-rag-query {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+
+        .agent-tuilv-rag-segments {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .agent-tuilv-rag-segment {
+            padding: 10px 12px;
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            border-radius: 10px;
+            background: rgba(15, 15, 35, 0.45);
+        }
+
+        .agent-tuilv-rag-segment-head {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fde68a;
+            margin-bottom: 6px;
+        }
+
+        .agent-tuilv-rag-segment-body {
+            font-size: 13px;
+            line-height: 1.55;
+            color: #e5e7eb;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* ========== 分析工具气泡菜单 ========== */
+        .analysis-menu-wrap {
+            position: relative;
+            display: inline-flex;
+            flex-shrink: 0;
+        }
+
+        .analysis-trigger {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(120, 219, 255, 0.14) 0%, rgba(99, 102, 241, 0.18) 100%);
+            color: #78dfff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .analysis-trigger:hover:not(:disabled) {
+            border-color: rgba(120, 219, 255, 0.55);
+            background: linear-gradient(135deg, rgba(120, 219, 255, 0.22) 0%, rgba(99, 102, 241, 0.28) 100%);
+            transform: translateY(-1px);
+        }
+
+        .analysis-trigger.open {
+            border-color: rgba(120, 219, 255, 0.65);
+            box-shadow: 0 0 16px rgba(120, 219, 255, 0.25);
+        }
+
+        .analysis-trigger:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .analysis-popover {
+            position: absolute;
+            left: 0;
+            bottom: calc(100% + 8px);
+            min-width: 168px;
+            background: rgba(15, 15, 35, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(16px);
+            padding: 8px;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            animation: analysisMenuIn 0.15s ease;
+        }
+
+        .analysis-popover.show {
+            display: flex;
+        }
+
+        @keyframes analysisMenuIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .analysis-popover::after {
+            content: '';
+            position: absolute;
+            left: 20px;
+            bottom: -5px;
+            width: 10px;
+            height: 10px;
+            background: rgba(15, 15, 35, 0.96);
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            transform: rotate(45deg);
+        }
+
+        .analysis-popover .harvest-analysis-btn,
+        .analysis-popover .storage-analysis-btn,
+        .analysis-popover .run-analysis-btn,
+        .analysis-popover .tuilv-analysis-btn {
+            width: 100%;
+            text-align: left;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 12px;
         }
 
         .agent-harvest-map-wrap {
@@ -1330,7 +1618,7 @@
                 <!-- AIoT实验室LOGO -->
                 <img src="{% static 'images/AIoT实验室LOGO.png' %}" alt="AIoT实验室" class="logo">
                 <!-- 系统标题 -->
-                <div class="system-title">智能体问答系统</div>
+                <div class="system-title">柑橘采后生产智能体</div>
             </div>
             
             <!-- 返回 / 刷新 -->
@@ -1351,7 +1639,7 @@
                 <!-- 欢迎消息 -->
                 <div class="message bot-message welcome-message">
                     <div class="bot-content">
-                        <p>欢迎使用柑橘采后智能体系统！</p>
+                        <p>欢迎使用柑橘采后生产智能体！</p>
                     </div>
                 </div>
             </div>
@@ -1361,9 +1649,18 @@
                 <div class="feature-bar">
                     <div class="feature-bar-left">
                         <button type="button" class="load-base-btn" id="load-base-btn" onclick="loadSelectedBaseData()">加载基地数据</button>
-                        <button type="button" class="storage-analysis-btn" id="storage-analysis-btn" onclick="startStorageAnalysis()">贮藏环境分析</button>
-                        <button type="button" class="run-analysis-btn" id="run-analysis-btn" onclick="startRunAnalysis()">运行情况分析</button>
-                        <button type="button" class="harvest-analysis-btn" id="harvest-analysis-btn" onclick="startHarvestAnalysis()">采摘入库分析</button>
+                        <a href="{% url 'knowledge' %}" class="knowledge-btn" id="knowledge-btn">知识库</a>
+                        <div class="analysis-menu-wrap">
+                            <button type="button" class="analysis-trigger" id="analysis-trigger" onclick="toggleAnalysisMenu(event)" title="选择分析类型">
+                                <span>分析工具</span><span>▾</span>
+                            </button>
+                            <div class="analysis-popover" id="analysis-popover" role="menu">
+                                <button type="button" class="harvest-analysis-btn" id="harvest-analysis-btn" role="menuitem" onclick="closeAnalysisMenu(); startHarvestAnalysis()">采摘入库分析</button>
+                                <button type="button" class="storage-analysis-btn" id="storage-analysis-btn" role="menuitem" onclick="closeAnalysisMenu(); startStorageAnalysis()">贮藏环境分析</button>
+                                <button type="button" class="run-analysis-btn" id="run-analysis-btn" role="menuitem" onclick="closeAnalysisMenu(); startRunAnalysis()">运行情况分析</button>
+                                <button type="button" class="tuilv-analysis-btn" id="tuilv-analysis-btn" role="menuitem" onclick="closeAnalysisMenu(); startTuilvAnalysis()">品种褪绿分析</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="feature-bar-right">
                         <label class="model-switch-label" for="opencode-model-select">模型</label>
@@ -1435,15 +1732,23 @@
         const agentHarvestWeatherUrl = "{% url 'agent_harvest_analysis_weather' %}";
         const agentHarvestPriceUrl = "{% url 'agent_harvest_analysis_price' %}";
         const agentHarvestRunUrl = "{% url 'agent_harvest_analysis_run' %}";
+        const agentTuilvPrepareUrl = "{% url 'agent_tuilv_analysis_prepare' %}";
+        const agentTuilvRunUrl = "{% url 'agent_tuilv_analysis_run' %}";
         const DEFAULT_AGENT_INPUT_PLACEHOLDER = '请输入您的问题...';
         const STORAGE_ANALYSIS_INPUT_PLACEHOLDER = '请输入贮藏的柑橘品种，如：纽霍尔脐橙（可补充关注点）';
         const HARVEST_ANALYSIS_INPUT_PLACEHOLDER = '请输入种植品种、种植时间等，如：纽霍尔脐橙，2024年3月定植';
+        const TUILV_ANALYSIS_VARIETY_PLACEHOLDER = '请输入要褪绿的柑橘品种，如：纽霍尔脐橙';
+        const TUILV_ANALYSIS_SCHEME_PLACEHOLDER = '请描述您的褪绿方案（乙烯浓度、通风、温湿度等）';
         const AMAP_KEY = '9969ad3b8112bd56b65dc90191ab4753';
         let agentBaseInfoData = null;
         let agentBaseEnvData = null;
         let storageAnalysisMode = false;
         let harvestAnalysisMode = false;
         let harvestMapCounter = 0;
+        let tuilvAnalysisCounter = 0;
+        let tuilvAnalysisState = { active: false, stage: null, variety: null };
+        let tuilvGeneratePipeline = null;
+        let tuilvProgressTimer = null;
 
         function formatEnvNum(value, digits) {
             if (value == null || value === '') return '—';
@@ -1587,16 +1892,532 @@
             }
         }
 
+        function resetTuilvAnalysisState() {
+            tuilvAnalysisState = { active: false, stage: null, variety: null };
+        }
+
         function setStorageAnalysisInputMode(active) {
-            if (questionInput && !harvestAnalysisMode) {
+            if (questionInput && !harvestAnalysisMode && !tuilvAnalysisState.active) {
                 questionInput.placeholder = active ? STORAGE_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
             }
         }
 
         function setHarvestAnalysisInputMode(active) {
-            if (questionInput) {
+            if (questionInput && !tuilvAnalysisState.active) {
                 questionInput.placeholder = active ? HARVEST_ANALYSIS_INPUT_PLACEHOLDER : DEFAULT_AGENT_INPUT_PLACEHOLDER;
             }
+        }
+
+        function setTuilvAnalysisInputMode(stage) {
+            if (!questionInput) return;
+            if (stage === 'variety') {
+                questionInput.placeholder = TUILV_ANALYSIS_VARIETY_PLACEHOLDER;
+            } else if (stage === 'scheme_input') {
+                questionInput.placeholder = TUILV_ANALYSIS_SCHEME_PLACEHOLDER;
+            } else {
+                questionInput.placeholder = DEFAULT_AGENT_INPUT_PLACEHOLDER;
+            }
+        }
+
+        function formatTuilvEnvRecordsTableHtml(records) {
+            if (!records || !records.length) {
+                return '<div class="agent-env-empty">暂无环境数据。</div>';
+            }
+            const rows = records.map(r =>
+                '<tr>' +
+                `<td class="col-base">${escapeHtml(r.base_name || r.base_id || '—')}</td>` +
+                `<td class="col-time">${escapeHtml(r.collected_time || '—')}</td>` +
+                `<td class="col-num">${formatEnvNum(r.temperature, 1)}</td>` +
+                `<td class="col-num">${formatEnvNum(r.humidity, 0)}</td>` +
+                `<td class="col-num">${formatEnvNum(r.C2H4, 2)}</td>` +
+                `<td class="col-num">${formatEnvNum(r.CO2, 1)}</td>` +
+                '</tr>'
+            ).join('');
+            return '<div class="agent-env-table-wrap"><table class="agent-env-table">' +
+                '<thead><tr>' +
+                '<th class="col-base">基地</th>' +
+                '<th class="col-time">采集时间</th>' +
+                '<th class="col-num">温度(°C)</th>' +
+                '<th class="col-num">湿度(%)</th>' +
+                '<th class="col-num">乙烯(C2H4)</th>' +
+                '<th class="col-num">CO2</th>' +
+                '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+        }
+
+        function buildTuilvEnvHtml(data, prefix) {
+            const displayCount = data.display_record_count != null ? data.display_record_count : (data.recent_records || []).length;
+            return '<div class="agent-env-load">' +
+                `<div class="agent-env-load-summary">🍊 已加载 ${data.base_count} 个基地，近 ${data.days} 天共 ${data.record_count} 条环境记录（表格展示最近 ${displayCount} 条）。</div>` +
+                `<div id="${prefix}-temp" class="agent-tuilv-chart"></div>` +
+                `<div id="${prefix}-rh" class="agent-tuilv-chart"></div>` +
+                `<div id="${prefix}-c2h4" class="agent-tuilv-chart"></div>` +
+                '<div class="agent-env-load-section">' +
+                `<div class="agent-env-load-title">最近 ${displayCount} 条环境数据：</div>` +
+                formatTuilvEnvRecordsTableHtml(data.recent_records || []) +
+                '</div></div>';
+        }
+
+        function renderTuilvEnvCharts(prefix, records) {
+            if (typeof echarts === 'undefined' || !records || !records.length) return;
+            const sorted = records.slice().sort((a, b) =>
+                String(a.collected_time || '').localeCompare(String(b.collected_time || ''))
+            );
+            const labels = sorted.map(r => String(r.collected_time || '—').replace('T', '\n'));
+
+            function makeLineChart(elId, title, values, unit, color) {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                const chart = echarts.init(el);
+                chart.setOption({
+                    title: { text: title, left: 'center', textStyle: { fontSize: 12, color: '#e5e7eb' } },
+                    grid: { left: 48, right: 16, top: 36, bottom: 52 },
+                    tooltip: { trigger: 'axis' },
+                    dataZoom: [{ type: 'inside' }, { type: 'slider', height: 16, bottom: 6 }],
+                    xAxis: { type: 'category', data: labels, axisLabel: { fontSize: 10, color: '#9ca3af' } },
+                    yAxis: { type: 'value', name: unit, axisLabel: { fontSize: 10, color: '#9ca3af' } },
+                    series: [{
+                        type: 'line',
+                        data: values,
+                        smooth: true,
+                        showSymbol: false,
+                        lineStyle: { color, width: 2 },
+                        areaStyle: { opacity: 0.08 }
+                    }]
+                });
+                window.addEventListener('resize', () => chart.resize());
+            }
+
+            makeLineChart(`${prefix}-temp`, '温度 (°C)', sorted.map(r => r.temperature), '°C', '#ef4444');
+            makeLineChart(`${prefix}-rh`, '相对湿度 (%)', sorted.map(r => r.humidity), '%', '#3b82f6');
+            makeLineChart(`${prefix}-c2h4`, '乙烯 C2H4', sorted.map(r => r.C2H4), 'ppm', '#f59e0b');
+        }
+
+        function buildTuilvSchemeQuestionHtml(formId) {
+            return `<div class="agent-tuilv-form" id="${formId}">` +
+                `<div class="agent-tuilv-form-title">是否已有「${escapeHtml(tuilvAnalysisState.variety || '')}」的褪绿方案？</div>` +
+                '<div class="agent-tuilv-form-options">' +
+                '<button type="button" class="agent-tuilv-form-btn" data-choice="no">无，智能体生成方案</button>' +
+                '<button type="button" class="agent-tuilv-form-btn" data-choice="yes">有，输入方案</button>' +
+                '</div></div>';
+        }
+
+        function buildTuilvSchemeInputHtml(formId, textareaId, btnId) {
+            return `<div class="agent-tuilv-form" id="${formId}">` +
+                '<div class="agent-tuilv-form-title">请输入您的褪绿方案</div>' +
+                `<textarea class="agent-tuilv-scheme-input" id="${textareaId}" placeholder="请描述乙烯浓度、处理时长、通风与温湿度控制等要点…"></textarea>` +
+                '<div class="agent-tuilv-form-options" style="margin-top:8px;">' +
+                `<button type="button" class="agent-tuilv-form-btn" id="${btnId}">提交方案并评价可行性</button>` +
+                '</div></div>';
+        }
+
+        function buildTuilvAlgorithmChoiceHtml(formId, variety) {
+            return `<div class="agent-tuilv-form" id="${formId}">` +
+                `<div class="agent-tuilv-form-title">请选择知识库检索算法（${escapeHtml(variety || '')}）</div>` +
+                '<div class="agent-tuilv-form-options">' +
+                '<button type="button" class="agent-tuilv-form-btn" data-algo="skill">算法1：OpenCode Skill 检索</button>' +
+                '<button type="button" class="agent-tuilv-form-btn" data-algo="hybrid">算法2：JSON 知识库 RAG 检索</button>' +
+                '</div></div>';
+        }
+
+        function bindTuilvAlgorithmChoiceForm(formId, variety) {
+            const formEl = document.getElementById(formId);
+            if (!formEl) return;
+            formEl.querySelectorAll('[data-algo]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (isProcessing) return;
+                    const algorithm = btn.getAttribute('data-algo') || 'hybrid';
+                    formEl.querySelectorAll('[data-algo]').forEach(b => { b.disabled = true; });
+                    resetTuilvAnalysisState();
+                    setTuilvAnalysisInputMode(null);
+                    addMessage('user', algorithm === 'skill'
+                        ? '使用算法1：OpenCode Skill 检索'
+                        : '使用算法2：JSON 知识库 RAG 检索');
+                    startTuilvGeneratePipeline(variety, algorithm);
+                });
+            });
+        }
+
+        function buildTuilvRagAlgoLabel(ragData) {
+            if (ragData && ragData.algorithm_label) return ragData.algorithm_label;
+            if (ragData && ragData.algorithm === 'skill') return 'OpenCode Skill 检索';
+            return 'JSON 知识库 RAG 检索';
+        }
+
+        function stopTuilvProgressSimulation() {
+            if (tuilvProgressTimer) {
+                clearInterval(tuilvProgressTimer);
+                tuilvProgressTimer = null;
+            }
+        }
+
+        function updateTuilvPipelineProgress(percent, label) {
+            if (!tuilvGeneratePipeline || !tuilvGeneratePipeline.barEl) return;
+            const pct = Math.max(0, Math.min(100, percent));
+            tuilvGeneratePipeline.progress = pct;
+            tuilvGeneratePipeline.barEl.style.width = pct + '%';
+            if (tuilvGeneratePipeline.statusEl && label) {
+                tuilvGeneratePipeline.statusEl.textContent = label;
+            }
+        }
+
+        function startTuilvProgressSimulation(from, to, label, durationMs) {
+            stopTuilvProgressSimulation();
+            const start = Date.now();
+            updateTuilvPipelineProgress(from, label);
+            tuilvProgressTimer = setInterval(() => {
+                if (!tuilvGeneratePipeline || tuilvGeneratePipeline.aborted) {
+                    stopTuilvProgressSimulation();
+                    return;
+                }
+                const ratio = Math.min(1, (Date.now() - start) / durationMs);
+                updateTuilvPipelineProgress(from + (to - from) * ratio, label);
+                if (ratio >= 1) stopTuilvProgressSimulation();
+            }, 120);
+        }
+
+        function streamTuilvHybridRagSearch(variety, signal) {
+            return new Promise((resolve, reject) => {
+                let finished = false;
+                let readerRef = null;
+
+                const fail = err => {
+                    if (finished) return;
+                    finished = true;
+                    if (readerRef) {
+                        try { readerRef.cancel(); } catch (e) {}
+                    }
+                    reject(err);
+                };
+
+                fetch(agentTuilvRunUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
+                    },
+                    body: JSON.stringify({ variety, mode: 'rag_search_hybrid' }),
+                    signal
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    readerRef = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    const finalize = data => {
+                        if (finished) return;
+                        finished = true;
+                        try { readerRef.cancel(); } catch (e) {}
+                        resolve(data);
+                    };
+
+                    const pump = () => readerRef.read().then(result => {
+                        if (finished) return;
+                        if (result.done) {
+                            if (!finished) fail(new Error('混合 RAG 检索未完成'));
+                            return;
+                        }
+                        buffer += decoder.decode(result.value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+                        for (const line of lines) {
+                            if (!line.startsWith('data: ')) continue;
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                if (data.type === 'status') {
+                                    updateTuilvPipelineProgress(
+                                        data.progress != null ? data.progress : (tuilvGeneratePipeline ? tuilvGeneratePipeline.progress : 3),
+                                        data.content || 'JSON 知识库 RAG 检索中…'
+                                    );
+                                } else if (data.type === 'finished' && data.rag_data) {
+                                    finalize({ success: true, ...data.rag_data });
+                                    return;
+                                } else if (data.type === 'error') {
+                                    fail(new Error(data.error || '混合 RAG 检索失败'));
+                                    return;
+                                }
+                            } catch (e) {
+                                console.error('解析混合 RAG SSE 失败:', e);
+                            }
+                        }
+                        return pump();
+                    });
+                    return pump().catch(fail);
+                })
+                .catch(fail);
+            });
+        }
+
+        function buildTuilvPipelineProgressHtml(pipelineId) {
+            return `<div class="agent-tuilv-pipeline" id="${pipelineId}">` +
+                '<div class="agent-tuilv-pipeline-title">🍊 褪绿方案生成进度</div>' +
+                '<div class="agent-tuilv-pipeline-bar-wrap">' +
+                `<div class="agent-tuilv-pipeline-bar" id="${pipelineId}-bar"></div></div>` +
+                `<div class="agent-tuilv-pipeline-status" id="${pipelineId}-status">准备中…</div></div>`;
+        }
+
+        function initTuilvPipelineProgress(pipelineId) {
+            tuilvGeneratePipeline = {
+                active: true,
+                aborted: false,
+                progress: 0,
+                barEl: document.getElementById(pipelineId + '-bar'),
+                statusEl: document.getElementById(pipelineId + '-status'),
+                ragAbort: null
+            };
+            updateTuilvPipelineProgress(0, '准备中…');
+        }
+
+        function finishTuilvPipeline(success) {
+            stopTuilvProgressSimulation();
+            if (tuilvGeneratePipeline && !tuilvGeneratePipeline.aborted) {
+                updateTuilvPipelineProgress(success ? 100 : tuilvGeneratePipeline.progress,
+                    success ? '✅ 褪绿方案生成完成' : '⏹ 流程已终止');
+            }
+            if (tuilvGeneratePipeline) tuilvGeneratePipeline.active = false;
+        }
+
+        function buildTuilvRagResultsHtml(ragData) {
+            const variety = escapeHtml(ragData.variety || '—');
+            const query = escapeHtml(ragData.query || '—');
+            const algoLabel = escapeHtml(buildTuilvRagAlgoLabel(ragData));
+            const items = (ragData.items || []).slice(0, 3);
+            if (!ragData.found || !items.length) {
+                return '<div class="agent-tuilv-rag-result">' +
+                    `<div class="agent-tuilv-step-title">📚 知识库检索结果（${algoLabel}）</div>` +
+                    `<div class="agent-env-empty">未找到「${variety}」专用褪绿方案，将跳过知识库直接生成。</div>` +
+                    `<div class="agent-tuilv-rag-query">检索词：${query}</div></div>`;
+            }
+            const segments = items.map((item, idx) => {
+                const text = String(item.output || item.instruction || '—');
+                return `<div class="agent-tuilv-rag-segment">` +
+                    `<div class="agent-tuilv-rag-segment-head">文本段 ${idx + 1} · 相关度 ${formatEnvNum(item.score, 2)}</div>` +
+                    `<div class="agent-tuilv-rag-segment-body">${escapeHtml(text)}</div></div>`;
+            }).join('');
+            return '<div class="agent-tuilv-rag-result">' +
+                `<div class="agent-tuilv-step-title">📚 知识库检索结果（${algoLabel} · 最相关 ${items.length} 条）</div>` +
+                `<div class="agent-tuilv-rag-segments">${segments}</div>` +
+                `<div class="agent-tuilv-rag-query">检索词：${query}</div></div>`;
+        }
+
+        function startTuilvGeneratePipeline(variety, algorithm) {
+            algorithm = algorithm || 'hybrid';
+            if (isProcessing) return;
+            if (!agentSessionId) {
+                addMessage('bot', '❌ 会话未就绪，请稍候...');
+                return;
+            }
+
+            tuilvAnalysisCounter += 1;
+            const pipelineId = `agent-tuilv-pipeline-${tuilvAnalysisCounter}`;
+            addMessage('bot', `🤖 开始为「${variety}」分步生成褪绿方案…`);
+            addBotHtmlMessage(buildTuilvPipelineProgressHtml(pipelineId));
+            initTuilvPipelineProgress(pipelineId);
+
+            let planText = '';
+            isProcessing = true;
+            sendBtn.disabled = true;
+            setModelSelectDisabled(true);
+            stopBtn.style.display = 'inline-block';
+
+            function assertPipelineActive(result) {
+                if (!tuilvGeneratePipeline || tuilvGeneratePipeline.aborted) {
+                    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+                }
+                return result;
+            }
+
+            function runPlanStep() {
+                stopTuilvProgressSimulation();
+                updateTuilvPipelineProgress(35, '生成褪绿方案…');
+                startTuilvProgressSimulation(35, 62, '生成褪绿方案…', 12000);
+                return streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: `生成褪绿方案：${variety}`,
+                    extraBody: { mode: 'plan', variety },
+                    stepPrefix: '**褪绿方案**\n\n',
+                    keepBusy: true
+                });
+            }
+
+            let ragStepPromise;
+            if (algorithm === 'skill') {
+                updateTuilvPipelineProgress(3, 'OpenCode Skill 检索知识库…');
+                startTuilvProgressSimulation(3, 32, 'OpenCode Skill 检索中…', 120000);
+                ragStepPromise = streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: `本地知识库检索+${variety}`,
+                    extraBody: { mode: 'rag_search_skill', variety },
+                    stepPrefix: '**Skill 检索过程**\n\n',
+                    keepBusy: true
+                })
+                .then(result => assertPipelineActive(result))
+                .then(result => {
+                    stopTuilvProgressSimulation();
+                    const ragData = result && result.ragData;
+                    if (!ragData) throw new Error('Skill 检索未返回结构化结果');
+                    addBotHtmlMessage(buildTuilvRagResultsHtml(ragData));
+                    updateTuilvPipelineProgress(32, '✅ Skill 检索完成');
+                    return runPlanStep();
+                });
+            } else {
+                updateTuilvPipelineProgress(3, 'JSON 知识库 RAG 检索中…');
+                const ragAbort = new AbortController();
+                tuilvGeneratePipeline.ragAbort = ragAbort;
+                ragStepPromise = streamTuilvHybridRagSearch(variety, ragAbort.signal)
+                .then(ragData => assertPipelineActive(ragData))
+                .then(ragData => {
+                    if (!ragData.success) throw new Error(ragData.error || '知识库检索失败');
+                    addBotHtmlMessage(buildTuilvRagResultsHtml(ragData));
+                    updateTuilvPipelineProgress(32, '✅ JSON 检索完成，生成褪绿方案…');
+                    return runPlanStep();
+                });
+            }
+
+            ragStepPromise
+            .then(result => assertPipelineActive(result))
+            .then(result => {
+                planText = (result && result.text) ? result.text : '';
+                stopTuilvProgressSimulation();
+                updateTuilvPipelineProgress(65, '生成环境调控建议…');
+                startTuilvProgressSimulation(65, 92, '生成环境调控建议…', 10000);
+                return streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: `环境调控建议：${variety}`,
+                    extraBody: { mode: 'env', variety, plan_text: planText },
+                    stepPrefix: '**环境调控建议**\n\n'
+                });
+            })
+            .then(() => {
+                finishTuilvPipeline(true);
+                isProcessing = false;
+                sendBtn.disabled = false;
+                setModelSelectDisabled(false);
+                stopBtn.style.display = 'none';
+            })
+            .catch(err => {
+                stopTuilvProgressSimulation();
+                isProcessing = false;
+                sendBtn.disabled = false;
+                setModelSelectDisabled(false);
+                stopBtn.style.display = 'none';
+                if (err && err.name === 'AbortError') {
+                    finishTuilvPipeline(false);
+                    return;
+                }
+                finishTuilvPipeline(false);
+                addMessage('bot', `❌ 褪绿方案生成失败：${(err && err.message) || '未知错误'}`);
+            });
+        }
+
+        function bindTuilvSchemeQuestionForm(formId) {
+            const formEl = document.getElementById(formId);
+            if (!formEl) return;
+            formEl.querySelectorAll('[data-choice]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (isProcessing) return;
+                    const choice = btn.getAttribute('data-choice');
+                    formEl.querySelectorAll('[data-choice]').forEach(b => { b.disabled = true; });
+                    if (choice === 'no') {
+                        const varietyForGenerate = tuilvAnalysisState.variety;
+                        tuilvAnalysisCounter += 1;
+                        const algoFormId = `agent-tuilv-algo-form-${tuilvAnalysisCounter}`;
+                        addBotHtmlMessage(buildTuilvAlgorithmChoiceHtml(algoFormId, varietyForGenerate));
+                        bindTuilvAlgorithmChoiceForm(algoFormId, varietyForGenerate);
+                        return;
+                    }
+                    tuilvAnalysisCounter += 1;
+                    const inputFormId = `agent-tuilv-scheme-form-${tuilvAnalysisCounter}`;
+                    const textareaId = `agent-tuilv-scheme-text-${tuilvAnalysisCounter}`;
+                    const submitId = `agent-tuilv-scheme-submit-${tuilvAnalysisCounter}`;
+                    tuilvAnalysisState.stage = 'scheme_input';
+                    setTuilvAnalysisInputMode('scheme_input');
+                    addBotHtmlMessage(buildTuilvSchemeInputHtml(inputFormId, textareaId, submitId));
+                    bindTuilvSchemeInputForm(textareaId, submitId);
+                });
+            });
+        }
+
+        function bindTuilvSchemeInputForm(textareaId, submitId) {
+            const submitBtn = document.getElementById(submitId);
+            const textarea = document.getElementById(textareaId);
+            if (!submitBtn || !textarea) return;
+            submitBtn.addEventListener('click', () => {
+                if (isProcessing) return;
+                const scheme = (textarea.value || '').trim();
+                if (!scheme) {
+                    addMessage('bot', '❌ 请先输入您的褪绿方案。');
+                    return;
+                }
+                submitBtn.disabled = true;
+                textarea.disabled = true;
+                const variety = tuilvAnalysisState.variety;
+                resetTuilvAnalysisState();
+                setTuilvAnalysisInputMode(null);
+                addMessage('user', `我的褪绿方案：${scheme}`);
+                addMessage('bot', '🤖 正在从方案专业角度评价可行性（不结合基地环境数据）…');
+                streamAgentFromUrl(agentTuilvRunUrl, '', {
+                    historyUserContent: `评价褪绿方案：${variety}`,
+                    extraBody: { mode: 'evaluate', variety, user_scheme: scheme }
+                });
+            });
+        }
+
+        function startTuilvAnalysis() {
+            if (isProcessing) return;
+
+            const btn = document.getElementById('tuilv-analysis-btn');
+            const checkedBases = getCheckedBasesFromDashboard();
+            if (!checkedBases.length) {
+                addMessage('bot', '请先在主页地图或大屏总览矩阵中勾选至少一个基地，再点击「品种褪绿分析」。');
+                return;
+            }
+
+            const baseIds = checkedBases.map(item => String(item.base_id));
+            const baseNames = checkedBases.map(item => item.base_name || item.base_id).join('、');
+
+            if (btn) btn.disabled = true;
+            resetTuilvAnalysisState();
+            harvestAnalysisMode = false;
+            storageAnalysisMode = false;
+            setHarvestAnalysisInputMode(false);
+            setStorageAnalysisInputMode(false);
+
+            addMessage('bot', `🍊 正在加载基地环境数据：${baseNames} …`);
+
+            fetch(agentTuilvPrepareUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') || ''
+                },
+                body: JSON.stringify({ base_ids: baseIds, days: 3 })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    addMessage('bot', `❌ 准备失败：${data.error || '未知错误'}`);
+                    return;
+                }
+                agentBaseInfoData = data.base_info || null;
+                agentBaseEnvData = data.env_data || null;
+                tuilvAnalysisCounter += 1;
+                const prefix = `tuilv-chart-${tuilvAnalysisCounter}`;
+                const msgEl = addBotHtmlMessage(buildTuilvEnvHtml(data, prefix));
+                setTimeout(() => {
+                    renderTuilvEnvCharts(prefix, data.chart_records || data.recent_records || []);
+                    if (msgEl && msgEl.querySelector) {
+                        msgEl.querySelectorAll('.agent-tuilv-chart').forEach(node => {
+                            if (window.echarts) {
+                                const inst = echarts.getInstanceByDom(node);
+                                if (inst) inst.resize();
+                            }
+                        });
+                    }
+                }, 120);
+                tuilvAnalysisState = { active: true, stage: 'variety', variety: null };
+                setTuilvAnalysisInputMode('variety');
+                addMessage('bot', '🍊 环境数据已就绪。请在输入框输入**要褪绿的柑橘品种**，然后点击「发送」。');
+            })
+            .catch(err => addMessage('bot', `❌ 准备失败：${err.message || '网络错误'}`))
+            .finally(() => { if (btn) btn.disabled = false; });
         }
 
         function buildHarvestMapHtml(mapId, coordId, btnId) {
@@ -1875,8 +2696,10 @@
 
             harvestAnalysisMode = false;
             storageAnalysisMode = false;
+            resetTuilvAnalysisState();
             setStorageAnalysisInputMode(false);
             setHarvestAnalysisInputMode(false);
+            setTuilvAnalysisInputMode(null);
 
             fetch(agentHarvestStartUrl, {
                 method: 'POST',
@@ -1924,6 +2747,8 @@
             if (btn) btn.disabled = true;
             addMessage('bot', '📊 正在准备贮藏环境分析数据：' + baseNames + ' …');
             harvestAnalysisMode = false;
+            resetTuilvAnalysisState();
+            setTuilvAnalysisInputMode(null);
             setHarvestAnalysisInputMode(false);
 
             fetch(agentStoragePrepareUrl, {
@@ -1970,6 +2795,8 @@
 
             if (btn) btn.disabled = true;
             storageAnalysisMode = false;
+            resetTuilvAnalysisState();
+            setTuilvAnalysisInputMode(null);
             setStorageAnalysisInputMode(false);
             addMessage('bot', '📈 正在准备运行情况分析数据：' + baseNames + ' …');
 
@@ -2603,6 +3430,17 @@
          * 强制停止所有回答功能
          */
         function forceStopAnswer() {
+            if (tuilvGeneratePipeline && tuilvGeneratePipeline.active) {
+                tuilvGeneratePipeline.aborted = true;
+                stopTuilvProgressSimulation();
+                updateTuilvPipelineProgress(tuilvGeneratePipeline.progress || 0, '⏹ 流程已终止');
+                tuilvGeneratePipeline.active = false;
+                if (tuilvGeneratePipeline.ragAbort) {
+                    try { tuilvGeneratePipeline.ragAbort.abort(); } catch (e) {}
+                    tuilvGeneratePipeline.ragAbort = null;
+                }
+            }
+
             if (hasTTS) {
                 window.speechSynthesis.cancel();
                 console.log('语音播放已停止');
@@ -2677,7 +3515,7 @@
                     'X-CSRFToken': getCookie('csrftoken') || ''
                 },
                 body: JSON.stringify(Object.assign(
-                    { title: '智能体问答会话' },
+                    { title: '柑橘采后生产智能体' },
                     getOpencodeModelRequestPayload()
                 ))
             })
@@ -2860,234 +3698,239 @@
          */
         function streamAgentFromUrl(sendUrl, sendMessage, options) {
             options = options || {};
+            const stepPrefix = options.stepPrefix || '';
+            const keepBusy = !!options.keepBusy;
 
-            isProcessing = true;
-            questionInput.disabled = true;
-            sendBtn.disabled = true;
-            setModelSelectDisabled(true);
-            stopBtn.style.display = 'inline-block';
+            return new Promise((resolve, reject) => {
+                isProcessing = true;
+                questionInput.disabled = true;
+                sendBtn.disabled = true;
+                setModelSelectDisabled(true);
+                stopBtn.style.display = 'inline-block';
 
-            const thinkingId = 'thinking-' + Date.now();
-            currentThinkingId = thinkingId;
-            addMessage('bot', '🤔 思考中<span class="loading-dots"></span>', thinkingId, true);
-            chatBox.scrollTop = chatBox.scrollHeight;
+                const thinkingId = 'thinking-' + Date.now();
+                currentThinkingId = thinkingId;
+                addMessage('bot', '🤔 思考中<span class="loading-dots"></span>', thinkingId, true);
+                chatBox.scrollTop = chatBox.scrollHeight;
 
-            if (options.enableSpeechListening && speechEnabled && hasRecognition) {
-                startCommandListening();
-            }
+                if (options.enableSpeechListening && speechEnabled && hasRecognition) {
+                    startCommandListening();
+                }
 
-            currentAbortController = new AbortController();
+                currentAbortController = new AbortController();
 
-            const thinkingElement = document.getElementById(thinkingId);
-            let botMessageId = 'bot-msg-' + Date.now();
-            let botMessageEl = null;
-            let reasoningContent = '';
-            let textContent = '';
+                const thinkingElement = document.getElementById(thinkingId);
+                let botMessageId = 'bot-msg-' + Date.now();
+                let botMessageEl = null;
+                let reasoningContent = '';
+                let textContent = '';
 
-            fetch(sendUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') || ''
-                },
-                body: JSON.stringify(Object.assign(
-                    {
-                        session_id: agentSessionId,
-                        message: sendMessage
+                fetch(sendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || ''
                     },
-                    getOpencodeModelRequestPayload()
-                )),
-                signal: currentAbortController.signal
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                if (thinkingElement) {
-                    thinkingElement.remove();
-                }
-
-                botMessageEl = addMessage('bot', '', botMessageId);
-                const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                const END_STABLE_MS = 700;
-                const END_CHECK_INTERVAL_MS = 200;
-                const END_MAX_WAIT_MS = 10000;
-                let pendingEnd = false;
-                let finalized = false;
-                let finishDeadlineAt = 0;
-                let lastTotalLen = 0;
-                let lastGrowthAt = Date.now();
-                let endCheckTimer = null;
-                let finishPayload = null;
-
-                function totalLen() {
-                    return (reasoningContent ? reasoningContent.length : 0) + (textContent ? textContent.length : 0);
-                }
-
-                function noteGrowth() {
-                    const nowLen = totalLen();
-                    if (nowLen !== lastTotalLen) {
-                        lastTotalLen = nowLen;
-                        lastGrowthAt = Date.now();
-                    }
-                }
-
-                function finalizeStream() {
-                    if (finalized) return;
-                    finalized = true;
-                    if (endCheckTimer) {
-                        try { clearTimeout(endCheckTimer); } catch (e) {}
-                        endCheckTimer = null;
+                    body: JSON.stringify(Object.assign(
+                        {
+                            session_id: agentSessionId,
+                            message: sendMessage
+                        },
+                        getOpencodeModelRequestPayload(),
+                        options.extraBody || {}
+                    )),
+                    signal: currentAbortController.signal
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
 
-                    const finalReasoning = (finishPayload && finishPayload.reasoning != null) ? finishPayload.reasoning : reasoningContent;
-                    const finalText = (finishPayload && finishPayload.text != null) ? finishPayload.text : textContent;
-                    if (contentDiv) {
-                        contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, finalText);
+                    if (thinkingElement) {
+                        thinkingElement.remove();
                     }
 
-                    if (speechEnabled && hasTTS) {
-                        setTimeout(() => {
-                            const speechText = toSpeechText(finalText);
-                            console.log("语音播报内容：", speechText);
-                            speak(speechText);
-                        }, 100);
+                    botMessageEl = addMessage('bot', '', botMessageId);
+                    const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    const END_STABLE_MS = 700;
+                    const END_CHECK_INTERVAL_MS = 200;
+                    const END_MAX_WAIT_MS = 10000;
+                    let pendingEnd = false;
+                    let finalized = false;
+                    let finishDeadlineAt = 0;
+                    let lastTotalLen = 0;
+                    let lastGrowthAt = Date.now();
+                    let endCheckTimer = null;
+                    let finishPayload = null;
+
+                    function totalLen() {
+                        return (reasoningContent ? reasoningContent.length : 0) + (textContent ? textContent.length : 0);
                     }
 
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                    try { reader.cancel(); } catch (e) {}
-                }
+                    function noteGrowth() {
+                        const nowLen = totalLen();
+                        if (nowLen !== lastTotalLen) {
+                            lastTotalLen = nowLen;
+                            lastGrowthAt = Date.now();
+                        }
+                    }
 
-                function scheduleEndCheck() {
-                    if (finalized) return;
-                    if (!pendingEnd) return;
-                    if (endCheckTimer) return;
+                    function renderStreamContent() {
+                        if (!contentDiv) return;
+                        contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, stepPrefix + textContent);
+                    }
 
-                    endCheckTimer = setTimeout(function tick() {
-                        endCheckTimer = null;
+                    function finalizeStream() {
+                        if (finalized) return;
+                        finalized = true;
+                        if (endCheckTimer) {
+                            try { clearTimeout(endCheckTimer); } catch (e) {}
+                            endCheckTimer = null;
+                        }
+
+                        const finalReasoning = (finishPayload && finishPayload.reasoning != null) ? finishPayload.reasoning : reasoningContent;
+                        const finalText = (finishPayload && finishPayload.text != null) ? finishPayload.text : textContent;
+                        if (contentDiv) {
+                            contentDiv.innerHTML = buildAgentReplyHtml(finalReasoning, stepPrefix + finalText);
+                        }
+
+                        if (speechEnabled && hasTTS && !keepBusy) {
+                            setTimeout(() => {
+                                const speechText = toSpeechText(finalText);
+                                speak(speechText);
+                            }, 100);
+                        }
+
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                        try { reader.cancel(); } catch (e) {}
+                        resolve({
+                            reasoning: finalReasoning,
+                            text: finalText,
+                            ragData: finishPayload ? (finishPayload.rag_data || finishPayload.ragData) : null
+                        });
+                    }
+
+                    function scheduleEndCheck() {
                         if (finalized) return;
                         if (!pendingEnd) return;
+                        if (endCheckTimer) return;
 
-                        noteGrowth();
-                        const now = Date.now();
-                        const stable = (now - lastGrowthAt) >= END_STABLE_MS;
-                        const deadlineHit = finishDeadlineAt > 0 && now >= finishDeadlineAt;
-                        if (stable || deadlineHit) {
-                            finalizeStream();
-                            return;
-                        }
-                        scheduleEndCheck();
-                    }, END_CHECK_INTERVAL_MS);
-                }
+                        endCheckTimer = setTimeout(function tick() {
+                            endCheckTimer = null;
+                            if (finalized) return;
+                            if (!pendingEnd) return;
 
-                function readStream() {
-                    return reader.read().then(({ done, value }) => {
-                        if (done) {
-                            if (pendingEnd && !finalized) {
+                            noteGrowth();
+                            const now = Date.now();
+                            const stable = (now - lastGrowthAt) >= END_STABLE_MS;
+                            const deadlineHit = finishDeadlineAt > 0 && now >= finishDeadlineAt;
+                            if (stable || deadlineHit) {
                                 finalizeStream();
+                                return;
                             }
-                            return;
-                        }
+                            scheduleEndCheck();
+                        }, END_CHECK_INTERVAL_MS);
+                    }
 
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
+                    function readStream() {
+                        return reader.read().then(({ done, value }) => {
+                            if (done) {
+                                if (!finalized) finalizeStream();
+                                return;
+                            }
 
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const data = JSON.parse(line.slice(6));
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
 
-                                    if (data.type === 'reasoning') {
-                                        reasoningContent += data.content;
-                                        noteGrowth();
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+
+                                        if (data.type === 'reasoning') {
+                                            reasoningContent += data.content;
+                                            noteGrowth();
+                                            renderStreamContent();
+                                            chatBox.scrollTop = chatBox.scrollHeight;
+                                        } else if (data.type === 'text') {
+                                            const delta = (data.content !== undefined && data.content !== null)
+                                                ? data.content
+                                                : (data.text || '');
+                                            textContent += delta;
+                                            noteGrowth();
+                                            renderStreamContent();
+                                            chatBox.scrollTop = chatBox.scrollHeight;
+                                        } else if (data.type === 'finish' || data.type === 'finished') {
+                                            pendingEnd = true;
+                                            finishPayload = data || finishPayload;
+                                            finishDeadlineAt = Date.now() + END_MAX_WAIT_MS;
+                                            noteGrowth();
+                                            scheduleEndCheck();
+                                        } else if (data.type === 'error') {
+                                            if (contentDiv) {
+                                                contentDiv.innerHTML = '❌ 错误: ' + escapeHtml(data.error);
+                                            }
+                                            reject(new Error(data.error || 'SSE 错误'));
                                         }
-                                        chatBox.scrollTop = chatBox.scrollHeight;
-                                    } else if (data.type === 'text') {
-                                        const delta = (data.content !== undefined && data.content !== null)
-                                            ? data.content
-                                            : (data.text || '');
-                                        textContent += delta;
-                                        noteGrowth();
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = buildAgentReplyHtml(reasoningContent, textContent);
-                                        }
-                                        chatBox.scrollTop = chatBox.scrollHeight;
-                                    } else if (data.type === 'finish' || data.type === 'finished') {
-                                        pendingEnd = true;
-                                        finishPayload = data || finishPayload;
-                                        finishDeadlineAt = Date.now() + END_MAX_WAIT_MS;
-                                        noteGrowth();
-                                        scheduleEndCheck();
-                                    } else if (data.type === 'error') {
-                                        if (contentDiv) {
-                                            contentDiv.innerHTML = '❌ 错误: ' + escapeHtml(data.error);
-                                        }
-                                        throw new Error(data.error);
+                                    } catch (e) {
+                                        console.error('解析SSE数据失败:', e);
                                     }
-                                } catch (e) {
-                                    console.error('解析SSE数据失败:', e);
                                 }
                             }
-                        }
 
-                        return readStream();
-                    });
-                }
-
-                return readStream();
-            })
-            .then(() => {
-                stopCommandListening();
-                currentThinkingId = null;
-            })
-            .catch(error => {
-                if (error.name === 'AbortError') {
-                    console.log('请求已被用户取消');
-                    if (thinkingElement && thinkingElement.parentNode) {
-                        thinkingElement.textContent = '⏹ 回答已停止';
-                    } else if (botMessageEl) {
-                        const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
-                        if (contentDiv) {
-                            contentDiv.innerHTML = '⏹ 回答已停止';
-                        }
+                            return readStream();
+                        });
                     }
-                } else {
-                    console.error('Error:', error);
-                    if (thinkingElement && thinkingElement.parentNode) {
-                        thinkingElement.textContent = '❌ 请求出错: ' + error.message;
-                    } else if (botMessageEl) {
-                        const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
-                        if (contentDiv) {
-                            contentDiv.innerHTML = '❌ 请求出错: ' + escapeHtml(error.message);
+
+                    return readStream();
+                })
+                .then(() => {
+                    stopCommandListening();
+                    currentThinkingId = null;
+                })
+                .catch(error => {
+                    if (error.name === 'AbortError') {
+                        console.log('请求已被用户取消');
+                        if (thinkingElement && thinkingElement.parentNode) {
+                            thinkingElement.textContent = '⏹ 回答已停止';
+                        } else if (botMessageEl) {
+                            const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
+                            if (contentDiv) contentDiv.innerHTML = '⏹ 回答已停止';
                         }
+                        reject(error);
                     } else {
-                        addMessage('bot', '❌ 请求出错: ' + error.message);
+                        console.error('Error:', error);
+                        if (thinkingElement && thinkingElement.parentNode) {
+                            thinkingElement.textContent = '❌ 请求出错: ' + error.message;
+                        } else if (botMessageEl) {
+                            const contentDiv = botMessageEl.querySelector('.bot-content') || botMessageEl.querySelector('div');
+                            if (contentDiv) contentDiv.innerHTML = '❌ 请求出错: ' + escapeHtml(error.message);
+                        } else {
+                            addMessage('bot', '❌ 请求出错: ' + error.message);
+                        }
+                        reject(error);
                     }
-                }
-            })
-            .finally(() => {
-                isProcessing = false;
-                currentAbortController = null;
-                currentThinkingId = null;
+                })
+                .finally(() => {
+                    currentAbortController = null;
+                    currentThinkingId = null;
+                    stopCommandListening();
 
-                stopCommandListening();
-
-                stopBtn.style.display = 'none';
-
-                questionInput.disabled = false;
-                sendBtn.disabled = false;
-                setModelSelectDisabled(false);
-                questionInput.focus();
-
-                updateVoiceBtn();
+                    if (!keepBusy) {
+                        isProcessing = false;
+                        stopBtn.style.display = 'none';
+                        questionInput.disabled = false;
+                        sendBtn.disabled = false;
+                        setModelSelectDisabled(false);
+                        questionInput.focus();
+                        updateVoiceBtn();
+                    }
+                });
             });
         }
 
@@ -3114,6 +3957,22 @@
             addMessage('user', question);
             questionInput.value = '';
 
+            if (tuilvAnalysisState.active && tuilvAnalysisState.stage === 'scheme_choice') {
+                addMessage('bot', '请在上方表单中选择「是否有褪绿方案」。');
+                return;
+            }
+
+            if (tuilvAnalysisState.active && tuilvAnalysisState.stage === 'variety') {
+                tuilvAnalysisState.variety = question;
+                tuilvAnalysisState.stage = 'scheme_choice';
+                setTuilvAnalysisInputMode(null);
+                tuilvAnalysisCounter += 1;
+                const questionFormId = `agent-tuilv-question-form-${tuilvAnalysisCounter}`;
+                addBotHtmlMessage(buildTuilvSchemeQuestionHtml(questionFormId));
+                bindTuilvSchemeQuestionForm(questionFormId);
+                return;
+            }
+
             const isStorageRun = storageAnalysisMode;
             const isHarvestRun = harvestAnalysisMode;
             if (isStorageRun) {
@@ -3123,6 +3982,10 @@
             if (isHarvestRun) {
                 harvestAnalysisMode = false;
                 setHarvestAnalysisInputMode(false);
+            }
+            if (tuilvAnalysisState.active) {
+                resetTuilvAnalysisState();
+                setTuilvAnalysisInputMode(null);
             }
 
             const sendUrl = isHarvestRun ? agentHarvestRunUrl : (isStorageRun ? agentStorageRunUrl : '{% url "agent_session_send" %}');
@@ -3145,6 +4008,27 @@
                 }
             }
             return cookieValue;
+        }
+
+        // ========== 分析工具气泡菜单 ==========
+        function toggleAnalysisMenu(e) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            var popover = document.getElementById('analysis-popover');
+            var trigger = document.getElementById('analysis-trigger');
+            if (!popover || !trigger) return;
+            var willOpen = !popover.classList.contains('show');
+            closeAnalysisMenu();
+            if (willOpen) {
+                popover.classList.add('show');
+                trigger.classList.add('open');
+            }
+        }
+
+        function closeAnalysisMenu() {
+            var popover = document.getElementById('analysis-popover');
+            var trigger = document.getElementById('analysis-trigger');
+            if (popover) popover.classList.remove('show');
+            if (trigger) trigger.classList.remove('open');
         }
 
         // ========== 键盘事件监听 ==========
@@ -3171,6 +4055,13 @@
 
         // 初始化语音按钮状态
         updateVoiceBtn();
+
+        document.addEventListener('click', function(e) {
+            var wrap = document.querySelector('.analysis-menu-wrap');
+            if (wrap && !wrap.contains(e.target)) {
+                closeAnalysisMenu();
+            }
+        });
     </script>
 </body>
 </html>
